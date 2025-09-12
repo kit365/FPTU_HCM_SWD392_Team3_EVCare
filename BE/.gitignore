@@ -75,3 +75,5 @@ build/
 # Other files
 # ========================
 HELP.md
+
+.env
