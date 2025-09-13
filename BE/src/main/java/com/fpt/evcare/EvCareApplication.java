@@ -1,4 +1,4 @@
-package com.three.fpt;
+package com.fpt.evcare;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import lombok.extern.slf4j.Slf4j;
@@ -17,14 +17,12 @@ public class EvCareApplication {
 					.ignoreIfMissing()
 					.load();
 
-			dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
-			if (log.isInfoEnabled()) {
+			if (dotenv != null) {
+				dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
 				log.info("✅ Loaded .env variables.");
 			}
 		} catch (Exception e) {
-			if (log.isWarnEnabled()) {
-				log.warn("⚠️ .env file not found or failed to load.", e);
-			}
+			log.warn("⚠️ .env file not found or failed to load. Using defaults.");
 		}
 
 		SpringApplication.run(EvCareApplication.class, args);
