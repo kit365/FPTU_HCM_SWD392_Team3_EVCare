@@ -1,7 +1,6 @@
 package com.fpt.evcare.exception;
 
 import com.fpt.evcare.base.ApiResponse;
-import com.fpt.evcare.dto.response.LoginResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -59,7 +58,7 @@ public class GlobalExceptionHandler {
             log.info("Invalid credentials: {}", ex.getMessage());
         }
         return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
+                .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
                         .message(ex.getMessage())
