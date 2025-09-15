@@ -1,7 +1,7 @@
 import { useAuth } from "../../../hooks/useAuth";
 import type { LoginRequest } from "../../../type/login";
 import { useForm } from "react-hook-form";
-import { TextField, Button, Paper, Typography, Box, InputAdornment, IconButton } from "@mui/material";
+import { TextField, Button, Paper, Typography, Box, InputAdornment, IconButton, CircularProgress } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useState } from "react";
 import { notify } from "../../../components/admin/common/Toast";
@@ -13,7 +13,7 @@ export const LoginPage = () => {
         formState: { errors },
     } = useForm<LoginRequest>({ mode: 'onBlur' });
 
-    const { login } = useAuth();
+    const { login, isLoading } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
 
     const onSubmit = async (data: LoginRequest) => {
@@ -79,8 +79,10 @@ export const LoginPage = () => {
                         fullWidth
                         size="large"
                         className="!py-3 !rounded-lg !font-bold !text-base !bg-blue-600 hover:!bg-blue-700 transition"
+                        disabled={isLoading}
+                        startIcon={isLoading ? <CircularProgress size={22} color="inherit" /> : null}
                     >
-                        Đăng nhập
+                        {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                     </Button>
                 </form>
             </Paper>
