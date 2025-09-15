@@ -66,5 +66,34 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleLockedException(LockedException ex) {
+        if (log.isInfoEnabled()) {
+            log.info("Account locked: {}", ex.getMessage());
+        }
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse<Void>> handleLockedException(DisabledException ex) {
+        if (log.isInfoEnabled()) {
+            log.info("Exception caught: {}", ex.getClass().getSimpleName(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
 
 }

@@ -1,12 +1,13 @@
 package com.fpt.evcare.serviceimpl;
+
 import com.fpt.evcare.constants.AccountConstants;
 import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.entity.AccountEntity;
+import com.fpt.evcare.exception.DisabledException;
 import com.fpt.evcare.exception.InvalidCredentialsException;
-import com.fpt.evcare.exception.ResourceNotFoundException;
-import com.fpt.evcare.repository.AccountRepository;
+import com.fpt.evcare.service.AccountService;
 import com.fpt.evcare.service.AuthService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,32 +21,39 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthServiceImpl implements AuthService {
-    AccountRepository accountRepository;
+
     PasswordEncoder passwordEncoder;
+    AccountService accountService;
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
-        AccountEntity account = accountRepository.findByEmail(loginRequest.getEmail());
-        if(account == null) {
-            if(log.isErrorEnabled()) {
-                log.error(AccountConstants.ERR_ACCOUNT_NOT_FOUND);
-            }
-            throw new ResourceNotFoundException(AccountConstants.ERR_ACCOUNT_NOT_FOUND);
-        }
+        AccountEntity account = accountService.findByEmail(loginRequest.getEmail());
+
+        validateAccount(account);
+
         boolean authenticated = passwordEncoder.matches(loginRequest.getPassword(),
                 account.getPassword());
 
-        if(!authenticated) {
-            if(log.isErrorEnabled()){
+        if (!authenticated) {
+            if (log.isErrorEnabled()) {
                 log.error(AuthConstants.ERR_INVALID_PASSWORD);
             }
             throw new InvalidCredentialsException(AuthConstants.ERR_INVALID_PASSWORD);
         }
-        else  {
-            log.info(AuthConstants.LOG_ACCOUNT_LOGIN_SUCCESS, loginRequest.getEmail());
-            LoginResponse response = new LoginResponse();
-            response.setToken("demo-token");
-            response.setAuthenticated(true);
-            return response;
+
+
+        log.info(AuthConstants.SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
+        LoginResponse response = new LoginResponse();
+        response.setToken("demo-token");
+        response.setAuthenticated(true);
+        return response;
+
+    }
+
+    private void validateAccount(AccountEntity account) {
+        if (Boolean.TRUE.equals(account.getIsDeleted())) {
+            log.error(AccountConstants.ERR_ACCOUNT_DELETED);
+            throw new DisabledException(AccountConstants.ERR_ACCOUNT_DELETED);
         }
+        // sau này thêm: locked, expired... cũng nhét ở đây
     }
 }

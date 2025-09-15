@@ -29,5 +29,4 @@ public class AccountEntity extends BaseEntity {
     @Column(name = "password", nullable = false)
     String password;
 
-
 }

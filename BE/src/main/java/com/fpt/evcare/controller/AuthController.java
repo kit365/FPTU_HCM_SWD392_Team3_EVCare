@@ -29,7 +29,7 @@ public class AuthController {
         return ResponseEntity
                 .ok(ApiResponse.<LoginResponse>builder()
                         .success(true)
-                        .message(AuthConstants.LOG_ACCOUNT_LOGIN_SUCCESS)
+                        .message(AuthConstants.SUCCESS_ACCOUNT_LOGIN)
                         .data(loginResponse)
                         .build()
                 );
