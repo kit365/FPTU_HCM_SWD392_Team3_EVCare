@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { LoginRequest } from "../type/login";
 import { authService } from "../service/authService";
+import { notify } from "../components/admin/common/Toast";
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +20,7 @@ export function useAuth() {
 
 
       if (response?.data.success === true) {
+        notify.success(response?.data.message || "Đăng nhập thành công")
             navigate("/admin/dashboard");
       } else {
         throw new Error(response?.data.message || "Đăng nhập thất bại");    

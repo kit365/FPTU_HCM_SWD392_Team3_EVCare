@@ -1,10 +1,12 @@
 import { useAuth } from "../../../hooks/useAuth";
-import { authService } from "../../../service/authService";
 import type { LoginRequest } from "../../../type/login";
 import { useForm } from "react-hook-form";
+import { TextField, Button, Paper, Typography, Box, InputAdornment, IconButton } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { useState } from "react";
+import { notify } from "../../../components/admin/common/Toast";
 
 export const LoginPage = () => {
-    
     const {
         register,
         handleSubmit,
@@ -12,55 +14,76 @@ export const LoginPage = () => {
     } = useForm<LoginRequest>({ mode: 'onBlur' });
 
     const { login } = useAuth();
+    const [showPassword, setShowPassword] = useState(false);
 
     const onSubmit = async (data: LoginRequest) => {
         await login(data);
+        // notify.success("Đăng nhập thành công!");
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-                <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Đăng nhập quản trị</h1>
+            <Paper elevation={6} className="p-8 rounded-xl w-full max-w-md shadow-lg">
+                <Typography variant="h4" className="!font-bold !mb-2 !text-center !text-blue-700" gutterBottom>
+                    Đăng nhập quản trị
+                </Typography>
+                <Typography variant="body1" className="!mb-6 !text-center text-gray-500">
+                    Vui lòng nhập thông tin để truy cập hệ thống quản trị
+                </Typography>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2" htmlFor="email">
-                            Email
-                        </label>
-
-                        <input
+                    <Box className="mb-5">
+                        <TextField
+                            label="Email"
                             type="email"
-                            id="email"
-                            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            placeholder="Nhập email"
+                            fullWidth
+                            variant="outlined"
+                            size="medium"
+                            autoComplete="email"
                             {...register("email", { required: "Email là bắt buộc" })}
+                            error={!!errors.email}
+                            helperText={errors.email?.message}
+                            InputLabelProps={{ className: "!font-semibold" }}
                         />
-                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-
-    
-                    </div>
-                    <div className="mb-6">
-                        <label className="block text-gray-700 mb-2" htmlFor="password">
-                            Mật khẩu
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.password ? "border-red-500" : ""}`}
-                            placeholder="Nhập mật khẩu"
+                    </Box>
+                    <Box className="mb-6">
+                        <TextField
+                            label="Mật khẩu"
+                            type={showPassword ? "text" : "password"}
+                            fullWidth
+                            variant="outlined"
+                            size="medium"
+                            autoComplete="current-password"
                             {...register("password", { required: "Vui lòng nhập mật khẩu" })}
+                            error={!!errors.password}
+                            helperText={errors.password?.message}
+                            InputLabelProps={{ className: "!font-semibold" }}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            aria-label="toggle password visibility"
+                                            onClick={() => setShowPassword((show) => !show)}
+                                            edge="end"
+                                        >
+                                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
                         />
-                        {errors.password && (
-                            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-                        )}
-                    </div>
-                    <button
+                    </Box>
+                    <Button
                         type="submit"
-                        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        size="large"
+                        className="!py-3 !rounded-lg !font-bold !text-base !bg-blue-600 hover:!bg-blue-700 transition"
                     >
                         Đăng nhập
-                    </button>
+                    </Button>
                 </form>
-            </div>
+            </Paper>
         </div>
     );
 };
