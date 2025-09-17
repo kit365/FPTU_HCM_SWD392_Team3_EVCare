@@ -1,5 +1,11 @@
 # PostgreSQL Database Configuration
 spring:
+
+  security:
+    user:
+      name: user
+      password: 123
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/evcare}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -13,7 +19,7 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
