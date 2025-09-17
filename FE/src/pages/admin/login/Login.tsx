@@ -1,10 +1,9 @@
 import { useAuth } from "../../../hooks/useAuth";
-import { authService } from "../../../service/authService";
 import type { LoginRequest } from "../../../type/login";
 import { useForm } from "react-hook-form";
 
 export const LoginPage = () => {
-    
+
     const {
         register,
         handleSubmit,
@@ -36,7 +35,7 @@ export const LoginPage = () => {
                         />
                         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
 
-    
+
                     </div>
                     <div className="mb-6">
                         <label className="block text-gray-700 mb-2" htmlFor="password">
