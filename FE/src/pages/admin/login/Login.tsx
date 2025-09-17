@@ -1,8 +1,9 @@
 import { useAuth } from "../../../hooks/useAuth";
 import type { LoginRequest } from "../../../type/login";
 import { useForm } from "react-hook-form";
-import { TextField, Button, Paper, Typography, Box, useMediaQuery } from "@mui/material";
+import { TextField, Button, Paper, Typography, Box, useMediaQuery, InputAdornment, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useState } from "react";
 
 export const LoginPage = () => {
@@ -63,7 +64,7 @@ export const LoginPage = () => {
                             </Typography>
                         </Box>
                         <Typography variant="h5" fontWeight={700}>
-                            EVcare Admin
+                            Admin
                         </Typography>
                     </Box>
                     <Typography variant="h3" fontWeight={800} mb={2}>
@@ -128,7 +129,7 @@ export const LoginPage = () => {
                         <Box mb={4}>
                             <TextField
                                 label="Mật khẩu"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 fullWidth
                                 variant="outlined"
                                 size="medium"
@@ -141,6 +142,17 @@ export const LoginPage = () => {
                                         borderRadius: 99,
                                         background: '#f5f6fa',
                                     },
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                aria-label="toggle password visibility"
+                                                onClick={() => setShowPassword((show) => !show)}
+                                                edge="end"
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
                                 }}
                                 InputLabelProps={{ sx: { fontWeight: 600 } }}
                             />
