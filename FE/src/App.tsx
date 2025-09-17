@@ -4,6 +4,7 @@ import { Layout } from './layouts/Layout';
 import { LayoutAdmin } from './layouts/LayoutAdmin';
 import { AdminRoutes, ClientRoutes } from './routes';
 import { Toast } from './components/admin/common/Toast';
+import { LoginPage } from './pages/admin/login/Login';
 
 function App() {
 
@@ -16,6 +17,8 @@ function App() {
               <Route key={path} path={path} element={element} />
             ))}
           </Route>
+
+          <Route path="admin/login" element={<LoginPage />} />
 
           <Route path="admin" element={<LayoutAdmin />}>
             {AdminRoutes.map(({ path, element }) => (

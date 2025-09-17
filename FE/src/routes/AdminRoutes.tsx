@@ -5,6 +5,9 @@ import { LoginPage } from "../pages/admin/login/Login";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
-    { path: "login", element: <LoginPage /> },
     { path: "setting", element: <SettingPage /> },
+];
+
+export const AuthAdminRoutes = [
+    { path: "login", element: <LoginPage /> },
 ];
