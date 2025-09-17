@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './layouts/Layout';
 import { LayoutAdmin } from './layouts/LayoutAdmin';
 import { AdminRoutes, ClientRoutes } from './routes';
+import { Toast } from './components/admin/common/Toast';
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
             ))}
           </Route>
         </Routes>
+        <Toast />
       </BrowserRouter>
     </>
   )
