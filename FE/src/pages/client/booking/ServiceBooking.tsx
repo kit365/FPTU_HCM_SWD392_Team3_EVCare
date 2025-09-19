@@ -9,6 +9,7 @@ import {
 } from "antd";
 import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
+import vinImage from "../../../assets/vin.jpg";
 
 const { TextArea } = Input;
 
@@ -39,17 +40,29 @@ export const ServiceBookingPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white rounded-2xl shadow-md">
-      <h2 className="text-center text-2xl font-bold mb-6">
-        ĐẶT LỊCH DỊCH VỤ
-      </h2>
+    <div className="min-h-screen relative">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+        style={{ 
+          backgroundImage: `url(${vinImage})`,
+          filter: 'blur(2px)'
+        }}
+      />
+      
+      {/* Content Overlay */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-6xl w-full bg-white rounded-2xl shadow-md p-6">
+          <h2 className="text-center text-2xl font-bold mb-6">
+            ĐẶT LỊCH DỊCH VỤ
+          </h2>
 
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFinish}
-        className="space-y-8"
-      >
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            className="space-y-8"
+          >
         {/* Grid 2 cột */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Thông tin khách hàng */}
@@ -172,13 +185,15 @@ export const ServiceBookingPage: React.FC = () => {
           </Form.Item>
         </div>
 
-        {/* Nút Submit */}
-        <div className="text-center">
-          <Button type="primary" htmlType="submit" size="large">
-            Đặt lịch hẹn
-          </Button>
+            {/* Nút Submit */}
+            <div className="text-center">
+              <Button type="primary" htmlType="submit" size="large">
+                Đặt lịch hẹn
+              </Button>
+            </div>
+          </Form>
         </div>
-      </Form>
+      </div>
     </div>
   );
 };
