@@ -2,6 +2,10 @@ package com.fpt.evcare.constants;
 
 public class ForgotPasswordConstants {
 
+    private ForgotPasswordConstants() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
     public static final String BASE_URL = EndpointConstants.V1.API + "/forgot-password";
 
     // Endpoints
@@ -16,9 +20,9 @@ public class ForgotPasswordConstants {
     public static final String OTP_ATTEMPTS_REDIS_KEY_PREFIX = "otp_attempts:";
     public static final String OTP_STATUS_REQUEST_PREFIX = "otp_requested:";
     public static final String OTP_STATUS_PENDING = "PENDING";
-    public static final String OTP_STATUS_INACTIVE = "INACTIVE"; // Nếu cần dùng sau này
-    public static final String OTP_STATUS_ACTIVE = "ACTIVE"; // Nếu cần dùng sau này
-    public static final String OTP_STATUS_IS_USED = "USED"; // Nếu cần dùng sau này
+    public static final String OTP_STATUS_INACTIVE = "INACTIVE";
+    public static final String OTP_STATUS_ACTIVE = "ACTIVE";
+
 
 
     // Success Messages

@@ -24,12 +24,15 @@ public class AuthController {
 
     @PostMapping(AuthConstants.LOGIN)
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest) {
-        log.info(AuthConstants.LOG_ACCOUNT_LOGIN, loginRequest.getEmail());
+        if(log.isErrorEnabled()) {
+            log.info(AuthConstants.LOG_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
+        }
+
         LoginResponse loginResponse = authService.login(loginRequest);
         return ResponseEntity
                 .ok(ApiResponse.<LoginResponse>builder()
                         .success(true)
-                        .message(AuthConstants.SUCCESS_ACCOUNT_LOGIN)
+                        .message(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN)
                         .data(loginResponse)
                         .build()
                 );

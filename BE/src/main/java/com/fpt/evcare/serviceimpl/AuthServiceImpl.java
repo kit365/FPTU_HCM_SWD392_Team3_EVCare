@@ -35,13 +35,15 @@ public class AuthServiceImpl implements AuthService {
 
         if (!authenticated) {
             if (log.isErrorEnabled()) {
-                log.error(AuthConstants.ERR_INVALID_PASSWORD);
+                log.error(AuthConstants.MESSAGE_ERR_INVALID_PASSWORD);
             }
-            throw new InvalidCredentialsException(AuthConstants.ERR_INVALID_PASSWORD);
+            throw new InvalidCredentialsException(AuthConstants.MESSAGE_ERR_INVALID_PASSWORD);
         }
 
+        if(log.isErrorEnabled()) {
+            log.info(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
+        }
 
-        log.info(AuthConstants.SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
         LoginResponse response = new LoginResponse();
         response.setToken("demo-token");
         response.setAuthenticated(true);
@@ -51,8 +53,8 @@ public class AuthServiceImpl implements AuthService {
 
     private void validateAccount(AccountEntity account) {
         if (Boolean.TRUE.equals(account.getIsDeleted())) {
-            log.error(AccountConstants.ERR_ACCOUNT_DELETED);
-            throw new DisabledException(AccountConstants.ERR_ACCOUNT_DELETED);
+            log.error(AccountConstants.MESSAGE_ERR_ACCOUNT_DELETED);
+            throw new DisabledException(AccountConstants.MESSAGE_ERR_ACCOUNT_DELETED);
         }
         // sau này thêm: locked, expired... cũng nhét ở đây
     }
