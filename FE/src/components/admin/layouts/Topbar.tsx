@@ -1,5 +1,5 @@
 import { MenuScale, Search, SunLight, BellNotificationSolid } from 'iconoir-react';
-import { IconButtonAdmin } from '../ui/Button';
+import { IconButtonAdmin } from '../ui/IconButton';
 
 interface TopbarProps {
     onToggleSidebar: () => void;

@@ -1,6 +1,4 @@
-# PostgreSQL Database Configuration
 spring:
-
   security:
     user:
       name: user
@@ -16,7 +14,6 @@ spring:
       minimum-idle: 2
       connection-timeout: 30000
 
-  # JPA Configuration
   jpa:
     hibernate:
       ddl-auto: create
@@ -30,11 +27,19 @@ spring:
           time_zone: Asia/Ho_Chi_Minh
     defer-datasource-initialization: true
 
-    # Server Configuration
-    server:
-      port: ${APP_PORT:8080}
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
 
-      # Swagger Configuration
+server:
+  port: ${APP_PORT:8080}
+
 springdoc:
   api-docs:
     path: /api-docs

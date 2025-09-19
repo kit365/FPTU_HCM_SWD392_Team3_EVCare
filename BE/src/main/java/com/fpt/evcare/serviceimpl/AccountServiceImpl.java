@@ -23,9 +23,9 @@ public class AccountServiceImpl implements AccountService {
         AccountEntity account = accountRepository.findByEmail(email);
         if (account == null) {
             if (log.isErrorEnabled()) {
-                log.error(AccountConstants.ERR_ACCOUNT_NOT_FOUND);
+                log.error(AccountConstants.MESSAGE_ERR_ACCOUNT_NOT_FOUND);
             }
-            throw new ResourceNotFoundException(AccountConstants.ERR_ACCOUNT_NOT_FOUND);
+            throw new ResourceNotFoundException(AccountConstants.MESSAGE_ERR_ACCOUNT_NOT_FOUND);
         }
         return account;
     }
