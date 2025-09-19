@@ -36,13 +36,18 @@ const config: Config = {
     plugin(function ({ addUtilities, theme }) {
       const sidebar = theme("width.sidebar") as string
       const sidebarCollapse = theme("width.sidebarCollapse") as string
+      const topbar = theme("height.topbar") as string
 
       addUtilities({
         ".w-content": { width: `calc(100% - ${sidebar})` },
         ".w-contentCollapse": { width: `calc(100% - ${sidebarCollapse})` },
+        ".h-content": { height: `calc(100% - ${topbar})` },
+        ".min-h-content": { minHeight: `calc(100% - ${topbar})` },
 
         ".ml-sidebar": { marginLeft: sidebar },
         ".ml-sidebarCollapse": { marginLeft: sidebarCollapse },
+
+        ".mt-topbar": { marginTop: topbar },
       })
     }),
   ],

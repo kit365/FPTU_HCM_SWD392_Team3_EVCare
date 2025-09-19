@@ -14,8 +14,8 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: HomeSimple,
     },
     {
-        href: `/${pathAdmin}/users`,
-        label: "Người dùng",
+        href: `/${pathAdmin}/staff`,
+        label: "Nhân viên",
         icon: Group,
     },
     {
