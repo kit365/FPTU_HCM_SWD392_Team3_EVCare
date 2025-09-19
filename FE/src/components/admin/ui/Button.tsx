@@ -1,16 +1,13 @@
-interface IconButtonProps {
-    icon: React.ElementType;
-    onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    className?: string;
-}
+import type { ButtonProps } from "../../../types/admin/button-item.types";
 
-export const IconButtonAdmin = ({ icon: Icon, onClick, className }: IconButtonProps) => {
+export const ButtonAdmin = ({ icon: Icon, href, text, className = "" }: ButtonProps) => {
     return (
-        <button
-            onClick={onClick}
-            className={`w-[48px] h-[48px] flex items-center justify-center bg-white rounded-full cursor-pointer text-[#96a0b5] mx-[8px] ${className}`}
+        <a
+            href={href}
+            className={`flex items-center text-white text-[1.3rem] font-[500] py-[0.82rem] px-[1.52rem] leading-[1.5] border rounded-[0.64rem] hover:opacity-90 transition-opacity duration-150 ease-in-out ${className}`}
         >
-            <Icon />
-        </button>
+            {Icon && <Icon className="w-[2rem] h-[2rem] mr-[0.5rem]" />}
+            <span>{text}</span>
+        </a>
     );
 };
