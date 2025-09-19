@@ -5,6 +5,8 @@ import { LayoutAdmin } from './layouts/LayoutAdmin';
 import { AdminRoutes, ClientRoutes } from './routes';
 import { Toast } from './components/admin/common/Toast';
 import { LoginPage } from './pages/admin/login/Login';
+import ClientLogin from './pages/client/account/ClientLogin';
+import ClientRegister from './pages/client/account/ClientRegister';
 
 function App() {
 
@@ -12,6 +14,10 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
+          <Route path="/client/login" element={<ClientLogin/>} />
+
+          <Route path="/client/register" element={<ClientRegister/>} />
+
           <Route element={<Layout />}>
             {ClientRoutes.map(({ path, element }) => (
               <Route key={path} path={path} element={element} />

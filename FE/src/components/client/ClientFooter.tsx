@@ -25,7 +25,6 @@ const ClientFooter: React.FC = () => {
     color: '#cccccc',
     textAlign: 'center',
     padding: '20px 0',
-    marginTop: '20px',
   };
 
   const headingStyle: React.CSSProperties = {
