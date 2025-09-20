@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${subject}">Xác thực thay đổi email</title>
+    <!--[if mso]>
+    <style type="text/css">
+      body, table, td, a { font-family: Arial, sans-serif !important; }
+    </style>
+    <![endif]-->
+</head>
+<body style="margin:0; padding:0; background:#f3f4f6; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+    <!-- Preheader (invisible in most clients) -->
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">
+        Mã OTP xác nhận thay đổi email cho tài khoản EV Care
+    </div>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f3f4f6;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+
+                <!-- Card -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px; width:100%; background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); overflow:hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="background:#1d4ed8; padding:24px 16px; color:#ffffff; font-family:'Segoe UI', Arial, sans-serif; font-size:22px; font-weight:700; letter-spacing:0.5px;">
+                            EV Care
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:24px 24px 8px 24px; font-family:'Segoe UI', Arial, sans-serif; color:#111827; font-size:15px; line-height:1.6;">
+                            <p style="margin:0 0 8px 0;">Xin chào, <strong th:text="${fullName}">Người dùng</strong></p>
+                            <p style="margin:0 0 8px 0;" th:text="${body}">
+                                Chúng tôi đã nhận được yêu cầu thay đổi địa chỉ email cho tài khoản của bạn. Vui lòng sử dụng mã OTP bên dưới để xác nhận thay đổi.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- OTP Box -->
+                    <tr>
+                        <td align="center" style="padding:8px 24px 24px 24px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:512px;">
+                                <tr>
+                                    <td align="center" style="padding:16px 12px 8px 12px; font-family:'Segoe UI', Arial, sans-serif; color:#374151; font-size:14px;">Mã OTP của bạn:</td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding:0 12px 6px 12px;">
+                                        <div style="display:inline-block; background:#eff6ff; color:#1d4ed8; font-family:'Segoe UI', Arial, sans-serif; font-size:32px; font-weight:800; padding:12px 20px; border-radius:10px; letter-spacing:10px; box-shadow:inset 0 2px 6px rgba(29,78,216,0.15);" th:text="${otp}">123456</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding:0 12px 8px 12px; font-family:'Segoe UI', Arial, sans-serif; color:#dc2626; font-size:13px;">Mã có hiệu lực trong 5 phút</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Notes -->
+                    <tr>
+                        <td style="padding:0 24px 24px 24px; font-family:'Segoe UI', Arial, sans-serif; color:#111827; font-size:14px; line-height:1.6;">
+                            <p style="margin:0;">Nếu bạn không yêu cầu thay đổi, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi để được hỗ trợ.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="background:#f9fafb; border-top:1px solid #e5e7eb; padding:14px 12px; font-family:'Segoe UI', Arial, sans-serif; color:#6b7280; font-size:12px;">
+                            &copy; 2025 EV Care. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+                <!-- End Card -->
+
+                <!-- Small spacer -->
+                <div style="line-height:24px; height:24px;">&#8202;</div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+
