@@ -11,11 +11,9 @@ public interface RoleService {
 
     void updateRole(UUID id, RoleRequest roleRequest);
 
-    RoleResponse getRoleByIdResponse(UUID id);
+    RoleResponse getRoleByIdResponse(UUID roleId);
 
     List<RoleResponse> getAllRoles();
 
-    void deleteRole(UUID id);
-
-    void deleteSoftRole(UUID id);
+    void deleteSoftRole(UUID roleId);
 }

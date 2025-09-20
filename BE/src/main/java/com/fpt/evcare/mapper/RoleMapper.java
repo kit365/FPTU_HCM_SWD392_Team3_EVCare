@@ -9,8 +9,8 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {
-    // Tạo mới Role từ request (bỏ qua permissions, xử lý riêng)
-    @Mapping(target = "permissions", ignore = true)
+    @Mapping(target = "roleId", ignore = true)
+    @Mapping(target = "permissions", expression = "java(role.getPermissions() != null ? role.getPermissions() : new ArrayList<>())")
     RoleEntity toEntity(RoleRequest role);
 
     // Map entity sang response
@@ -20,7 +20,8 @@ public interface RoleMapper {
 
     // Update Role (bỏ qua null và permissions)
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "permissions", ignore = true)
-    void updateRole(@MappingTarget RoleEntity entity, RoleRequest dto);
+    @Mapping(target = "roleId", ignore = true)
+    @Mapping(target = "isDeleted", source = "isDeleted")
+    void updateRole(@MappingTarget RoleEntity entity, RoleRequest role);
 }
 

@@ -15,12 +15,13 @@ import java.util.*;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class RoleEntity extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "role_id")
-    UUID id;
+    @GeneratedValue(generator = "UUID")
+    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "role_id", updatable = false, nullable = false)
+    UUID roleId;
 
     @Column(name = "role_name")
     @Enumerated(EnumType.STRING)
@@ -36,5 +37,6 @@ public class RoleEntity extends BaseEntity {
 
     @ManyToMany(mappedBy = "roles")
     private List<UserEntity> users = new ArrayList<>();
+
 
 }

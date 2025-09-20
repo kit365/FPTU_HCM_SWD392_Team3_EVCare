@@ -5,9 +5,12 @@ public class RoleConstants {
     public static final String SUCCESS_CREATE_ROLE = "Tạo role thành công.";
     public static final String SUCCESS_UPDATE_ROLE = "Cập nhật role thành công.";
     public static final String SUCCESS_GET_ALL_ROLE = "Lấy danh sách role thành công.";
+    public static final String SUCCESS_GET_ROLE_BY_ID = "Lấy role theo ID thành công.";
 
     // Error Messages
     public static final String ERR_ROLE_NOT_EXISTED = "Role không tồn tại.";
+    public static final String ERR_ROLE_NAME_NOT_EXISTED = "Tên Role không tồn tại.";
+
 
 
     public static final String CREATE_ROLE = "/roles/create";
@@ -15,4 +18,5 @@ public class RoleConstants {
     public static final String DELETE_ROLE = "/roles/delete/{roleId}";
     public static final String GET_ALL_ROLE = "/roles/get-all";
     public static final String GET_ROLE_BY_ID = "/roles/get/{roleId}";
+
 }

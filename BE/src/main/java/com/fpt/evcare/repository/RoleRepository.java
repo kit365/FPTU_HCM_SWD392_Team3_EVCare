@@ -4,16 +4,19 @@ import com.fpt.evcare.entity.RoleEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface RoleRepository extends JpaRepository<RoleEntity, UUID> {
-    RoleEntity findRoleById(UUID id);
+    RoleEntity findRoleByRoleId(UUID roleId);
 
-    Optional<RoleEntity> findById(UUID id);
+    Optional<RoleEntity> findByRoleId(UUID roleId);
 
-    boolean existsById(UUID id);
+    boolean existsByRoleId(UUID roleId);
+
+    List<RoleEntity> findAllByIsDeletedFalse();
 
 
 

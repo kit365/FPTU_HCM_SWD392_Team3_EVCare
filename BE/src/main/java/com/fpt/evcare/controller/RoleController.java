@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @Slf4j
@@ -46,4 +47,35 @@ public class RoleController {
                 );
     }
 
+    @GetMapping(RoleConstants.GET_ROLE_BY_ID)
+    public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable UUID roleId) {
+        RoleResponse roleResponse = roleService.getRoleByIdResponse(roleId);
+        return ResponseEntity
+                .ok(ApiResponse.<RoleResponse>builder()
+                        .success(true)
+                        .message(RoleConstants.SUCCESS_GET_ROLE_BY_ID)
+                        .data(roleResponse)
+                        .build()
+                );
+    }
+
+    @PutMapping(RoleConstants.UPDATE_ROLE)
+    public ResponseEntity<ApiResponse<Void>> updateRole(@PathVariable UUID roleId, @RequestBody RoleRequest roleRequest) {
+        roleService.updateRole(roleId, roleRequest);
+        return ResponseEntity
+                .ok(ApiResponse.<Void>builder()
+                        .success(true)
+                        .message(RoleConstants.SUCCESS_UPDATE_ROLE)
+                        .build()
+                );
+    }
+    @DeleteMapping(RoleConstants.DELETE_ROLE)
+    public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID roleId) {
+        roleService.deleteSoftRole(roleId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Xóa role thành công.")
+                .build()
+        );
+    }
 }

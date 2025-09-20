@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class RoleRequest implements Serializable {
 
     UUID roleId;
@@ -25,5 +27,7 @@ public class RoleRequest implements Serializable {
     String description;
 
     private List<String> permissions = new ArrayList<>();
+
+    Boolean isDeleted = false;
 
 }
