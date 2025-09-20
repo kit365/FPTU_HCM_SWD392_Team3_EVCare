@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(InvalidCredentialsException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
         if (log.isErrorEnabled()) {
             log.error("An unexpected error occurred: {}", ex.getMessage());
         }
@@ -139,6 +139,9 @@ public class GlobalExceptionHandler {
                         .build()
                 );
     }
+
+
+
 
 
 

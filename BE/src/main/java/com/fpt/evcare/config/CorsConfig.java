@@ -16,7 +16,7 @@ public class CorsConfig implements WebMvcConfigurer {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**") //cho phép truy cập các đường dẫn
-                        .allowedOriginPatterns("http://localhost:3000"
+                        .allowedOriginPatterns("http://localhost:3000", "http://localhost:5000"
                         )
                         .allowedHeaders("*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
