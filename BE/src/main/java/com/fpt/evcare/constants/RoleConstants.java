@@ -13,10 +13,12 @@ public class RoleConstants {
 
 
 
-    public static final String CREATE_ROLE = "/roles/create";
-    public static final String UPDATE_ROLE = "/roles/update/{roleId}";
-    public static final String DELETE_ROLE = "/roles/delete/{roleId}";
-    public static final String GET_ALL_ROLE = "/roles/get-all";
-    public static final String GET_ROLE_BY_ID = "/roles/get/{roleId}";
+    public static final String CREATE_ROLE = "/";
+    public static final String UPDATE_ROLE = "/{roleId}";
+    public static final String DELETE_ROLE = "/{roleId}";
+    public static final String GET_ALL_ROLE = "/";
+    public static final String GET_ROLE_BY_ID = "/{roleId}";
+
+    public static final String BASE_URL = EndpointConstants.V1.API + "/role";
 
 }

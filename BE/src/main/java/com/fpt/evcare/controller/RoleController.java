@@ -19,7 +19,7 @@ import java.util.UUID;
 @RestController
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping(AuthConstants.BASE_URL)
+@RequestMapping(RoleConstants.BASE_URL)
 @AllArgsConstructor
 public class RoleController {
     RoleService roleService;

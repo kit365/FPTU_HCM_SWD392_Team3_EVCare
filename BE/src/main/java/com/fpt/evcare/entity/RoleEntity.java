@@ -16,6 +16,7 @@ import java.util.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+@Table(name = "roles")
 public class RoleEntity extends BaseEntity {
     @Id
     @GeneratedValue(generator = "UUID")
