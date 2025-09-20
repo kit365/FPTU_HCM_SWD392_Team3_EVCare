@@ -37,6 +37,7 @@ public class ForgotPasswordController {
     @PostMapping(ForgotPasswordConstants.VERIFY_OTP)
     public ResponseEntity<ApiResponse<VerifyOtpResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         VerifyOtpResponse response = forgotPasswordService.verifyOtp(request.getEmail(), request.getOtp());
+        log.info(response.toString());
         return ResponseEntity.ok(ApiResponse.<VerifyOtpResponse>builder()
                 .success(true)
                 .message(ForgotPasswordConstants.MESSAGE_SUCCESS_OTP_VERIFIED)
