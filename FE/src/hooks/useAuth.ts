@@ -31,7 +31,7 @@ export function useAuth() {
       } else {
         notify.error(axiosError?.message || "Đăng nhập thất bại");
       }
-      // Không throw error nữa để không làm crash app
+      
     } finally {
       setIsLoading(false);
     }

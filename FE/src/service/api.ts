@@ -7,7 +7,8 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  withCredentials: true
+  withCredentials: true,
+  validateStatus: (status) => status < 500 // Không throw error cho 4xx, chỉ throw cho 5xx
 });
 
 
