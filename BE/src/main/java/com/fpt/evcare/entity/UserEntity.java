@@ -1,36 +1,65 @@
 package com.fpt.evcare.entity;
 
+import com.fpt.evcare.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Getter
 @Setter
+@ToString
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Table(name = "users")
-public class UserEntity {
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Table(name = "Users")
+public class UserEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "user_id")
-    private UUID id;
+    @Column(name = "id")
+    UUID userId;
 
-    @Column(nullable = false, unique = true)
-    private String username;
-
-    private String password;
-
-    // Quan hệ ManyToMany với RoleEntity
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany
     @JoinTable(
-            name = "user_roles", // bảng trung gian
+            name = "user_role",
             joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
+            inverseJoinColumns = @JoinColumn(name ="role_id")
     )
-    private List<RoleEntity> roles = new ArrayList<>();
-}
+    List<RoleEntity> roles = new ArrayList<>();
 
+    @Column(name = "username", unique = true, nullable = false)
+    String username;
+
+    @Column(name = "email", unique = true, nullable = false)
+    String email;
+
+    @Column(name = "address")
+    String address;
+
+    @Column(name = "password")
+    String password;
+
+    @Column(name = "full_name")
+    String fullName;
+
+    @Column(name = "phone")
+    String numberPhone;
+
+    @Column(name = "avatarUrl")
+    String avatarUrl;
+
+    @Column(name = "technician_skills")
+    String technicianSkills;
+
+    @Column(name = "is_active")
+    boolean isActive;
+
+    @Column(name = "last_login")
+    String lastLogin;
+}

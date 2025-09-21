@@ -3,12 +3,12 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.ForgotPasswordConstants;
 import com.fpt.evcare.dto.request.ResetPasswordRequest;
 import com.fpt.evcare.dto.response.VerifyOtpResponse;
-import com.fpt.evcare.entity.AccountEntity;
+import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.exception.OtpExpiredException;
-import com.fpt.evcare.repository.AccountRepository;
-import com.fpt.evcare.service.AccountService;
+import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.ForgotPasswordService;
 import com.fpt.evcare.service.RedisService;
+import com.fpt.evcare.service.UserService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,8 +27,8 @@ import static com.fpt.evcare.constants.ForgotPasswordConstants.OTP_ATTEMPTS_REDI
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ForgotPasswordServiceImpl implements ForgotPasswordService {
 
-    AccountService accountService;
-    AccountRepository accountRepository;
+    UserService userService;
+    UserRepository userRepository;
     RedisService<String> redisService;
     PasswordEncoder passwordEncoder;
     SecureRandom random = new SecureRandom();
@@ -98,10 +98,10 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
             log.warn(ForgotPasswordConstants.LOG_ERR_FORGOT_PASSWORD_REQUEST, email);
             throw new IllegalStateException(ForgotPasswordConstants.MESSAGE_ERR_OTP_ALREADY_REQUESTED);
         }
-        AccountEntity accountEntity = accountService.findByEmail(email);
+        UserEntity userEntity = userService.getUserByEmail(email);
         String otp = generateOtp();
-        String key = getKeyOtpRedis(accountEntity.getEmail());
-        String keyStatus = getRequestedOtpStatusKey(accountEntity.getEmail());
+        String key = getKeyOtpRedis(userEntity.getEmail());
+        String keyStatus = getRequestedOtpStatusKey(userEntity.getEmail());
         redisService.save(key, otp, ForgotPasswordConstants.OTP_TTL_MINUTES, TimeUnit.MINUTES);
         redisService.save(keyStatus, ForgotPasswordConstants.OTP_STATUS_PENDING, ForgotPasswordConstants.OTP_TTL_MINUTES, TimeUnit.MINUTES);
         log.info(ForgotPasswordConstants.LOG_SUCCESS_FORGOT_PASSWORD_REQUEST, email);
@@ -142,11 +142,11 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
 
         if (ForgotPasswordConstants.OTP_STATUS_ACTIVE.equals(currentStatus)) {
             if(consumeOtp(request.getEmail(), request.getOtp())) {
-                AccountEntity accountEntity = accountService.findByEmail(email);
-                accountEntity.setPassword(passwordEncoder.encode(request.getNewPassword()));
-                accountRepository.save(accountEntity);
+                UserEntity userEntity = userService.getUserByEmail(email);
+                userEntity.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(userEntity);
                 redisService.save(statusKey, ForgotPasswordConstants.OTP_STATUS_INACTIVE, ForgotPasswordConstants.OTP_TTL_MINUTES, TimeUnit.MINUTES);
-                log.info(ForgotPasswordConstants.LOG_SUCCESS_PASSWORD_RESET, accountEntity.getEmail());
+                log.info(ForgotPasswordConstants.LOG_SUCCESS_PASSWORD_RESET, userEntity.getEmail());
             }
         } else {
             if (log.isDebugEnabled()) {

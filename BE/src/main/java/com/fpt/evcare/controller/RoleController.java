@@ -71,7 +71,7 @@ public class RoleController {
     }
     @DeleteMapping(RoleConstants.DELETE_ROLE)
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID roleId) {
-        roleService.deleteSoftRole(roleId);
+        roleService.deleteRole(roleId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Xóa role thành công.")

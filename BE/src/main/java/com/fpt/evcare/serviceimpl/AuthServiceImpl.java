@@ -1,14 +1,14 @@
 package com.fpt.evcare.serviceimpl;
 
-import com.fpt.evcare.constants.AccountConstants;
 import com.fpt.evcare.constants.AuthConstants;
+import com.fpt.evcare.constants.UserConstaints;
 import com.fpt.evcare.dto.request.LoginRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
-import com.fpt.evcare.entity.AccountEntity;
+import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.exception.DisabledException;
 import com.fpt.evcare.exception.InvalidCredentialsException;
-import com.fpt.evcare.service.AccountService;
 import com.fpt.evcare.service.AuthService;
+import com.fpt.evcare.service.UserService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,15 +23,15 @@ import org.springframework.stereotype.Service;
 public class AuthServiceImpl implements AuthService {
 
     PasswordEncoder passwordEncoder;
-    AccountService accountService;
+    UserService userService;
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
-        AccountEntity account = accountService.findByEmail(loginRequest.getEmail());
+        UserEntity user = userService.getUserByEmail(loginRequest.getEmail());
 
-        validateAccount(account);
+        validateAccount(user);
 
         boolean authenticated = passwordEncoder.matches(loginRequest.getPassword(),
-                account.getPassword());
+                user.getPassword());
 
         if (!authenticated) {
             if (log.isErrorEnabled()) {
@@ -51,10 +51,10 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
-    private void validateAccount(AccountEntity account) {
-        if (Boolean.TRUE.equals(account.getIsDeleted())) {
-            log.error(AccountConstants.MESSAGE_ERR_ACCOUNT_DELETED);
-            throw new DisabledException(AccountConstants.MESSAGE_ERR_ACCOUNT_DELETED);
+    private void validateAccount(UserEntity user) {
+        if (Boolean.TRUE.equals(user.getIsDeleted())) {
+            log.error(UserConstaints.MESSAGE_ERR_USER_DELETED);
+            throw new DisabledException(UserConstaints.MESSAGE_ERR_USER_DELETED);
         }
         // sau này thêm: locked, expired... cũng nhét ở đây
     }

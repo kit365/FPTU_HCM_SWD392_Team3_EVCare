@@ -15,8 +15,8 @@ import java.util.*;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE)
-@Table(name = "roles")
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@Table(name = "role")
 public class RoleEntity extends BaseEntity {
     @Id
     @GeneratedValue(generator = "UUID")
@@ -38,6 +38,5 @@ public class RoleEntity extends BaseEntity {
 
     @ManyToMany(mappedBy = "roles")
     private List<UserEntity> users = new ArrayList<>();
-
 
 }

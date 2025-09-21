@@ -1,6 +1,8 @@
 package com.fpt.evcare.dto.request;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,8 +26,10 @@ public class RoleRequest implements Serializable {
     @NotBlank(message = "Role name không được để trống")
     String roleName;
 
+    @Nullable
     String description;
 
+    @NotEmpty(message = "Cần phần quyền cho role này")
     private List<String> permissions = new ArrayList<>();
 
     Boolean isDeleted = false;

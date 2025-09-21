@@ -3,15 +3,20 @@ package com.fpt.evcare.exception;
 import com.fpt.evcare.base.ApiResponse;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.stream.Collectors;
 
 @Hidden
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
         if (log.isErrorEnabled()) {
@@ -140,10 +145,44 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("MethodArgumentNotValidException caught: {}", ex.getMessage(), ex);
+        }
 
+        // Cắt chuỗi, chỉ lấy message của validation
+        String errorMessage = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .collect(Collectors.joining(", "));
 
+        log.error(errorMessage);
 
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(errorMessage)
+                        .build()
+                );
+    }
 
+    @ExceptionHandler(UserValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
 
 
 
