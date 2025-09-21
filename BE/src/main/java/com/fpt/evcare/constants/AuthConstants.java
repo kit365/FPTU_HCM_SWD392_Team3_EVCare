@@ -1,6 +1,7 @@
 package com.fpt.evcare.constants;
 
 public class AuthConstants {
+    public static final String APP_NAME  = "EVCare";
 
     // Log Messages
     public static final String LOG_SUCCESS_ACCOUNT_LOGIN = "Account {} is attempting to log in.";

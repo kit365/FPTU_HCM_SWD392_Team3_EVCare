@@ -5,6 +5,7 @@ import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.service.AuthService;
+import com.nimbusds.jose.JOSEException;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping(AuthConstants.LOGIN)
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest) throws JOSEException {
         if(log.isErrorEnabled()) {
             log.info(AuthConstants.LOG_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
         }
