@@ -32,32 +32,36 @@ public class RoleServiceImpl implements RoleService {
     public void createRole(RoleRequest roleRequest) {
         RoleEntity roleEntity = roleMapper.toEntity(roleRequest);
         roleRepository.save(roleEntity);
-        log.info("Role created with ID: {}", roleEntity.getRoleId());
+        log.info(RoleConstants.LOG_SUCCESS_CREATE_ROLE, roleEntity.getRoleName());
     }
-    private RoleEntity getRoleEntity(UUID roleId) {
+
+
+
+    @Override
+    public RoleEntity getRoleEntity(UUID roleId) {
         return roleRepository.findById(roleId)
-                .orElseThrow(() -> new ResourceNotFoundException(RoleConstants.ERR_ROLE_NOT_EXISTED));
+                .orElseThrow(() -> {
+                    log.warn(RoleConstants.LOG_ERR_ROLE_NOT_EXISTED, roleId);
+                    return new ResourceNotFoundException(RoleConstants.MESSAGE_ERR_ROLE_NOT_EXISTED);
+                });
     }
 
     @Override
     public void updateRole(UUID roleId, RoleRequest roleRequest) {
-        RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
-        if (roleEntity == null) {
-            log.error(RoleConstants.ERR_ROLE_NOT_EXISTED);
-            throw new ResourceNotFoundException(RoleConstants.ERR_ROLE_NOT_EXISTED);
-        }
+        RoleEntity roleEntity = getRoleEntity(roleId);
+
         try {
             RoleEnum roleEnum = RoleEnum.valueOf(roleRequest.getRoleName());
 
             Set<RoleEnum> allowed = Set.of(RoleEnum.CUSTOMER, RoleEnum.TECHNICIAN, RoleEnum.ADMIN, RoleEnum.STAFF);
 
             if (!allowed.contains(roleEnum)) {
-                throw new IllegalArgumentException(RoleConstants.ERR_ROLE_NAME_NOT_EXISTED);
+                throw new IllegalArgumentException(RoleConstants.MESSAGE_ERR_ROLE_NAME_NOT_EXISTED);
             }
 
         } catch (IllegalArgumentException e) {
             // xử lý khi roleName không đúng enum
-            throw new IllegalArgumentException(RoleConstants.ERR_ROLE_NAME_NOT_EXISTED);
+            throw new IllegalArgumentException(RoleConstants.MESSAGE_ERR_ROLE_NAME_NOT_EXISTED);
         }
         roleMapper.updateRole(roleEntity, roleRequest);
         roleRepository.save(roleEntity);
@@ -78,9 +82,8 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public void deleteRole(UUID roleId) {
         RoleEntity roleEntity = getRoleEntity(roleId);
-        roleEntity.setIsDeleted(true); // đánh dấu đã xóa
+        roleEntity.setIsDeleted(true);
         roleRepository.save(roleEntity);
         log.info("Soft deleted role with ID: {}", roleEntity.getRoleId());
     }
-
 }

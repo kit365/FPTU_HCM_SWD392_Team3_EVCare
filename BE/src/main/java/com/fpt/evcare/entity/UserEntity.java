@@ -17,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "Users")
+@Table(name = "users")
 public class UserEntity extends BaseEntity {
 
     @Id
@@ -51,7 +51,7 @@ public class UserEntity extends BaseEntity {
     @Column(name = "phone")
     String numberPhone;
 
-    @Column(name = "avatarUrl")
+    @Column(name = "avatar_url")
     String avatarUrl;
 
     @Column(name = "technician_skills")

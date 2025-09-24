@@ -1,5 +1,4 @@
 package com.fpt.evcare.entity;
-
 import com.fpt.evcare.base.BaseEntity;
 import com.fpt.evcare.enums.RoleEnum;
 import jakarta.persistence.*;
@@ -16,11 +15,10 @@ import java.util.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(name = "role")
+@Table(name = "roles")
 public class RoleEntity extends BaseEntity {
     @Id
-    @GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "role_id", updatable = false, nullable = false)
     UUID roleId;
 
