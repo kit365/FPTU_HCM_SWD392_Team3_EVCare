@@ -15,5 +15,5 @@ public interface RoleService {
 
     List<RoleResponse> getAllRoles();
 
-    void deleteSoftRole(UUID roleId);
+    void deleteRole(UUID roleId);
 }

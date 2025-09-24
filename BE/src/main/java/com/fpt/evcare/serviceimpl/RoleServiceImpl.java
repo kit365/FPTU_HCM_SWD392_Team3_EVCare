@@ -74,14 +74,9 @@ public class RoleServiceImpl implements RoleService {
         List<RoleEntity> all = roleRepository.findAllByIsDeletedFalse();
         return roleMapper.toResponseList(all);
     }
+
     @Override
     public void deleteRole(UUID roleId) {
-        RoleEntity roleEntity = getRoleEntity(roleId);
-        roleRepository.delete(roleEntity);
-        log.info("Role deleted with ID: {}", roleEntity.getRoleId());
-    }
-    @Override
-    public void deleteSoftRole(UUID roleId) {
         RoleEntity roleEntity = getRoleEntity(roleId);
         roleEntity.setIsDeleted(true); // đánh dấu đã xóa
         roleRepository.save(roleEntity);

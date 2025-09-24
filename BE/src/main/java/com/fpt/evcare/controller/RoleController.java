@@ -19,7 +19,7 @@ import java.util.UUID;
 @RestController
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping(AuthConstants.BASE_URL)
+@RequestMapping(RoleConstants.BASE_URL)
 @AllArgsConstructor
 public class RoleController {
     RoleService roleService;
@@ -71,7 +71,7 @@ public class RoleController {
     }
     @DeleteMapping(RoleConstants.DELETE_ROLE)
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID roleId) {
-        roleService.deleteSoftRole(roleId);
+        roleService.deleteRole(roleId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Xóa role thành công.")
