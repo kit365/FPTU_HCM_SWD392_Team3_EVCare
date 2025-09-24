@@ -9,20 +9,33 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
+    private static final String[] ALLOWED_ORIGINS = {
+            "http://localhost:3000",
+            "http://localhost:5000"
+    };
+
+    // Define constant array for allowed methods
+    private static final String[] ALLOWED_METHODS = {
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH"
+    };
+
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
 
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
-                registry.addMapping("/**") //cho phép truy cập các đường dẫn
-                        .allowedOriginPatterns("http://localhost:3000", "http://localhost:5000"
-                        )
+                registry.addMapping("/**")
+                        .allowedOriginPatterns(ALLOWED_ORIGINS)
                         .allowedHeaders("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .allowedMethods(ALLOWED_METHODS)
                         .allowCredentials(true);
             }
-
         };
     }
 }

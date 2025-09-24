@@ -27,7 +27,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
         AccountEntity account = accountService.findByEmail(loginRequest.getEmail());
-
+        log.info("account: {}", account);
         validateAccount(account);
 
         boolean authenticated = passwordEncoder.matches(loginRequest.getPassword(),
