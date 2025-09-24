@@ -36,7 +36,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
 
-
     @Override
     public RoleEntity getRoleEntity(UUID roleId) {
         return roleRepository.findById(roleId)
@@ -47,22 +46,27 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public void updateRole(UUID roleId, RoleRequest roleRequest) {
-        RoleEntity roleEntity = getRoleEntity(roleId);
-
+    public RoleEnum getRoleEnum(String roleName) {
         try {
-            RoleEnum roleEnum = RoleEnum.valueOf(roleRequest.getRoleName());
+            RoleEnum roleEnum = RoleEnum.valueOf(roleName.toUpperCase());
 
-            Set<RoleEnum> allowed = Set.of(RoleEnum.CUSTOMER, RoleEnum.TECHNICIAN, RoleEnum.ADMIN, RoleEnum.STAFF);
-
-            if (!allowed.contains(roleEnum)) {
+            if (Set.of(RoleEnum.CUSTOMER, RoleEnum.TECHNICIAN, RoleEnum.ADMIN, RoleEnum.STAFF)
+                    .contains(roleEnum)) {
+                return roleEnum;
+            } else {
                 throw new IllegalArgumentException(RoleConstants.MESSAGE_ERR_ROLE_NAME_NOT_EXISTED);
             }
 
         } catch (IllegalArgumentException e) {
-            // xử lý khi roleName không đúng enum
             throw new IllegalArgumentException(RoleConstants.MESSAGE_ERR_ROLE_NAME_NOT_EXISTED);
         }
+    }
+    @Override
+    public void updateRole(UUID roleId, RoleRequest roleRequest) {
+        RoleEntity roleEntity = getRoleEntity(roleId);
+
+        getRoleEnum(roleRequest.getRoleName());
+
         roleMapper.updateRole(roleEntity, roleRequest);
         roleRepository.save(roleEntity);
         log.info("Role updated with ID: {}", roleEntity.getRoleId());
