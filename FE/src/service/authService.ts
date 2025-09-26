@@ -9,7 +9,7 @@ export const authService = {
     login: async (data: LoginRequest) => {
     const response = await apiClient.post<ApiResponse<LoginResponse>>(`${API_BASE}/login`, data);
     return response;
-    console.log("Login response:", response); 
+    console.log("Login response:", response);
 },
 
 }
