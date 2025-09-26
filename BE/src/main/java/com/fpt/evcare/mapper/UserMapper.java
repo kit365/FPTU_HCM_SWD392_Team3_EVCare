@@ -1,6 +1,7 @@
 package com.fpt.evcare.mapper;
 
-import com.fpt.evcare.dto.request.UserRequest;
+import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.UserEntity;
 import org.mapstruct.*;
@@ -13,7 +14,9 @@ public interface UserMapper {
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "password", ignore = true)
-    UserEntity toEntity (UserRequest userRequest);
+    @Mapping(target = "search", ignore = true)
+    @Mapping(target =  "lastLogin", ignore = true)
+    UserEntity toEntity (CreationUserRequest creationUserRequest);
 
     @Mapping(target = "roleName", ignore = true)
     UserResponse toResponse (UserEntity userEntity);
@@ -21,9 +24,10 @@ public interface UserMapper {
     @Mapping(target = "roles", ignore = true)
     List<UserResponse> toResponses (List<UserEntity> userEntities);
 
-    @Mapping(target = "userId", ignore = true)
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "username", ignore = true)
     @Mapping(target = "email", ignore = true)
-    void updateUser(UserRequest userRequest, @MappingTarget UserEntity userEntity);
+    @Mapping(target = "search", ignore = true)
+    @Mapping(target =  "lastLogin", ignore = true)
+    void updateUser(UpdationUserRequest updationUserRequest, @MappingTarget UserEntity userEntity);
 }

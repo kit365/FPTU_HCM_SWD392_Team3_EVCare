@@ -1,18 +1,8 @@
 package com.fpt.evcare.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fpt.evcare.base.BaseEntity;
-import jakarta.annotation.Nullable;
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,7 +19,7 @@ public class UserResponse implements Serializable {
 
     UUID userId;
 
-    List<String> roleName;
+    transient List<String> roleName;
 
     String username;
 
@@ -38,6 +28,8 @@ public class UserResponse implements Serializable {
     String address;
 
     String fullName;
+
+    String search;
 
     String numberPhone;
 

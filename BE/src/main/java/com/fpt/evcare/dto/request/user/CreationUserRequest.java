@@ -1,4 +1,4 @@
-package com.fpt.evcare.dto.request;
+package com.fpt.evcare.dto.request.user;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.*;
@@ -7,7 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,7 +14,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserRequest {
+public class CreationUserRequest {
 
     UUID userId;
 
@@ -50,16 +49,4 @@ public class UserRequest {
 
     @Nullable
     String technicianSkills;
-
-    @Nullable
-    LocalDateTime lastLogin;
-
-    @Nullable
-    boolean isDeleted;
-
-    @Nullable
-    String createdBy;
-
-    @Nullable
-    String updatedBy;
 }

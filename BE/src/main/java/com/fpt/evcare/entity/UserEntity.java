@@ -48,6 +48,9 @@ public class UserEntity extends BaseEntity {
     @Column(name = "full_name")
     String fullName;
 
+    @Column(name = "search")
+    String search;
+
     @Column(name = "phone")
     String numberPhone;
 
