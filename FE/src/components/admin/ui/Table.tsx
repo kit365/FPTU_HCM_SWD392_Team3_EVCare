@@ -90,11 +90,13 @@ export const TableAdmin = ({ dataList, limit, columns }: TableAdminProps) => {
         });
     };
 
+    // Lọc theo trạng thái
     const handleChangeStatus = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         setStatusFilter(value);
         setCurrentPage(1);
     }, []);
+    // Hết Lọc theo trạng thái
 
     return (
         <>
