@@ -46,10 +46,10 @@ function Content() {
 export function Test() {
     return (
         <div style={{ padding: "20px" }}>
-            <h1>Ví dụ Suspense đơn giản</h1>
+            {/* <h1>Ví dụ Suspense đơn giản</h1>
             <Suspense fallback={<ContentSkeleton />}>
                 <Content />
-            </Suspense>
+            </Suspense> */}
         </div>
     );
 }
