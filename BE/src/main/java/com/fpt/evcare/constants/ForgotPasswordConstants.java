@@ -40,13 +40,10 @@ public class ForgotPasswordConstants {
     // Log
     // Success Logs
     public static final String LOG_SUCCESS_FORGOT_PASSWORD_REQUEST = "Gửi mã xác thực OTP thành công cho email {}";
-    public static final String LOG_SUCCESS_OTP_VERIFIED = "Xác thực OTP thành công cho email {}";
     public static final String LOG_SUCCESS_MESSAGE_FORGOT_PASSWORD_REQUEST = "Gửi mã xác thực OTP thành công đến email {}";
     public static final String LOG_SUCCESS_PASSWORD_RESET = "Đặt lại mật khẩu thành công cho email {}";
     // Error Logs
     public static final String LOG_ERR_FORGOT_PASSWORD_REQUEST = "Xác thực OTP thất bại cho email {}";
-    public static final String LOG_ERR_OTP_ALREADY_REQUESTED = "Đã gửi mã OTP đến email {}. Vui lòng thử lại sau.";
     public static final String LOG_ERR_MESSAGE_INVALID_OTP = "Mã OTP không hợp lệ hoặc đã hết hạn, email {}";
-    public static final String LOG_ERR_MESSAGE_FORGOT_PASSWORD_REQUEST = "Xác thực OTP thất bại cho email {}";
     public static final String LOG_ERR_MESSAGE_OTP_MAX_ATTEMPTS = "Đã vượt quá số lần thử tối đa cho mã OTP, email {}";
 }

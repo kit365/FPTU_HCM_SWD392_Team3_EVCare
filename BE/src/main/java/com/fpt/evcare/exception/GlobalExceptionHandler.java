@@ -184,6 +184,21 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(JWTInitializationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("JWTInitialization caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
 
 
 }

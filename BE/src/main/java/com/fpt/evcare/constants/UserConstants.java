@@ -3,7 +3,7 @@ package com.fpt.evcare.constants;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserConstaints {
+public class UserConstants {
 
     //Sucess message
     public static final String SUCCESS_SHOWING_USER = "Lấy danh sách người dùng thành công";
@@ -21,8 +21,7 @@ public class UserConstaints {
 
 
     //Log message
-    public static final String LOG_ERR_ACCOUNT_NOT_FOUND = "Tài khoản không tìm thấy hoặc không tồn tại, Tài khoản Email: {}";
-    public static final String LOG_ERR_ACCOUNT_DELETED = "Tài khoản đã bị xóa, Tài khoản Email: {}";
+
 
     public static final String BASE_URL = EndpointConstants.V1.API + "/user";
     public static final String USER_LIST= "/";

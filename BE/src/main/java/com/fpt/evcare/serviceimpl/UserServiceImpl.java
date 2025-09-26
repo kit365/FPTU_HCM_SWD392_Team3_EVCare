@@ -1,6 +1,6 @@
 package com.fpt.evcare.serviceimpl;
 
-import com.fpt.evcare.constants.UserConstaints;
+import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.UserRequest;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
@@ -33,7 +33,7 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
-    UserConstaints  userConstaints;
+    UserConstants userConstants;
     UserMapper  userMapper;
 
     @Override
@@ -80,9 +80,9 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = userRepository.findByEmail(email);
         if (userEntity == null) {
             if (log.isErrorEnabled()) {
-                log.error(UserConstaints.USER_NOT_FOUND);
+                log.error(UserConstants.USER_NOT_FOUND);
             }
-            throw new ResourceNotFoundException(UserConstaints.USER_NOT_FOUND);
+            throw new ResourceNotFoundException(UserConstants.USER_NOT_FOUND);
         }
         return userEntity;
     }
@@ -138,7 +138,7 @@ public class UserServiceImpl implements UserService {
         if(Objects.equals(user.getEmail(), userRequest.getEmail())){
             user.setEmail(userRequest.getEmail());
         } else {
-            if(userRepository.existsByEmail(userRequest.getEmail())) throw new UserValidationException(userConstaints.DUPLICATED_USER_EMAIL);
+            if(userRepository.existsByEmail(userRequest.getEmail())) throw new UserValidationException(userConstants.DUPLICATED_USER_EMAIL);
             user.setEmail(userRequest.getEmail());
         }
 
@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean deleteUser(UUID id) {
-        if(!userRepository.existsById(id)) throw new ResourceNotFoundException(UserConstaints.USER_NOT_FOUND);
+        if(!userRepository.existsById(id)) throw new ResourceNotFoundException(UserConstants.USER_NOT_FOUND);
         userRepository.deleteById(id);
         return true;
     }
@@ -158,13 +158,13 @@ public class UserServiceImpl implements UserService {
         List<String> errors = new ArrayList<>(); // Trả về 1 danh sách lỗi (để biết rõ đang bị lỗi những gì)
             if(userRequest.getUsername() != null){
                 if(userRepository.existsByUsername(userRequest.getUsername()) ) {
-                    errors.add(userConstaints.DUPLICATED_USERNAME);
+                    errors.add(userConstants.DUPLICATED_USERNAME);
                 }
             }
             if(userRequest.getEmail() != null){
                 if(userRepository.existsByEmail(userRequest.getEmail())){
                     System.out.println("vo check mail");
-                    errors.add(userConstaints.DUPLICATED_USER_EMAIL);
+                    errors.add(userConstants.DUPLICATED_USER_EMAIL);
                 }
             }
             if(!errors.isEmpty()){

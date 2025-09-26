@@ -1,7 +1,7 @@
 package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.constants.AuthConstants;
-import com.fpt.evcare.constants.UserConstaints;
+import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.entity.UserEntity;
@@ -35,7 +35,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest loginRequest) throws JOSEException {
         UserEntity user = userService.getUserByEmail(loginRequest.getEmail());
-
         validateAccount(user);
 
         boolean authenticated = passwordEncoder.matches(loginRequest.getPassword(),
@@ -62,8 +61,8 @@ public class AuthServiceImpl implements AuthService {
 
     private void validateAccount(UserEntity user) {
         if (Boolean.TRUE.equals(user.getIsDeleted())) {
-            log.error(UserConstaints.MESSAGE_ERR_USER_DELETED);
-            throw new DisabledException(UserConstaints.MESSAGE_ERR_USER_DELETED);
+            log.error(UserConstants.MESSAGE_ERR_USER_DELETED);
+            throw new DisabledException(UserConstants.MESSAGE_ERR_USER_DELETED);
         }
         // sau này thêm: locked, expired... cũng nhét ở đây
     }

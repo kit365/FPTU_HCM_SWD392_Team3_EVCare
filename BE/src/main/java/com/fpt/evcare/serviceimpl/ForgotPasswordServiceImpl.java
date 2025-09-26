@@ -1,21 +1,23 @@
 package com.fpt.evcare.serviceimpl;
-
 import com.fpt.evcare.constants.ForgotPasswordConstants;
+import com.fpt.evcare.dto.request.EmailRequestDTO;
 import com.fpt.evcare.dto.request.ResetPasswordRequest;
 import com.fpt.evcare.dto.response.VerifyOtpResponse;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.exception.OtpExpiredException;
 import com.fpt.evcare.repository.UserRepository;
+import com.fpt.evcare.exception.ResourceNotFoundException;
+import com.fpt.evcare.service.EmailService;
 import com.fpt.evcare.service.ForgotPasswordService;
 import com.fpt.evcare.service.RedisService;
 import com.fpt.evcare.service.UserService;
+import jakarta.mail.MessagingException;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +33,7 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
     UserRepository userRepository;
     RedisService<String> redisService;
     PasswordEncoder passwordEncoder;
+    EmailService emailService;
     SecureRandom random = new SecureRandom();
 
 
@@ -105,7 +108,23 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
         redisService.save(key, otp, ForgotPasswordConstants.OTP_TTL_MINUTES, TimeUnit.MINUTES);
         redisService.save(keyStatus, ForgotPasswordConstants.OTP_STATUS_PENDING, ForgotPasswordConstants.OTP_TTL_MINUTES, TimeUnit.MINUTES);
         log.info(ForgotPasswordConstants.LOG_SUCCESS_FORGOT_PASSWORD_REQUEST, email);
-        log.info("OTP generated : {}", otp);
+        sendEmailOtp(email, otp, userEntity.getEmail());
+    }
+
+    private void sendEmailOtp(String email, String otp, String fullName) {
+        try {
+            EmailRequestDTO emailRequestDTO = EmailRequestDTO.builder()
+                    .to(email)
+                    .text("Chúng tôi đã nhận được yêu cầu thay đổi địa chỉ email cho tài khoản của bạn. Vui lòng sử dụng mã xác nhận bên dưới để xác nhận thay đổi.")
+                    .subject("Xác thực thay đổi email")
+                    .code(otp)
+                    .fullName(fullName)
+                    .build();
+            emailService.sendEmailTemplate(emailRequestDTO);
+        } catch (MessagingException e) {
+            throw new ResourceNotFoundException(e.getMessage());
+        }
+
     }
 
 
