@@ -1,8 +1,8 @@
 package com.fpt.evcare.service;
 
 import com.fpt.evcare.constants.ForgotPasswordConstants;
-import com.fpt.evcare.dto.EmailRequestDTO;
-import com.fpt.evcare.dto.ResetPasswordRequest;
+import com.fpt.evcare.dto.request.EmailRequestDTO;
+import com.fpt.evcare.dto.request.ResetPasswordRequest;
 import com.fpt.evcare.dto.response.VerifyOtpResponse;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.exception.OtpExpiredException;

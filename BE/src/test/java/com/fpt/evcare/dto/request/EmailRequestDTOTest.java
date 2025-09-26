@@ -1,8 +1,5 @@
 package com.fpt.evcare.dto.request;
-
-import com.fpt.evcare.dto.EmailRequestDTO;
 import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EmailRequestDTOTest {

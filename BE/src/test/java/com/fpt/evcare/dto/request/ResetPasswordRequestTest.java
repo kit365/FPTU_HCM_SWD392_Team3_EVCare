@@ -1,6 +1,4 @@
 package com.fpt.evcare.dto.request;
-
-import com.fpt.evcare.dto.ResetPasswordRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
