@@ -17,9 +17,13 @@ public class UserConstants {
     public static final String MESSAGE_ERR_DUPLICATED_USER_EMAIL = "Email này đã tồn tại";
     public static final String MESSAGE_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại";
     public static final String MESSAGE_ERR_USER_DELETED = "Tài khoản đã bị xóa.";
+    public static final String MESSAGE_ERR_DUPLICATED_USER_PHONE = "Số điện thoại này đã tồn tại";
 
 
     //Log message
+    public static final String LOG_ERR_DUPLICATED_USER_EMAIL = "Email này đã tồn tại: {}";
+    public static final String LOG_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại: {}";
+    public static final String LOG_ERR_DUPLICATED_USER_PHONE = "Số điện thoại này đã tồn tại: {}";
 
 
     public static final String BASE_URL = EndpointConstants.V1.API + "/user";

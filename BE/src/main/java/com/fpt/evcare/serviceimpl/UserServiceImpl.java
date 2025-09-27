@@ -1,17 +1,22 @@
 package com.fpt.evcare.serviceimpl;
 
+import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
+import com.fpt.evcare.dto.response.RegisterUserResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.RoleRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.UserService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,15 +39,15 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
-    UserMapper  userMapper;
+    UserMapper userMapper;
 
     @Override
     public UserResponse getUserById(UUID id) {
         UserEntity user = userRepository.findByUserId(id);
-        if(user == null) throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        if (user == null) throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
 
         List<String> roleNames = new ArrayList<>();
-        for(RoleEntity role : user.getRoles()){
+        for (RoleEntity role : user.getRoles()) {
             roleNames.add(role.getRoleName().toString());
         }
 
@@ -55,17 +60,17 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserResponse> getAllUsers() {
         List<UserEntity> users = userRepository.findAll();
-        if(users.isEmpty()) throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_LIST_NOT_FOUND);
+        if (users.isEmpty()) throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_LIST_NOT_FOUND);
 
         List<UserResponse> userResponses = userMapper.toResponses(users);
 
-        for(int i = 0; i<users.size(); i++){
+        for (int i = 0; i < users.size(); i++) {
             UserEntity user = users.get(i);
             UserResponse response = userResponses.get(i);
             List<String> roleName = new ArrayList<>();
 
-            if(user.getRoles() != null){
-                for(RoleEntity role : user.getRoles()){
+            if (user.getRoles() != null) {
+                for (RoleEntity role : user.getRoles()) {
                     roleName.add(role.getRoleName().toString());
                 }
                 response.setRoleName(roleName);
@@ -95,11 +100,11 @@ public class UserServiceImpl implements UserService {
 
         List<RoleEntity> roleIdList = new ArrayList<>();
 
-        if(creationUserRequest.getRoleIds() != null && !creationUserRequest.getRoleIds().isEmpty()){
-            for(String roleId : creationUserRequest.getRoleIds()){
+        if (creationUserRequest.getRoleIds() != null && !creationUserRequest.getRoleIds().isEmpty()) {
+            for (String roleId : creationUserRequest.getRoleIds()) {
                 UUID formattedRoleId = UUID.fromString(roleId);
                 RoleEntity roleEntity = roleRepository.findRoleByRoleId(formattedRoleId);
-                if( roleEntity != null) {
+                if (roleEntity != null) {
                     roleIdList.add(roleEntity);
                 }
             }
@@ -125,16 +130,16 @@ public class UserServiceImpl implements UserService {
     public boolean updateUser(UpdationUserRequest updationUserRequest, UUID id) {
 
         UserEntity user = userRepository.findByUserId(id);
-        if(user == null) return false;
+        if (user == null) return false;
 
         List<RoleEntity> roleIdList = new ArrayList<>();
 
 
-        if(updationUserRequest.getRoleIds() != null && !updationUserRequest.getRoleIds().isEmpty()){
-            for(String roleId : updationUserRequest.getRoleIds()){
+        if (updationUserRequest.getRoleIds() != null && !updationUserRequest.getRoleIds().isEmpty()) {
+            for (String roleId : updationUserRequest.getRoleIds()) {
                 UUID formattedRoleId = UUID.fromString(roleId);
                 RoleEntity roleEntity = roleRepository.findRoleByRoleId(formattedRoleId);
-                if( roleEntity != null) {
+                if (roleEntity != null) {
                     roleIdList.add(roleEntity);
                 }
             }
@@ -144,10 +149,11 @@ public class UserServiceImpl implements UserService {
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
 
-        if(Objects.equals(user.getEmail(), updationUserRequest.getEmail())){
+        if (Objects.equals(user.getEmail(), updationUserRequest.getEmail())) {
             user.setEmail(updationUserRequest.getEmail());
         } else {
-            if(userRepository.existsByEmail(updationUserRequest.getEmail())) throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+            if (userRepository.existsByEmail(updationUserRequest.getEmail()))
+                throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
             user.setEmail(updationUserRequest.getEmail());
         }
 
@@ -167,13 +173,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean deleteUser(UUID id) {
-        if(!userRepository.existsById(id)) throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        if (!userRepository.existsById(id))
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         userRepository.deleteById(id);
         return true;
     }
 
+
+
     //Ghép các chuỗi lại phục vụ cho việc tìm kiếm dễ hơn (thay vì phải chia các câu truy vấn khi search như WHERE user.email = ..., user.fullName = ...)
-    public String concatenateSearchField(String fullName, String numberPhone, String email, String username) {
+    private String concatenateSearchField(String fullName, String numberPhone, String email, String username) {
         return String.join("-",
                 fullName != null ? fullName : "",
                 numberPhone != null ? numberPhone : "",
@@ -182,17 +191,16 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    public void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {
+    private void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {
         List<String> errors = new ArrayList<>(); // Trả về 1 danh sách lỗi (để biết rõ đang bị lỗi những gì)
-            if(creationUserRequest.getUsername() != null && userRepository.existsByUsername(creationUserRequest.getUsername())){
-                    errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USERNAME);
-            }
-            if(creationUserRequest.getEmail() != null && userRepository.existsByEmail(creationUserRequest.getEmail())){
-                    errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
-            }
-            if(!errors.isEmpty()) throw new UserValidationException(String.join(", ", errors));
+        if (creationUserRequest.getUsername() != null && userRepository.existsByUsername(creationUserRequest.getUsername())) {
+            errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USERNAME);
+        }
+        if (creationUserRequest.getEmail() != null && userRepository.existsByEmail(creationUserRequest.getEmail())) {
+            errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+        }
+        if (!errors.isEmpty()) throw new UserValidationException(String.join(", ", errors));
     }
-
 
 
 }
