@@ -184,6 +184,21 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(ServiceTypeValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleServiceTypeValidationException(ServiceTypeValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("ServiceTypeValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
     @ExceptionHandler(JWTInitializationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
         if (log.isErrorEnabled()) {
