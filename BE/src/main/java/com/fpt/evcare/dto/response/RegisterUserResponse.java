@@ -1,6 +1,7 @@
 package com.fpt.evcare.dto.response;
 
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.util.UUID;
 
@@ -9,8 +10,10 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class RegisterUserResponse {
-    private UUID userId;
-    private String email;
-    private String token;
+    UUID userId;
+    String email;
+    String token;
+    String refreshToken;
 }

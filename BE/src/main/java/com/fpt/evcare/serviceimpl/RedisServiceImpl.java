@@ -18,6 +18,11 @@ public class RedisServiceImpl<T> implements RedisService<T> {
     RedisTemplate<String, Object> redisTemplate; //inject từ file config
 
     @Override
+    public Void clear() {
+        return null;
+    }
+
+    @Override
     public void save(String key, T value, long ttl, TimeUnit unit) {
         redisTemplate.opsForValue().set(key, value, ttl, unit);
         if(log.isErrorEnabled()) {

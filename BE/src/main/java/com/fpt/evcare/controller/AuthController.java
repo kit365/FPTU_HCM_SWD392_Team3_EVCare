@@ -3,9 +3,12 @@ package com.fpt.evcare.controller;
 import com.fpt.evcare.base.ApiResponse;
 import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
+import com.fpt.evcare.dto.request.TokenRequest;
+import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.RegisterUserResponse;
+import com.fpt.evcare.dto.response.TokenResponse;
 import com.fpt.evcare.service.AuthService;
 import com.fpt.evcare.service.UserService;
 import com.nimbusds.jose.JOSEException;
@@ -26,8 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(AuthConstants.BASE_URL)
 public class AuthController {
     AuthService authService;
-
     UserService userService;
+
 
     @PostMapping(AuthConstants.LOGIN)
     @Operation(summary = "Đăng nhập tài khoản", description = "Người dùng đăng nhập bằng email và mật khẩu, trả về JWT token")
@@ -45,7 +48,6 @@ public class AuthController {
                         .build()
                 );
     }
-
     @PostMapping(AuthConstants.REGISTER)
     @Operation(summary = "Đăng ký tài khoản", description = "Người dùng đăng ký tài khoản mới")
     public ResponseEntity<ApiResponse<RegisterUserResponse>> register(@RequestBody RegisterUserRequest registerUserRequest) throws JOSEException {
@@ -58,5 +60,33 @@ public class AuthController {
                         .build()
                 );
 
+    }
+    @PostMapping(AuthConstants.REFRESH)
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@RequestBody TokenRequest request) throws JOSEException {
+        LoginResponse loginResponse = authService.refreshToken(request);
+        return ResponseEntity.ok(ApiResponse.<LoginResponse>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN)
+                .data(loginResponse)
+                .build());
+    }
+
+    @PostMapping(AuthConstants.VALID)
+    public ResponseEntity<ApiResponse<TokenResponse>> validateToken(@RequestBody TokenRequest request) throws JOSEException {
+        TokenResponse tokenResponse = authService.validateToken(request);
+        return ResponseEntity.ok(ApiResponse.<TokenResponse>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_VALIDATE_TOKEN)
+                .data(tokenResponse)
+                .build());
+    }
+
+
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody CreationUserRequest request) {
+        authService.logout(request);
+        return ResponseEntity.ok("Logout successful");
     }
 }

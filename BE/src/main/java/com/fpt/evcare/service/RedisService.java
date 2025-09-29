@@ -6,6 +6,8 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public interface RedisService<T> {
+    Void clear();
+
     //Lưu dữ liệu vào Redis với TTL
     void save(String key, T value, long ttl, TimeUnit unit);
 
