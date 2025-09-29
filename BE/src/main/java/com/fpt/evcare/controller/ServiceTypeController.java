@@ -45,7 +45,7 @@ public class ServiceTypeController {
         List<ServiceTypeResponse> responses = serviceTypeService.getServiceTree();
         return ResponseEntity.ok(ApiResponse.<List<ServiceTypeResponse>>builder()
                 .success(true)
-                .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE)
+                .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE_LIST)
                 .data(responses)
                 .build()
         );
