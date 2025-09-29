@@ -3,6 +3,7 @@ package com.fpt.evcare.controller;
 import com.fpt.evcare.base.ApiResponse;
 import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
+import com.fpt.evcare.dto.request.LogoutRequest;
 import com.fpt.evcare.dto.request.TokenRequest;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.RegisterUserRequest;
@@ -85,7 +86,7 @@ public class AuthController {
 
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody CreationUserRequest request) {
+    public ResponseEntity<String> logout(@RequestBody LogoutRequest request) {
         authService.logout(request);
         return ResponseEntity.ok("Logout successful");
     }

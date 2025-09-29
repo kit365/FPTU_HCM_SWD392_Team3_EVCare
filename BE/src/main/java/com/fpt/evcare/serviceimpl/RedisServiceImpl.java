@@ -43,5 +43,11 @@ public class RedisServiceImpl<T> implements RedisService<T> {
         redisTemplate.delete(key);
     }
 
+    @Override
+    public Long getExpire(String key, TimeUnit unit) {
+        Long expire = redisTemplate.getExpire(key, unit);
+        return expire != null ? expire : -2L; // -2 = không tồn tại, đồng bộ với Redis convention
+    }
+
 
 }

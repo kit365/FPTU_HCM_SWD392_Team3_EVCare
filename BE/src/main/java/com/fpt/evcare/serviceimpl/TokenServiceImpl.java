@@ -26,8 +26,9 @@ public class TokenServiceImpl implements TokenService {
 
     @Override
     public void saveRefreshToken(UUID userId, String token, long durationDays) {
-        redisService.save(TokenConstants.REFRESH_PREFIX + userId, token, durationDays, TimeUnit.DAYS);
+        redisService.save(TokenConstants.REFRESH_PREFIX + userId, token, durationDays, TimeUnit.SECONDS);
     }
+
 
     @Override
     public String getAccessToken(UUID userId) {

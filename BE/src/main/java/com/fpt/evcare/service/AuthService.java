@@ -1,6 +1,7 @@
 package com.fpt.evcare.service;
 
 import com.fpt.evcare.dto.request.LoginRequest;
+import com.fpt.evcare.dto.request.LogoutRequest;
 import com.fpt.evcare.dto.request.TokenRequest;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.RegisterUserRequest;
@@ -15,5 +16,5 @@ public interface AuthService {
 
     RegisterUserResponse registerUser(RegisterUserRequest registerUserRequest) throws JOSEException;
     TokenResponse validateToken(TokenRequest token);
-    void logout(CreationUserRequest user);
+    void logout(LogoutRequest user);
 }

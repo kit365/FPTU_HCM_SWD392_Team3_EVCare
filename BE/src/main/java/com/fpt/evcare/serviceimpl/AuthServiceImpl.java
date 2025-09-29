@@ -4,8 +4,8 @@ import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.constants.TokenConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
+import com.fpt.evcare.dto.request.LogoutRequest;
 import com.fpt.evcare.dto.request.TokenRequest;
-import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.TokenResponse;
@@ -36,10 +36,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
 
@@ -73,13 +73,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Sinh cả Access Token và Refresh Token
-        String accessToken = generateAccessToken(loginRequest.getEmail());
-        String refreshToken = generateRefreshToken(loginRequest.getEmail());
+        String accessToken = generateAccessToken(user.getUserId());
+        String refreshToken = generateRefreshToken(user.getUserId());
 
 
         // Lưu vào Redis (tuỳ chọn)
         tokenService.saveAccessToken(user.getUserId(), accessToken, 3600); // 1h
-        tokenService.saveRefreshToken(user.getUserId(), refreshToken, 7);   // 7 ngày
+        tokenService.saveRefreshToken(user.getUserId(), refreshToken, 604800);   // 7 ngày
 
         if (log.isInfoEnabled()) {
             log.info(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
@@ -102,13 +102,13 @@ public class AuthServiceImpl implements AuthService {
         // sau này thêm: locked, expired... cũng nhét ở đây
     }
 
-    private String generateAccessToken(String email) throws JOSEException {
+    private String generateAccessToken(UUID userId) throws JOSEException {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(email)
+                .subject(String.valueOf(userId))
                 .issuer(AuthConstants.APP_NAME)
                 .issueTime(new Date())
-                .expirationTime(new Date(Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()))
+                .expirationTime(new Date(Instant.now().plus(3600, ChronoUnit.SECONDS).toEpochMilli()))
                 .build();
         JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
         jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
@@ -116,14 +116,32 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    private String generateRefreshToken(String email) throws JOSEException {
+    private String generateRefreshToken(UUID userId) throws JOSEException {
 
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(email)
+                .subject(String.valueOf(userId))
                 .issuer(AuthConstants.APP_NAME)
                 .issueTime(new Date())
-                .expirationTime(new Date(Instant.now().plus(7, ChronoUnit.DAYS).toEpochMilli()))
+                .expirationTime(new Date(Instant.now().plus(604800, ChronoUnit.SECONDS).toEpochMilli()))
+                .build();
+        JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
+        jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
+        return jwsObject.serialize();
+    }
+
+    private String generateRefreshTokenOnRefresh(UUID userId) throws JOSEException {
+
+        long remainingTtl = redisService.getExpire(TokenConstants.REFRESH_PREFIX + userId, TimeUnit.SECONDS);
+        if (remainingTtl <= 0) {
+            throw new InvalidCredentialsException("Refresh token đã hết hạn");
+        }
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .subject(String.valueOf(userId))
+                .issuer(AuthConstants.APP_NAME)
+                .issueTime(new Date())
+                .expirationTime(new Date(Instant.now().plus(remainingTtl, ChronoUnit.SECONDS).toEpochMilli()))
                 .build();
         JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
         jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
@@ -131,24 +149,37 @@ public class AuthServiceImpl implements AuthService {
     }
     @Override
     public LoginResponse refreshToken(TokenRequest request) throws JOSEException {
-        String refreshToken = request.getToken();
+
+        String oldRefreshToken = request.getToken();
+        UUID userId = UUID.fromString(getUserIdByToken(oldRefreshToken));
+
         // 1. Kiểm tra refresh token trong Redis
-        String email = redisService.getValue(TokenConstants.REFRESH_PREFIX + refreshToken);
-        if (email == null) {
+        String refreshment = redisService.getValue(TokenConstants.REFRESH_PREFIX + userId);
+        if (!refreshment.equals(request.getToken())) {
             throw new InvalidCredentialsException("Refresh token không hợp lệ hoặc đã hết hạn");
         }
 
-        // 2. Sinh access token mới
-        String newAccessToken = generateAccessToken(email);
+        // 2. Lấy TTL còn lại của refresh token cũ
+        long remainingTtl = redisService.getExpire(TokenConstants.REFRESH_PREFIX + userId, TimeUnit.SECONDS);
+        if (remainingTtl <= 0) {
+            throw new InvalidCredentialsException("Refresh token đã hết hạn");
+        }
 
-        // 3. (Tuỳ chọn) Sinh refresh token mới
-        String newRefreshToken = generateRefreshToken(email);
+        // 3. Sinh access token mới
+        String newAccessToken = generateAccessToken(userId);
 
-        // 4. Lưu refresh token mới vào Redis, xoá cái cũ
-        redisService.delete("refresh:" + refreshToken);
-        redisService.save("refresh:" + newRefreshToken, email, 7, TimeUnit.DAYS);
+        // 4. Sinh refresh token mới
+        String newRefreshToken = generateRefreshTokenOnRefresh(userId);
 
-        // 5. Trả về response
+        // 5. Xoá refresh token cũ, lưu refresh token mới với TTL còn lại
+        redisService.delete(TokenConstants.REFRESH_PREFIX + userId);
+
+
+        // Lưu vào Redis (tuỳ chọn)
+        tokenService.saveAccessToken(userId, newAccessToken, 3600); // 1h
+        tokenService.saveRefreshToken(userId, newRefreshToken, remainingTtl);   // 7 ngày
+
+        // 6. Trả về response
         return LoginResponse.builder()
                 .token(newAccessToken)
                 .refreshToken(newRefreshToken)
@@ -157,20 +188,38 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+
     @Override
-    public void logout(CreationUserRequest request) {
+    public void logout(LogoutRequest request) {
         tokenService.removeTokens(request.getUserId());
         if (log.isInfoEnabled()) {
             log.info("User with ID {} logged out successfully", request.getUserId());
         }
     }
+
     @Override
     public TokenResponse validateToken(TokenRequest token) {
         try {
+            // Parse token
             SignedJWT signedJWT = SignedJWT.parse(token.getToken());
             JWSVerifier verifier = new MACVerifier(String.valueOf(customJWTDecode.getMacSigner()));
-            boolean isValid = signedJWT.verify(verifier)
-                    && signedJWT.getJWTClaimsSet().getExpirationTime().after(new Date());
+
+            boolean signatureValid = signedJWT.verify(verifier);
+            boolean notExpired = signedJWT.getJWTClaimsSet()
+                    .getExpirationTime()
+                    .after(new Date());
+
+            // Lấy userId từ token (ví dụ trong claim "sub")
+            UUID userId = UUID.fromString(signedJWT.getJWTClaimsSet().getSubject());
+
+
+            // Kiểm tra trong Redis
+            String redisToken = redisService.getValue(TokenConstants.ACCESS_PREFIX + userId);
+
+            boolean inRedis = redisToken != null && redisToken.equals(token.getToken());
+
+            boolean isValid = signatureValid && notExpired && inRedis;
+
             return TokenResponse.builder()
                     .token(token.getToken())
                     .authorized(isValid)
@@ -179,6 +228,19 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException(AuthConstants.MESSAGE_ERR_TOKEN_DISABLED);
         }
     }
+
+    public String getUserIdByToken(String token) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            return signedJWT.getJWTClaimsSet().getSubject();
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("Failed to extract email from token: {}", e.getMessage());
+            }
+            throw new IllegalArgumentException("Invalid token");
+        }
+    }
+
 
 
     //sẽ chỉnh sua lai sau de thuc hien tot SOLID
@@ -211,10 +273,14 @@ public class AuthServiceImpl implements AuthService {
         userEntity.setPassword(passwordEncoder.encode(registerUserRequest.getPassword()));
         userEntity.setRoles(List.of(roleRepository.findByRoleName(RoleEnum.CUSTOMER)));
         userRepository.save(userEntity);
+        String accessToken = generateAccessToken(userEntity.getUserId());
+        String refreshToken = generateRefreshToken(userEntity.getUserId());
+        tokenService.saveAccessToken(userEntity.getUserId(), accessToken, 3600); // 1h
+        tokenService.saveRefreshToken(userEntity.getUserId(), refreshToken, 604800);   // 7 ngày
         log.info(AuthConstants.LOG_SUCCESS_ACCOUNT_REGISTER, registerUserRequest.getEmail());
         RegisterUserResponse registerUserResponse = userMapper.toRegisterUserResponse(userEntity);
-        registerUserResponse.setToken(generateAccessToken(userEntity.getEmail()));
-        registerUserResponse.setRefreshToken(generateRefreshToken(userEntity.getEmail()));
+        registerUserResponse.setToken(accessToken);
+        registerUserResponse.setRefreshToken(refreshToken);
         return registerUserResponse;
     }
 }

@@ -17,6 +17,7 @@ public interface RedisService<T> {
     // Xóa dữ liệu khỏi Redis
     void delete(String key);
 
+    Long getExpire(String key, TimeUnit unit);
 
 
 }
