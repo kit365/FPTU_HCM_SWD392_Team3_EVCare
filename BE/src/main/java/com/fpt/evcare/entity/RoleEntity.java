@@ -22,11 +22,11 @@ public class RoleEntity extends BaseEntity {
     @Column(name = "role_id", updatable = false, nullable = false)
     UUID roleId;
 
-    @Column(name = "role_name")
+    @Column(name = "role_name", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     RoleEnum roleName;
 
-    @Column(name = "description", nullable = false)
+    @Column(name = "description", length = 100)
     String description;
 
     @ElementCollection(fetch = FetchType.EAGER)

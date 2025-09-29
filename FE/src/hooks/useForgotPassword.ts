@@ -11,8 +11,8 @@ export function useForgotPassword() {
 
 
     const requestOTP = async (data: RequestOtpRequest): Promise<ApiResponse<string>> => {
-        let FAIL_MESSAGE = "Yêu cầu OTP thất bại";
-        let SUCCESS_MESSAGE = "Yêu cầu gửi OTP thành công";
+        const FAIL_MESSAGE = "Yêu cầu OTP thất bại";
+        const SUCCESS_MESSAGE = "Yêu cầu gửi OTP thành công";
         setIsLoading(true);
         try {
             const response = await forgotPasswordService.requestOTP(data);

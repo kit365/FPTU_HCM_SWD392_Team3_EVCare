@@ -1,5 +1,8 @@
 package com.fpt.evcare.Initializer;
+import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
+import com.fpt.evcare.repository.RoleRepository;
 import com.fpt.evcare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -11,10 +14,19 @@ import org.springframework.stereotype.Component;
 public class AccountData implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
     @Override
     public void run(String... args) throws Exception {
+        createRole();
         createUser();
+
+    }
+
+    private void createRole() {
+        RoleEntity role = new RoleEntity();
+        role.setRoleName(RoleEnum.CUSTOMER);
+        roleRepository.save(role);
     }
 
     private void createUser() {
