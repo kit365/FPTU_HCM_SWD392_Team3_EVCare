@@ -102,7 +102,7 @@ public class AuthServiceImpl implements AuthService {
         // sau này thêm: locked, expired... cũng nhét ở đây
     }
 
-    private String generateAccessToken(UUID userId) throws JOSEException {
+    public String generateAccessToken(UUID userId) throws JOSEException {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(String.valueOf(userId))
@@ -116,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    private String generateRefreshToken(UUID userId) throws JOSEException {
+    public String generateRefreshToken(UUID userId) throws JOSEException {
 
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
