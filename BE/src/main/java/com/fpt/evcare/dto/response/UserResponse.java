@@ -29,8 +29,6 @@ public class UserResponse implements Serializable {
 
     String fullName;
 
-    String search;
-
     String numberPhone;
 
     String avatarUrl;

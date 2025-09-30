@@ -57,12 +57,6 @@ public class UserEntity extends BaseEntity {
     @Column(name = "avatar_url")
     String avatarUrl;
 
-    @Column(name = "technician_skills")
-    String technicianSkills;
-
-    @Column(name = "is_active")
-    boolean isActive;
-
     @Column(name = "last_login")
     String lastLogin;
 }
