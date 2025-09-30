@@ -45,9 +45,6 @@ public class UpdationUserRequest {
     String avatarUrl;
 
     @Nullable
-    String technicianSkills;
-
-    @Nullable
     LocalDateTime lastLogin;
 
     @Nullable
