@@ -199,6 +199,21 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(VehiclePartCategoryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehiclePartCategoryException(VehiclePartCategoryException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehiclePartCategoryException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
     @ExceptionHandler(JWTInitializationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
         if (log.isErrorEnabled()) {
