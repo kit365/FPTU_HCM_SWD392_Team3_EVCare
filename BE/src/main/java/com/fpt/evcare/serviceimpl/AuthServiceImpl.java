@@ -3,15 +3,23 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
+import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
+import com.fpt.evcare.dto.response.RegisterUserResponse;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.DisabledException;
 import com.fpt.evcare.exception.InvalidCredentialsException;
+import com.fpt.evcare.exception.UserValidationException;
+import com.fpt.evcare.mapper.UserMapper;
+import com.fpt.evcare.repository.RoleRepository;
+import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.AuthService;
 import com.fpt.evcare.service.UserService;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -32,6 +41,11 @@ public class AuthServiceImpl implements AuthService {
     PasswordEncoder passwordEncoder;
     UserService userService;
     CustomJWTDecode customJWTDecode;
+    UserRepository userRepository;
+    UserMapper userMapper;
+    RoleRepository roleRepository;
+
+
     @Override
     public LoginResponse login(LoginRequest loginRequest) throws JOSEException {
         UserEntity user = userService.getUserByEmail(loginRequest.getEmail());
@@ -67,7 +81,8 @@ public class AuthServiceImpl implements AuthService {
         // sau này thêm: locked, expired... cũng nhét ở đây
     }
 
-    private String generateToken(String email) throws JOSEException {
+    @Override
+    public String generateToken(String email) throws JOSEException {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(email)
@@ -78,5 +93,41 @@ public class AuthServiceImpl implements AuthService {
         JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
         jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
         return jwsObject.serialize();
+    }
+
+    //sẽ chỉnh sua lai sau de thuc hien tot SOLID
+    @Override
+    public RegisterUserResponse registerUser(@Valid RegisterUserRequest registerUserRequest) throws JOSEException {
+        UserEntity user = userRepository.findByEmail(registerUserRequest.getEmail());
+
+        if (user != null) {
+            if(log.isErrorEnabled()) {
+                log.warn(UserConstants.LOG_ERR_DUPLICATED_USER_EMAIL);
+            }
+            throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+        }
+
+        if(userRepository.existsByUsername(registerUserRequest.getUsername())) {
+            if(log.isErrorEnabled()) {
+                log.warn(UserConstants.LOG_ERR_DUPLICATED_USERNAME);
+            }
+            throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USERNAME);
+        }
+
+        if(userRepository.existsByNumberPhone(registerUserRequest.getNumberPhone())) {
+            if(log.isErrorEnabled()) {
+                log.warn(UserConstants.LOG_ERR_DUPLICATED_USER_PHONE);
+            }
+            throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+        }
+
+        UserEntity userEntity = userMapper.toEntity(registerUserRequest);
+        userEntity.setPassword(passwordEncoder.encode(registerUserRequest.getPassword()));
+        userEntity.setRoles(List.of(roleRepository.findByRoleName(RoleEnum.CUSTOMER)));
+        userRepository.save(userEntity);
+        log.info(AuthConstants.LOG_SUCCESS_ACCOUNT_REGISTER, registerUserRequest.getEmail());
+        RegisterUserResponse registerUserResponse = userMapper.toRegisterUserResponse(userEntity);
+        registerUserResponse.setToken(generateToken(userEntity.getEmail()));
+        return registerUserResponse;
     }
 }

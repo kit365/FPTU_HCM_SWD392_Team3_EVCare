@@ -24,6 +24,10 @@ public abstract class BaseEntity {
     @Builder.Default
     private Boolean isDeleted = false;
 
+    @Column(name = "is_active")
+    @Builder.Default
+    private Boolean isActive = true;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

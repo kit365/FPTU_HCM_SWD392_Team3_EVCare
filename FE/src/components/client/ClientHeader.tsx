@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HomeOutlined, LogoutOutlined, ScheduleOutlined, SettingOutlined } from '@ant-design/icons';
+import { HomeOutlined, IdcardOutlined, LogoutOutlined, ScheduleOutlined, SettingOutlined } from '@ant-design/icons';
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd'; // Thêm dòng này
 import { Link } from 'react-router-dom';
@@ -24,7 +24,12 @@ const ClientHeader = () => {
             key: 'booking',
             icon: <ScheduleOutlined />,
         },
-
+        
+{
+            label: <Link to={"car-profile"}>Hồ sơ xe</Link>,
+            key: 'carprofile',
+            icon: <IdcardOutlined />,
+        },
         {
             label: 'Cài đặt',
             key: 'SubMenu',

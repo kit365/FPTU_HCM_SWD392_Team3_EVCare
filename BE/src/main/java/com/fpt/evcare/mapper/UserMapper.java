@@ -1,7 +1,9 @@
 package com.fpt.evcare.mapper;
 
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
+import com.fpt.evcare.dto.response.RegisterUserResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.UserEntity;
 import org.mapstruct.*;
@@ -17,9 +19,13 @@ public interface UserMapper {
     @Mapping(target = "search", ignore = true)
     @Mapping(target =  "lastLogin", ignore = true)
     UserEntity toEntity (CreationUserRequest creationUserRequest);
+    UserEntity toEntity(RegisterUserRequest registerUserRequest);
 
     @Mapping(target = "roleName", ignore = true)
     UserResponse toResponse (UserEntity userEntity);
+
+    @Mapping(target = "token", ignore = true)
+    RegisterUserResponse toRegisterUserResponse(UserEntity userEntity);
 
     @Mapping(target = "roles", ignore = true)
     List<UserResponse> toResponses (List<UserEntity> userEntities);
