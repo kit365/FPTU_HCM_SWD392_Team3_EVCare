@@ -11,23 +11,17 @@ import com.fpt.evcare.exception.InvalidCredentialsException;
 import com.fpt.evcare.serviceimpl.AuthServiceImpl;
 import com.fpt.evcare.serviceimpl.CustomJWTDecode;
 import com.nimbusds.jose.crypto.MACSigner;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.fpt.evcare.exception.IllegalArgumentException;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
-import java.util.Date;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
