@@ -18,6 +18,11 @@ public class RedisServiceImpl<T> implements RedisService<T> {
     RedisTemplate<String, Object> redisTemplate; //inject từ file config
 
     @Override
+    public Void clear() {
+        return null;
+    }
+
+    @Override
     public void save(String key, T value, long ttl, TimeUnit unit) {
         redisTemplate.opsForValue().set(key, value, ttl, unit);
         if(log.isErrorEnabled()) {
@@ -36,6 +41,12 @@ public class RedisServiceImpl<T> implements RedisService<T> {
     @Override
     public void delete(String key) {
         redisTemplate.delete(key);
+    }
+
+    @Override
+    public Long getExpire(String key, TimeUnit unit) {
+        Long expire = redisTemplate.getExpire(key, unit);
+        return expire != null ? expire : -2L; // -2 = không tồn tại, đồng bộ với Redis convention
     }
 
 

@@ -1,9 +1,9 @@
-# 🚗 SWD392_Team3 - Hệ thống Quản lý Xe Điện
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/72550177-1a70-4f80-84db-8b919e23eab8" /># 🚗 SWD392_Team3 - Hệ thống Quản lý Xe Điện
 
 Dự án phát triển hệ thống web/app cho **xe điện**, hỗ trợ:  
 
 - Đặt chỗ sạc  
-- Giám sát tình trạng pin  
+- Giám sát tình trạng pin 
 - Báo cáo dữ liệu & doanh thu  
 - Quản lý người dùng  
 
@@ -98,4 +98,73 @@ git status  # Xem files bị conflict
 
 git add .
 git commit -m "[FIX] Resolve merge conflict với develop"
+
+# 📌 JWT Authentication Guide
+
+## 1. Giới thiệu
+Hệ thống sử dụng **JWT (JSON Web Token)** để xác thực và phân quyền.  
+JWT bao gồm 2 loại token:
+
+- **Access Token**: thời gian sống ngắn (**1 giờ**), dùng để xác thực khi gọi API.  
+- **Refresh Token**: thời gian sống dài hơn (**7 ngày**), dùng để cấp lại Access Token mới khi hết hạn.  
+
+---
+
+## 2. Quy trình hoạt động
+
+### 🔑 Login
+1. Người dùng gửi **email + password**.  
+2. Server kiểm tra thông tin đăng nhập.  
+3. Sinh **Access Token (1h)** và **Refresh Token (7 ngày)**.  
+4. Lưu cả 2 token vào **Redis** để quản lý.  
+
+### 📌 Sử dụng Access Token
+- Mỗi request từ client phải gửi kèm Access Token trong:  
+- Server kiểm tra:
+- ✅ Chữ ký token có hợp lệ không.  
+- ✅ Token có hết hạn chưa.  
+- ✅ Token có tồn tại trong Redis không.  
+
+### 🔄 Refresh Token
+- Khi **Access Token** hết hạn, client gọi API refresh token với **Refresh Token**.  
+- Server kiểm tra:
+- Refresh Token có hợp lệ và còn hạn không (**check Redis + TTL**).  
+- Nếu hợp lệ → sinh **Access Token mới** và **Refresh Token mới** nhưng vẫn giữ **TTL cũ**.  
+
+### 🚪 Logout
+- Khi logout, hệ thống xoá **Access Token** và **Refresh Token** của user khỏi **Redis**.  
+
+---
+
+## 3. Thời gian sống (TTL)
+- **Access Token**: `3600 giây` (1 giờ).  
+- **Refresh Token**: `604800 giây` (7 ngày).  
+- Khi refresh, **Refresh Token mới** được sinh ra nhưng chỉ sống đúng bằng **thời gian còn lại** của token cũ (*remaining TTL*).  
+
+---
+
+## 4. Các API chính
+- `POST /auth/login` → đăng nhập, trả về **Access Token + Refresh Token**.  
+- `POST /auth/refresh` → cấp lại **Access Token** khi hết hạn.  
+- `POST /auth/logout` → đăng xuất, xoá token khỏi Redis.  
+- `POST /auth/validate` → kiểm tra token có hợp lệ hay không.  
+
+---
+
+## 5. Cấu trúc code chính
+- **AuthServiceImpl**: xử lý login, refresh, logout, validate token.  
+- **TokenService**: lưu/xoá Access Token & Refresh Token vào Redis.  
+- **RedisService**: thao tác với Redis (*set/get/delete/getExpire*).  
+- **CustomJWTDecode**: cung cấp secret key cho việc ký/verify JWT.  
+
+---
+
+## 6. Lưu ý
+- Tất cả token được ký bằng **thuật toán HS256** với **secret key**.  
+- Token chỉ hợp lệ khi:
+- ✅ Chữ ký đúng.  
+- ✅ Chưa hết hạn.  
+- ✅ Có trong Redis.  
+
+
 
