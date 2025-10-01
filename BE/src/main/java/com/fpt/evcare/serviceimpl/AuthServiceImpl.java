@@ -98,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
     //sẽ chỉnh sua lai sau de thuc hien tot SOLID
     @Override
     public RegisterUserResponse registerUser(@Valid RegisterUserRequest registerUserRequest) throws JOSEException {
-        UserEntity user = userRepository.findByEmail(registerUserRequest.getEmail());
+        UserEntity user = userRepository.findByEmailAndIsDeletedFalse(registerUserRequest.getEmail());
 
         if (user != null) {
             if(log.isErrorEnabled()) {

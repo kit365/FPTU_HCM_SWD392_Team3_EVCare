@@ -44,7 +44,7 @@ public class AccountData implements CommandLineRunner {
                         .build()
         };
         for (UserEntity user : account) {
-            if (userRepository.findByEmail(user.getEmail()) == null) {
+            if (userRepository.findByEmailAndIsDeletedFalse(user.getEmail()) == null) {
                 userRepository.save(user);
             }
         }

@@ -8,8 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
-    UserEntity findByUserId(UUID id);
-    UserEntity findByEmail(String email);
+    UserEntity findByUserIdAndIsDeletedFalse(UUID id);
+    UserEntity findByUserIdAndIsDeletedTrue(UUID id);
+    UserEntity findByEmailAndIsDeletedFalse(String email);
     Page<UserEntity> findByIsDeletedFalse(Pageable pageable);
     Page<UserEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
     boolean existsByEmail(String email);
