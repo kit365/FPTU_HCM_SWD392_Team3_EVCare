@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(ResourceNotFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         if (log.isInfoEnabled()) {
             log.info("Invalid argument: {}", ex.getMessage());
         }
@@ -44,6 +44,7 @@ public class GlobalExceptionHandler {
                         .build()
                 );
     }
+
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
@@ -188,6 +189,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleServiceTypeValidationException(ServiceTypeValidationException ex) {
         if (log.isErrorEnabled()) {
             log.error("ServiceTypeValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(VehiclePartCategoryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehiclePartCategoryException(VehiclePartCategoryException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehiclePartCategoryException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity

@@ -3,44 +3,30 @@ package com.fpt.evcare.dto.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
-@Builder
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
+@ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse implements Serializable {
+public class VehiclePartCategoryResponse implements Serializable {
 
-    UUID userId;
+    UUID vehiclePartCategoryId;
 
-    private List<String> roleName;
+    String partCategoryName;
 
-    String username;
+    String description;
 
-    String email;
-
-    String address;
-
-    String fullName;
-
-    String numberPhone;
-
-    String avatarUrl;
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    String technicianSkills;
+    Integer averageLifespan;
 
     boolean isActive;
-
-    String lastLogin;
-
-    Boolean isDeleted;
 
     LocalDateTime createdAt;
 

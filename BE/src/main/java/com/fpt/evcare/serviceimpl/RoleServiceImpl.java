@@ -61,6 +61,7 @@ public class RoleServiceImpl implements RoleService {
             throw new IllegalArgumentException(RoleConstants.MESSAGE_ERR_ROLE_NAME_NOT_EXISTED);
         }
     }
+
     @Override
     public void updateRole(UUID roleId, RoleRequest roleRequest) {
         RoleEntity roleEntity = getRoleEntity(roleId);
