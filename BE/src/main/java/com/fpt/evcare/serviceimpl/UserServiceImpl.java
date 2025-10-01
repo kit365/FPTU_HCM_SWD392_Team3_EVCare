@@ -59,6 +59,7 @@ public class UserServiceImpl implements UserService {
         return response;
     }
 
+    @Override
     public PageResponse<UserResponse> searchUser(Pageable pageable, String keyword) {
         Page<UserEntity> usersPage;
         if (keyword == null || keyword.trim().isEmpty()) {
