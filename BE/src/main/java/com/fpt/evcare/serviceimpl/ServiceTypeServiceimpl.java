@@ -206,11 +206,11 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
 
     @Override
     public boolean restoreServiceType(UUID id){
-        ServiceTypeEntity serviceTypeEntity = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(id);
-        if(serviceTypeEntity == null) {
+        ServiceTypeEntity serviceTypeEntity = serviceTypeRepository.findById(id).orElseThrow(() -> {
             log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND);
             throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
-        }
+        });
+
         serviceTypeEntity.setIsDeleted(false);
 
         log.info(ServiceTypeConstants.LOG_INFO_RESTORING_SERVICE_TYPE);
@@ -234,7 +234,7 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
 
     private void checkDuplicateCreationServiceName(String serviceName) {
         boolean existingServiceType = serviceTypeRepository.existsByServiceNameIgnoreCaseAndIsDeletedFalse(serviceName);
-        if (!existingServiceType) {
+        if (existingServiceType) {
             log.warn(ServiceTypeConstants.LOG_ERR_DUPLICATED_SERVICE_TYPE);
             throw new ServiceTypeValidationException(ServiceTypeConstants.MESSAGE_ERR_DUPLICATED_SERVICE_TYPE);
         }
