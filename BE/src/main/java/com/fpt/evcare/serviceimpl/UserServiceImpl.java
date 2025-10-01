@@ -118,9 +118,8 @@ public class UserServiceImpl implements UserService {
         List<RoleEntity> roleIdList = new ArrayList<>();
 
         if(creationUserRequest.getRoleIds() != null && !creationUserRequest.getRoleIds().isEmpty()){
-            for(String roleId : creationUserRequest.getRoleIds()){
-                UUID formattedRoleId = UUID.fromString(roleId);
-                RoleEntity roleEntity = roleRepository.findRoleByRoleId(formattedRoleId);
+            for(UUID roleId : creationUserRequest.getRoleIds()){
+                RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
                 if( roleEntity != null) {
                     roleIdList.add(roleEntity);
                 }
