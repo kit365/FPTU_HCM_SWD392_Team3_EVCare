@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserById(UUID id) {
-        UserEntity user = userRepository.findByUserId(id);
+        UserEntity user = userRepository.findByUserIdAndIsDeletedFalse(id);
         if(user == null) {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND,  id);
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
@@ -97,7 +97,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserEntity getUserByEmail(String email) {
-        UserEntity userEntity = userRepository.findByEmail(email);
+        UserEntity userEntity = userRepository.findByEmailAndIsDeletedFalse(email);
         if (userEntity == null) {
             if (log.isErrorEnabled()) {
                 log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, email);
@@ -147,14 +147,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public boolean updateUser(UpdationUserRequest updationUserRequest, UUID id) {
 
-        UserEntity user = userRepository.findByUserId(id);
+        UserEntity user = userRepository.findByUserIdAndIsDeletedFalse(id);
         if(user == null) {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND, id);
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
 
         List<RoleEntity> roleIdList = new ArrayList<>();
-
 
         if(updationUserRequest.getRoleIds() != null && !updationUserRequest.getRoleIds().isEmpty()){
             for(String roleId : updationUserRequest.getRoleIds()){
@@ -197,8 +196,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public boolean deleteUser(UUID id) {
-        UserEntity user = userRepository.findByUserId(id);
+        UserEntity user = userRepository.findByUserIdAndIsDeletedFalse(id);
 
         if(user == null) {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND, "User id: " + id);
@@ -212,8 +212,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public boolean restoreUser(UUID id) {
-        UserEntity user = userRepository.findByUserId(id);
+        UserEntity user = userRepository.findByUserIdAndIsDeletedTrue(id);
 
         if(user == null) {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND, id);
