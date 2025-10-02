@@ -8,8 +8,6 @@ import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.UserEntity;
 import org.mapstruct.*;
 
-import java.util.List;
-
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
@@ -19,6 +17,7 @@ public interface UserMapper {
     @Mapping(target = "search", ignore = true)
     @Mapping(target =  "lastLogin", ignore = true)
     UserEntity toEntity (CreationUserRequest creationUserRequest);
+
     UserEntity toEntity(RegisterUserRequest registerUserRequest);
 
     @Mapping(target = "roleName", ignore = true)
@@ -26,9 +25,6 @@ public interface UserMapper {
 
     @Mapping(target = "token", ignore = true)
     RegisterUserResponse toRegisterUserResponse(UserEntity userEntity);
-
-    @Mapping(target = "roles", ignore = true)
-    List<UserResponse> toResponses (List<UserEntity> userEntities);
 
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "username", ignore = true)

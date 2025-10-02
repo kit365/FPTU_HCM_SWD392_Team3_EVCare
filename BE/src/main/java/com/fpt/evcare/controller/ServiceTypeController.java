@@ -4,17 +4,20 @@ import com.fpt.evcare.base.ApiResponse;
 import com.fpt.evcare.constants.ServiceTypeConstants;
 import com.fpt.evcare.dto.request.service_type.CreationServiceTypeRequest;
 import com.fpt.evcare.dto.request.service_type.UpdationServiceTypeRequest;
+import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.ServiceTypeResponse;
 import com.fpt.evcare.service.ServiceTypeService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -27,8 +30,7 @@ public class ServiceTypeController {
     ServiceTypeService serviceTypeService;
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE)
-    @Operation(summary = "Lấy 1 dịch vụ", description = "Người dùng lấy ra thông tin cụ thể cho 1 dịch vụ theo id")
-
+    @Operation(summary = "Lấy 1 dịch vụ", description = "Lấy ra thông tin cụ thể cho 1 dịch vụ theo id")
     public ResponseEntity<ApiResponse<ServiceTypeResponse>> getServiceType(@PathVariable UUID id) {
         ServiceTypeResponse response = serviceTypeService.getServiceTypeById(id);
         return ResponseEntity.ok(ApiResponse.<ServiceTypeResponse>builder()
@@ -40,10 +42,16 @@ public class ServiceTypeController {
     }
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST)
-    @Operation(summary = "Lấy ra danh sách dịch vụ", description = "Người dùng lấy ra thông tin tất cả dịch vụ, có cấu trúc cây")
-    public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getAllServiceTypes() {
-        List<ServiceTypeResponse> responses = serviceTypeService.getServiceTree();
-        return ResponseEntity.ok(ApiResponse.<List<ServiceTypeResponse>>builder()
+    @Operation(summary = "Lấy ra danh sách dịch vụ", description = "Lấy ra thông tin tất cả dịch vụ, có cấu trúc cây")
+    public ResponseEntity<ApiResponse<PageResponse<ServiceTypeResponse>>> getAllServiceTypes(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+            @Nullable @RequestParam(name = "keyword", defaultValue = "") String keyword) {
+         Pageable pageable = PageRequest.of(page, pageSize);
+
+        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, pageable);
+
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ServiceTypeResponse>>builder()
                 .success(true)
                 .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE_LIST)
                 .data(responses)
@@ -52,7 +60,7 @@ public class ServiceTypeController {
     }
 
     @PostMapping(ServiceTypeConstants.SERVICE_TYPE_CREATION)
-    @Operation(summary = "Tạo 1 dịch vụ", description = "Người dùng tạo ra thông tin cụ thể cho 1 dịch vụ mới")
+    @Operation(summary = "Tạo 1 dịch vụ", description = "Tạo ra thông tin cụ thể cho 1 dịch vụ mới")
     public ResponseEntity<ApiResponse<String>> createServiceType(@Valid @RequestBody CreationServiceTypeRequest request) {
         boolean result = serviceTypeService.createServiceType(request);
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -63,7 +71,7 @@ public class ServiceTypeController {
     }
 
     @PatchMapping(ServiceTypeConstants.SERVICE_TYPE_UPDATE)
-    @Operation(summary = "Cập nhật 1 dịch vụ", description = "Người dùng cập nhật thông tin cụ thể cho 1 dịch vụ theo id")
+    @Operation(summary = "Cập nhật 1 dịch vụ", description = "Cập nhật thông tin cụ thể cho 1 dịch vụ theo id")
     public ResponseEntity<ApiResponse<String>> updateServiceType(@PathVariable UUID id, @Valid @RequestBody UpdationServiceTypeRequest request) {
         boolean result = serviceTypeService.updateServiceType(id, request);
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -74,7 +82,7 @@ public class ServiceTypeController {
     }
 
     @DeleteMapping(ServiceTypeConstants.SERVICE_TYPE_DELETE)
-    @Operation(summary = "Xóa 1 dịch vụ", description = "Người dùng xóa mềm 1 dịch vụ theo id")
+    @Operation(summary = "Xóa 1 dịch vụ", description = "Xóa mềm 1 dịch vụ theo id")
     public ResponseEntity<ApiResponse<String>> deleteServiceType(@PathVariable UUID id) {
         boolean result = serviceTypeService.deleteServiceType(id);
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -83,4 +91,14 @@ public class ServiceTypeController {
                 .build()
         );
     }
+
+    @PatchMapping(ServiceTypeConstants.RESTORING_SERVICE_TYPE)
+    @Operation(summary = "Khôi phục 1 dịch vụ", description = "Khôi phục 1 dịch vụ sau khi bị xóa")
+    public ResponseEntity<ApiResponse<String>> restoreServiceType(@PathVariable UUID id) {
+        boolean result = serviceTypeService.restoreServiceType(id);
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(result)
+                .message(ServiceTypeConstants.MESSAGE_SUCCESS_RESTORING_SERVICE_TYPE)
+                .build()
+        );    }
 }
