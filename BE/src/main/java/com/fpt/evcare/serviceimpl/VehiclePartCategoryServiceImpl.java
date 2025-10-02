@@ -130,12 +130,10 @@ public class VehiclePartCategoryServiceImpl implements VehiclePartCategoryServic
 
     @Override
     public boolean restoreVehiclePartCategory(UUID id) {
-        VehiclePartCategoryEntity vehiclePartCategoryEntity = vehiclePartCategoryRepository.findByVehiclePartCategoryIdAndIsDeletedFalse(id);
-
-        if(vehiclePartCategoryEntity == null) {
+        VehiclePartCategoryEntity vehiclePartCategoryEntity = vehiclePartCategoryRepository.findById(id).orElseThrow(() -> {
             log.warn(VehiclePartCategoryConstant.LOG_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND);
             throw new ResourceNotFoundException(VehiclePartCategoryConstant.MESSAGE_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND);
-        }
+        });
 
         vehiclePartCategoryEntity.setIsDeleted(false);
 
