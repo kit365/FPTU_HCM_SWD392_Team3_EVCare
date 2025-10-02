@@ -14,4 +14,5 @@ import java.io.Serializable;
 public class LoginResponse implements Serializable {
     boolean authenticated;
     String token;
+    String refreshToken;
 }

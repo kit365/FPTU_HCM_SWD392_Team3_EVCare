@@ -12,6 +12,7 @@ public class RoleConstants {
     public static final String SUCCESS_GET_ALL_ROLE = "Lấy danh sách role thành công.";
     public static final String SUCCESS_GET_ROLE_BY_ID = "Lấy role theo ID thành công.";
 
+
     // Error Messages
     public static final String MESSAGE_ERR_ROLE_NOT_EXISTED = "Role không tồn tại.";
     public static final String MESSAGE_ERR_ROLE_NAME_NOT_EXISTED = "Tên Role không tồn tại.";

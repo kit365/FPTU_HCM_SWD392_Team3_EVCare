@@ -9,14 +9,22 @@ public class AuthConstants {
 
     // Success Messages
     public static final String MESSAGE_SUCCESS_ACCOUNT_LOGIN = "Đăng nhập thành công";
-    public static final String MESSAGE_SUCCESS_ACCOUNT_REGISTER = "Đăng kí tài khoản thành công";
+    public static final String MESSAGE_SUCCESS_VALIDATE_TOKEN= "Xác thực token thành công";
+    public static final String MESSAGE_SUCCESS_ACCOUNT_REGISTER = "Đăng ký tài khoản thành công";
+
 
     // Error Messages
     public static final String MESSAGE_ERR_INVALID_PASSWORD = "Mật khẩu không đúng.";
+    public static final String MESSAGE_ERR_TOKEN_DISABLED = "Token không tồn tại.";
 
 
 
     public static final String BASE_URL = EndpointConstants.V1.API + "/auth";
     public static final String LOGIN = "/login";
     public static final String REGISTER = "/register";
+    public static final String REFRESH = "/refresh";
+    public static final String VALID = "/valid_token";
+
+
+
 }

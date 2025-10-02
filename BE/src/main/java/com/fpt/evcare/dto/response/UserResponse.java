@@ -19,7 +19,7 @@ public class UserResponse implements Serializable {
 
     UUID userId;
 
-    transient List<String> roleName;
+    private List<String> roleName;
 
     String username;
 
