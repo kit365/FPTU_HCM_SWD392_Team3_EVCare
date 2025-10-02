@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -19,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 public class UpdationUserRequest {
 
-    private List<String> roleIds;
+    private List<UUID> roleIds;
 
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không hợp lệ")
