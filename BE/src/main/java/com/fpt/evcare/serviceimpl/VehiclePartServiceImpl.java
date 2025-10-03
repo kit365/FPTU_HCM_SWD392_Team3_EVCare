@@ -81,7 +81,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             vehiclePartResponse.setVehiclePartCategory(null);
         }
 
-        log.info(VehiclePartConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_PART + vehiclePartId);
+        log.info(VehiclePartConstants.LOG_INFO_SHOWING_VEHICLE_PART + vehiclePartId);
         return vehiclePartResponse;
     }
 
@@ -96,8 +96,8 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         }
 
         if(vehiclePartEntityPage == null || vehiclePartEntityPage.getTotalElements() == 0) {
-            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_NOT_FOUND + keyword);
-            throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_NOT_FOUND);
+            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_LIST_NOT_FOUND + keyword);
+            throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_LIST_NOT_FOUND);
         }
 
         List<VehiclePartResponse> vehiclePartEntityList = vehiclePartEntityPage.map(vehiclePartEntity -> {
@@ -130,7 +130,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             return vehiclePartResponse;
         }).getContent();
 
-        log.info(VehiclePartConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_PART + keyword);
+        log.info(VehiclePartConstants.LOG_INFO_SHOWING_VEHICLE_PART_LIST + keyword);
         return PageResponse.<VehiclePartResponse>builder()
                 .data(vehiclePartEntityList)
                 .page(vehiclePartEntityPage.getNumber())
@@ -165,7 +165,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
 
         vehiclePart.setSearch(vehiclePart.getVehiclePartName());
 
-        log.info(VehiclePartConstants.MESSAGE_SUCCESS_CREATING_VEHICLE_PART + creationVehiclePartRequest.getVehiclePartName());
+        log.info(VehiclePartConstants.LOG_INFO_CREATING_VEHICLE_PART + creationVehiclePartRequest.getVehiclePartName());
         vehiclePartRepository.save(vehiclePart);
         return true;
     }
@@ -207,7 +207,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
 
         vehiclePart.setSearch(updationVehiclePartRequest.getVehiclePartName());
 
-        log.info(VehiclePartConstants.MESSAGE_SUCCESS_UPDATING_VEHICLE_PART + updationVehiclePartRequest.getVehiclePartName());
+        log.info(VehiclePartConstants.LOG_INFO_UPDATING_VEHICLE_PART + updationVehiclePartRequest.getVehiclePartName());
         vehiclePartMapper.toUpdate(vehiclePart, updationVehiclePartRequest);
         vehiclePartRepository.save(vehiclePart);
         return true;
@@ -223,7 +223,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
 
         vehiclePartEntity.setIsDeleted(true);
 
-        log.info(VehiclePartConstants.MESSAGE_SUCCESS_DELETING_VEHICLE_PART + id);
+        log.info(VehiclePartConstants.LOG_INFO_DELETING_VEHICLE_PART + id);
         vehiclePartRepository.save(vehiclePartEntity);
         return false;
     }
@@ -239,7 +239,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
 
         vehiclePartEntity.setIsDeleted(false);
 
-        log.info(VehiclePartConstants.MESSAGE_SUCCESS_RESTORING_VEHICLE_PART + uuid);
+        log.info(VehiclePartConstants.LOG_INFO_RESTORING_VEHICLE_PART + uuid);
         vehiclePartRepository.save(vehiclePartEntity);
         return false;
     }
