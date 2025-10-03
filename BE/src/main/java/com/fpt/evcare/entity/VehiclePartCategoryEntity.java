@@ -5,12 +5,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "Vehicle_part_categories")
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -34,4 +34,7 @@ public class VehiclePartCategoryEntity extends BaseEntity {
 
     @Column(name = "search", length = 255)
     String search;
+
+    @OneToMany(mappedBy = "vehiclePartCategory")
+    List<VehiclePartEntity> vehicleParts;
 }

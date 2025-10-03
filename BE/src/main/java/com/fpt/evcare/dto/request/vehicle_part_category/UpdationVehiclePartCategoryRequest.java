@@ -23,9 +23,9 @@ public class UpdationVehiclePartCategoryRequest {
     @PositiveOrZero(message = "Tuổi thọ trung bình phải là số không âm")
     Integer averageLifespan;
 
-    boolean isActive;
+    Boolean isActive;
 
-    boolean isDeleted;
+    Boolean isDeleted;
 
     String createdBy;
 
