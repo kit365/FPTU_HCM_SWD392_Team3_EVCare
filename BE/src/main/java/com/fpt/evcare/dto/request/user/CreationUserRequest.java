@@ -16,9 +16,9 @@ import java.util.UUID;
 @NoArgsConstructor
 public class CreationUserRequest {
 
-    UUID userId;
+    @Nullable
 
-    private List<String> roleIds;
+    private List<UUID> roleIds;
 
     @NotBlank(message = "Username không được để trống")
     @Size(min = 3, max = 20, message = "Username có ít nhất 3 đến 20 kí tự")
@@ -34,10 +34,8 @@ public class CreationUserRequest {
     @Pattern(regexp = "\\S+", message = "Mật khẩu không được chứa khoảng trắng")
     private String password;
 
-    @Nullable
     String address;
 
-    @Nullable
     String fullName;
 
     @Nullable
@@ -47,6 +45,4 @@ public class CreationUserRequest {
     @Nullable
     String avatarUrl;
 
-    @Nullable
-    String technicianSkills;
 }
