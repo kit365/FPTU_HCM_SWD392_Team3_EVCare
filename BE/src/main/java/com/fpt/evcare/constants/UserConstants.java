@@ -2,8 +2,6 @@ package com.fpt.evcare.constants;
 
 public class UserConstants {
 
-
-
     //Sucess message
     public static final String MESSAGE_SUCCESS_SHOWING_USER = "Lấy danh sách người dùng thành công";
     public static final String MESSAGE_SUCCESS_CREATING_USER = "Tạo người dùng thành công";

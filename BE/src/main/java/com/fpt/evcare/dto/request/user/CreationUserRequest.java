@@ -17,7 +17,6 @@ import java.util.UUID;
 public class CreationUserRequest {
 
     @Nullable
-
     private List<UUID> roleIds;
 
     @NotBlank(message = "Username không được để trống")
