@@ -17,6 +17,8 @@ public class VehiclePartConstants {
 
     // Error Logs
     public static final String LOG_ERR_VEHICLE_PART_NOT_FOUND = "Không tìm thấy phụ tùng với id: {}";
+    public static final String LOG_ERR_VEHICLE_PART_LIST_NOT_FOUND = "Không tìm thấy danh sách phụ tùng với id: {}";
+
     public static final String LOG_ERR_DUPLICATED_VEHICLE_PART = "Phụ tùng này đã tồn tại: {}";
 
     // Info Logs
