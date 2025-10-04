@@ -18,10 +18,18 @@ import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -73,7 +81,7 @@ public class AuthController {
     }
 
     @PostMapping(AuthConstants.VALID)
-    public ResponseEntity<ApiResponse<TokenResponse>> validateToken(@RequestBody TokenRequest request) throws JOSEException {
+    public ResponseEntity<ApiResponse<TokenResponse>> validateToken(@RequestBody TokenRequest request) {
         TokenResponse tokenResponse = authService.validateToken(request);
         return ResponseEntity.ok(ApiResponse.<TokenResponse>builder()
                 .success(true)
@@ -90,4 +98,28 @@ public class AuthController {
         authService.logout(request);
         return ResponseEntity.ok("Logout successful");
     }
+
+
+    @GetMapping()
+    public Principal getCurrentUser(Principal principal) {
+        return principal;
+    }
+    @GetMapping("/user")
+    public Map<String, Object> user(
+            @AuthenticationPrincipal OAuth2User principal,
+            @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient) {
+
+        String accessToken = authorizedClient.getAccessToken().getTokenValue();
+        OAuth2RefreshToken oAuth2RefreshToken = authorizedClient.getRefreshToken();
+        String refreshToken = (oAuth2RefreshToken != null) ? oAuth2RefreshToken.getTokenValue() : null;
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("user", principal.getAttributes());
+        response.put("accessToken", accessToken);
+        response.put("refreshToken", refreshToken);
+
+        return response;
+    }
+
+
 }
