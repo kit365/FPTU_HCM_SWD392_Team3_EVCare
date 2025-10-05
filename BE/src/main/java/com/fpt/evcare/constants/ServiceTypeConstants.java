@@ -1,0 +1,47 @@
+package com.fpt.evcare.constants;
+
+public class ServiceTypeConstants {
+
+    //Sucess message
+    public static final String MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE = "Lấy dịch vụ thành công";
+    public static final String MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE_LIST = "Lấy danh sách dịch vụ thành công";
+    public static final String MESSAGE_SUCCESS_CREATING_SERVICE_TYPE = "Tạo dịch vụ thành công";
+    public static final String MESSAGE_SUCCESS_UPDATING_SERVICE_TYPE = "Cập nhật dịch vụ thành công";
+    public static final String MESSAGE_SUCCESS_DELETING_SERVICE_TYPE = "Xóa dịch vụ thành công";
+    public static final String MESSAGE_SUCCESS_RESTORING_SERVICE_TYPE = "Khôi phục dịch vụ thành công";
+
+
+    //Failed message
+    public static final String MESSAGE_ERR_PARENT_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy dịch vụ cha";
+    public static final String MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy dịch vụ";
+    public static final String MESSAGE_ERR_PARENT_SERVICE_TYPE_DELETED = "dịch vụ cha đã bị xóa";
+    public static final String MESSAGE_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY = "Phát hiện vòng lặp trong cấu trúc dịch vụ";
+    public static final String MESSAGE_ERR_DUPLICATED_SERVICE_TYPE = "Loại dịch vụ này đã tồn tại";
+
+
+    //Log message
+
+    //Error Logs
+    public static final String LOG_ERR_PARENT_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy dịch vụ cha: {}";
+    public static final String LOG_ERR_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ: {}";
+    public static final String LOG_ERR_PARENT_SERVICE_TYPE_IS_DELETED = "Loại dịch vụ cha đã bị xóa: {}";
+    public static final String LOG_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY = "Phát hiện vòng lặp trong cấu trúc dịch vụ: {}";
+    public static final String LOG_ERR_DUPLICATED_SERVICE_TYPE  = "Loại dịch vụ này đã tồn tại: {}";
+
+    //Success Logs
+    public static final String LOG_INFO_SHOWING_SERVICE_TYPE = "Đang lấy loại dịch vụ với id: {}";
+    public static final String LOG_INFO_SHOWING_SERVICE_TYPE_LIST = "Đang lấy danh sách loại dịch vụ";
+    public static final String LOG_INFO_CREATING_SERVICE_TYPE = "Đang tạo loại dịch vụ: {}";
+    public static final String LOG_INFO_UPDATING_SERVICE_TYPE = "Đang cập nhật loại dịch vụ: {}";
+    public static final String LOG_INFO_DELETING_SERVICE_TYPE = "Đang xóa loại dịch vụ: {}";
+    public static final String LOG_INFO_RESTORING_SERVICE_TYPE = "Đang khôi phục loại dịch vụ với từ khóa: {}";
+
+    //Endpoint
+    public static final String BASE_URL = EndpointConstants.V1.API + "/service-type";
+    public static final String SERVICE_TYPE_LIST= "/";
+    public static final String SERVICE_TYPE = "/{id}";
+    public static final String SERVICE_TYPE_UPDATE = "/{id}";
+    public static final String SERVICE_TYPE_DELETE = "/{id}";
+    public static final String RESTORING_SERVICE_TYPE = "/restore/{id}";
+    public static final String SERVICE_TYPE_CREATION = "/";
+}

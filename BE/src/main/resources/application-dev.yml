@@ -1,11 +1,8 @@
-# PostgreSQL Database Configuration
 spring:
-
   security:
     user:
       name: user
       password: 123
-
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/evcare}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -15,11 +12,9 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 2
       connection-timeout: 30000
-
-  # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: create-drop
     show-sql: false
     properties:
       hibernate:
@@ -29,15 +24,43 @@ spring:
         jdbc:
           time_zone: Asia/Ho_Chi_Minh
     defer-datasource-initialization: true
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
 
-    # Server Configuration
-    server:
-      port: ${APP_PORT:8080}
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        from: ${SPRING_MAIL_USERNAME}
+        from-name: ${SPRING_MAIL_FROM_NAME:EVcare Support}
+        debug: ${SPRING_MAIL_DEBUG:true}
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            enable: ${SPRING_MAIL_SMTP_SSL_ENABLE:false}
 
-      # Swagger Configuration
+server:
+  port: ${APP_PORT:8080}
+
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
+
+#jwt:
+#  signer-key: ${JWT_SIGNER_KEY}

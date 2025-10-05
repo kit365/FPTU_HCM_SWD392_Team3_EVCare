@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { LoginRequest } from "../type/login";
+import type { LoginRequest } from "../type/auth";
+import type { RegisterUserRequest } from "../type/auth";
 import { authService } from "../service/authService";
 import { notify } from "../components/admin/common/Toast";
 import { AxiosError } from "axios";
@@ -31,31 +32,33 @@ export function useAuth() {
       } else {
         notify.error(axiosError?.message || "Đăng nhập thất bại");
       }
-      // Không throw error nữa để không làm crash app
+      
     } finally {
       setIsLoading(false);
     }
   };
 
-
-
-
-
-
-
-
-
-
-
- 
-
- 
-
-
-
+  const registerUser = async (data: RegisterUserRequest) => {
+    setIsLoading(true);
+    try {
+      const response = await authService.registerUser(data);
+      if (response?.data?.success === true) {
+        notify.success(response?.data?.message || "Đăng ký thành công");
+      } else {
+        notify.error(response?.data?.message || "Đăng ký thất bại");
+      }
+      return response;
+    } catch (error) {
+        notify.error("Đăng ký tài khoản thất bại");
+        throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return {
     login,
+    registerUser,
     isLoading,
   };
 }

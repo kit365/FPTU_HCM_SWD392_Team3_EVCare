@@ -1,17 +1,24 @@
 package com.fpt.evcare.exception;
 
 import com.fpt.evcare.base.ApiResponse;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.stream.Collectors;
+
+@Hidden
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(InvalidCredentialsException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
         if (log.isErrorEnabled()) {
             log.error("An unexpected error occurred: {}", ex.getMessage());
         }
@@ -19,13 +26,13 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message("An unexpected error occurred. Please try again later.")
+                        .message("Lỗi hệ thống, vui lòng thử lại sau")
                         .build()
                 );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(ResourceNotFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         if (log.isInfoEnabled()) {
             log.info("Invalid argument: {}", ex.getMessage());
         }
@@ -37,6 +44,7 @@ public class GlobalExceptionHandler {
                         .build()
                 );
     }
+
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
@@ -94,6 +102,164 @@ public class GlobalExceptionHandler {
                         .build()
                 );
     }
+
+    @ExceptionHandler(OtpExpiredException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOtpExpiredException(OtpExpiredException ex) {
+        if (log.isInfoEnabled()) {
+            log.info("OTPExpired caught: {}", ex.getClass().getSimpleName(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOtpExpiredException(IllegalStateException ex) {
+        if (log.isInfoEnabled()) {
+            log.info("IllegalStateException caught: {}", ex.getClass().getSimpleName(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedOperationException(UnsupportedOperationException ex) {
+        log.error("Unsupported operation encountered: {}", ex.getMessage(), ex);
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("MethodArgumentNotValidException caught: {}", ex.getMessage(), ex);
+        }
+
+        // Cắt chuỗi, chỉ lấy message của validation
+        String errorMessage = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+
+        log.error(errorMessage);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(errorMessage)
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(UserValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(ServiceTypeValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleServiceTypeValidationException(ServiceTypeValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("ServiceTypeValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(VehiclePartCategoryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehiclePartCategoryException(VehiclePartCategoryException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehiclePartCategoryException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(VehicleTypeValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehicleTypeValidationException(VehicleTypeValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehicleTypeValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(VehiclePartValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehiclePartValidationException(VehiclePartValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehiclePartValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(JWTInitializationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("JWTInitialization caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
 
 
 }

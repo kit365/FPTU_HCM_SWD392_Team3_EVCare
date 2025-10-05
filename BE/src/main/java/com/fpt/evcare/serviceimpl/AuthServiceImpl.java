@@ -1,20 +1,47 @@
 package com.fpt.evcare.serviceimpl;
 
-import com.fpt.evcare.constants.AccountConstants;
 import com.fpt.evcare.constants.AuthConstants;
+import com.fpt.evcare.constants.TokenConstants;
+import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
+import com.fpt.evcare.dto.request.LogoutRequest;
+import com.fpt.evcare.dto.request.TokenRequest;
+import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
-import com.fpt.evcare.entity.AccountEntity;
+import com.fpt.evcare.dto.response.TokenResponse;
+import com.fpt.evcare.dto.response.RegisterUserResponse;
+import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.DisabledException;
+import com.fpt.evcare.exception.IllegalArgumentException;
 import com.fpt.evcare.exception.InvalidCredentialsException;
-import com.fpt.evcare.service.AccountService;
+import com.fpt.evcare.exception.UserValidationException;
+import com.fpt.evcare.mapper.UserMapper;
+import com.fpt.evcare.repository.RoleRepository;
+import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.AuthService;
+import com.fpt.evcare.service.RedisService;
+import com.fpt.evcare.service.TokenService;
+import com.fpt.evcare.service.UserService;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -23,37 +50,237 @@ import org.springframework.stereotype.Service;
 public class AuthServiceImpl implements AuthService {
 
     PasswordEncoder passwordEncoder;
-    AccountService accountService;
+    UserService userService;
+    CustomJWTDecode customJWTDecode;
+    TokenService tokenService;
+    RedisService<String> redisService;
+    UserRepository userRepository;
+    UserMapper userMapper;
+    RoleRepository roleRepository;
     @Override
-    public LoginResponse login(LoginRequest loginRequest) {
-        AccountEntity account = accountService.findByEmail(loginRequest.getEmail());
-
-        validateAccount(account);
+    public LoginResponse login(LoginRequest loginRequest) throws JOSEException {
+        UserEntity user = userService.getUserByEmail(loginRequest.getEmail());
+        validateAccount(user);
 
         boolean authenticated = passwordEncoder.matches(loginRequest.getPassword(),
-                account.getPassword());
+                user.getPassword());
 
         if (!authenticated) {
             if (log.isErrorEnabled()) {
-                log.error(AuthConstants.ERR_INVALID_PASSWORD);
+                log.error(AuthConstants.MESSAGE_ERR_INVALID_PASSWORD);
             }
-            throw new InvalidCredentialsException(AuthConstants.ERR_INVALID_PASSWORD);
+            throw new InvalidCredentialsException(AuthConstants.MESSAGE_ERR_INVALID_PASSWORD);
         }
 
+        // Sinh cả Access Token và Refresh Token
+        String accessToken = generateAccessToken(user.getUserId());
+        String refreshToken = generateRefreshToken(user.getUserId());
 
-        log.info(AuthConstants.SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
+
+        // Lưu vào Redis (tuỳ chọn)
+        tokenService.saveAccessToken(user.getUserId(), accessToken, 3600); // 1h
+        tokenService.saveRefreshToken(user.getUserId(), refreshToken, 604800);   // 7 ngày
+
+        if (log.isInfoEnabled()) {
+            log.info(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
+        }
+
+        // Trả response gồm cả 2 token
         LoginResponse response = new LoginResponse();
-        response.setToken("demo-token");
+        response.setToken(accessToken);
+        response.setRefreshToken(refreshToken);
         response.setAuthenticated(true);
         return response;
-
     }
 
-    private void validateAccount(AccountEntity account) {
-        if (Boolean.TRUE.equals(account.getIsDeleted())) {
-            log.error(AccountConstants.ERR_ACCOUNT_DELETED);
-            throw new DisabledException(AccountConstants.ERR_ACCOUNT_DELETED);
+
+    private void validateAccount(UserEntity user) {
+        if (Boolean.TRUE.equals(user.getIsDeleted())) {
+            log.error(UserConstants.MESSAGE_ERR_USER_DELETED);
+            throw new DisabledException(UserConstants.MESSAGE_ERR_USER_DELETED);
         }
         // sau này thêm: locked, expired... cũng nhét ở đây
+    }
+
+    public String generateAccessToken(UUID userId) throws JOSEException {
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .subject(String.valueOf(userId))
+                .issuer(AuthConstants.APP_NAME)
+                .issueTime(new Date())
+                .expirationTime(new Date(Instant.now().plus(3600, ChronoUnit.SECONDS).toEpochMilli()))
+                .build();
+        JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
+        jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
+        return jwsObject.serialize();
+    }
+
+
+    public String generateRefreshToken(UUID userId) throws JOSEException {
+
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .subject(String.valueOf(userId))
+                .issuer(AuthConstants.APP_NAME)
+                .issueTime(new Date())
+                .expirationTime(new Date(Instant.now().plus(604800, ChronoUnit.SECONDS).toEpochMilli()))
+                .build();
+        JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
+        jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
+        return jwsObject.serialize();
+    }
+
+    private String generateRefreshTokenOnRefresh(UUID userId) throws JOSEException {
+
+        long remainingTtl = redisService.getExpire(TokenConstants.REFRESH_PREFIX + userId, TimeUnit.SECONDS);
+        if (remainingTtl <= 0) {
+            throw new InvalidCredentialsException("Refresh token đã hết hạn");
+        }
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .subject(String.valueOf(userId))
+                .issuer(AuthConstants.APP_NAME)
+                .issueTime(new Date())
+                .expirationTime(new Date(Instant.now().plus(remainingTtl, ChronoUnit.SECONDS).toEpochMilli()))
+                .build();
+        JWSObject jwsObject = new JWSObject(header, claimsSet.toPayload());
+        jwsObject.sign(new MACSigner(String.valueOf(customJWTDecode.getMacSigner())));
+        return jwsObject.serialize();
+    }
+    @Override
+    public LoginResponse refreshToken(TokenRequest request) throws JOSEException {
+
+        String oldRefreshToken = request.getToken();
+        UUID userId = UUID.fromString(getUserIdByToken(oldRefreshToken));
+
+        // 1. Kiểm tra refresh token trong Redis
+        String refreshment = redisService.getValue(TokenConstants.REFRESH_PREFIX + userId);
+        if (!refreshment.equals(request.getToken())) {
+            throw new InvalidCredentialsException("Refresh token không hợp lệ hoặc đã hết hạn");
+        }
+
+        // 2. Lấy TTL còn lại của refresh token cũ
+        long remainingTtl = redisService.getExpire(TokenConstants.REFRESH_PREFIX + userId, TimeUnit.SECONDS);
+        if (remainingTtl <= 0) {
+            throw new InvalidCredentialsException("Refresh token đã hết hạn");
+        }
+
+        // 3. Sinh access token mới
+        String newAccessToken = generateAccessToken(userId);
+
+        // 4. Sinh refresh token mới
+        String newRefreshToken = generateRefreshTokenOnRefresh(userId);
+
+        // 5. Xoá refresh token cũ, lưu refresh token mới với TTL còn lại
+        redisService.delete(TokenConstants.REFRESH_PREFIX + userId);
+
+
+        // Lưu vào Redis (tuỳ chọn)
+        tokenService.saveAccessToken(userId, newAccessToken, 3600); // 1h
+        tokenService.saveRefreshToken(userId, newRefreshToken, remainingTtl);   // 7 ngày
+
+        // 6. Trả về response
+        return LoginResponse.builder()
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .authenticated(true)
+                .build();
+    }
+
+
+
+    @Override
+    public void logout(LogoutRequest request) {
+        tokenService.removeTokens(request.getUserId());
+        if (log.isInfoEnabled()) {
+            log.info("User with ID {} logged out successfully", request.getUserId());
+        }
+    }
+
+    @Override
+    public TokenResponse validateToken(TokenRequest token) {
+        try {
+            // Parse token
+            SignedJWT signedJWT = SignedJWT.parse(token.getToken());
+            JWSVerifier verifier = new MACVerifier(String.valueOf(customJWTDecode.getMacSigner()));
+
+            boolean signatureValid = signedJWT.verify(verifier);
+            boolean notExpired = signedJWT.getJWTClaimsSet()
+                    .getExpirationTime()
+                    .after(new Date());
+
+            // Lấy userId từ token (ví dụ trong claim "sub")
+            UUID userId = UUID.fromString(signedJWT.getJWTClaimsSet().getSubject());
+
+
+            // Kiểm tra trong Redis
+            String redisToken = redisService.getValue(TokenConstants.ACCESS_PREFIX + userId);
+
+            boolean inRedis = redisToken != null && redisToken.equals(token.getToken());
+
+            boolean isValid = signatureValid && notExpired && inRedis;
+
+            return TokenResponse.builder()
+                    .token(token.getToken())
+                    .authorized(isValid)
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(AuthConstants.MESSAGE_ERR_TOKEN_DISABLED);
+        }
+    }
+
+    public String getUserIdByToken(String token) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            return signedJWT.getJWTClaimsSet().getSubject();
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("Failed to extract email from token: {}", e.getMessage());
+            }
+            throw new IllegalArgumentException("Invalid token");
+        }
+    }
+
+
+
+    //sẽ chỉnh sua lai sau de thuc hien tot SOLID
+    @Override
+    public RegisterUserResponse registerUser(@Valid RegisterUserRequest registerUserRequest) throws JOSEException {
+        UserEntity user = userRepository.findByEmailAndIsDeletedFalse(registerUserRequest.getEmail());
+
+        if (user != null) {
+            if(log.isErrorEnabled()) {
+                log.warn(UserConstants.LOG_ERR_DUPLICATED_USER_EMAIL);
+            }
+            throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+        }
+
+        if(userRepository.existsByUsername(registerUserRequest.getUsername())) {
+            if(log.isErrorEnabled()) {
+                log.warn(UserConstants.LOG_ERR_DUPLICATED_USERNAME);
+            }
+            throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USERNAME);
+        }
+
+        if(userRepository.existsByNumberPhone(registerUserRequest.getNumberPhone())) {
+            if(log.isErrorEnabled()) {
+                log.warn(UserConstants.LOG_ERR_DUPLICATED_USER_PHONE);
+            }
+            throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+        }
+
+        UserEntity userEntity = userMapper.toEntity(registerUserRequest);
+        userEntity.setPassword(passwordEncoder.encode(registerUserRequest.getPassword()));
+        userEntity.setRoles(List.of(roleRepository.findByRoleName(RoleEnum.CUSTOMER)));
+        userRepository.save(userEntity);
+        String accessToken = generateAccessToken(userEntity.getUserId());
+        String refreshToken = generateRefreshToken(userEntity.getUserId());
+        tokenService.saveAccessToken(userEntity.getUserId(), accessToken, 3600); // 1h
+        tokenService.saveRefreshToken(userEntity.getUserId(), refreshToken, 604800);   // 7 ngày
+        log.info(AuthConstants.LOG_SUCCESS_ACCOUNT_REGISTER, registerUserRequest.getEmail());
+        RegisterUserResponse registerUserResponse = userMapper.toRegisterUserResponse(userEntity);
+        registerUserResponse.setToken(accessToken);
+        registerUserResponse.setRefreshToken(refreshToken);
+        return registerUserResponse;
     }
 }
