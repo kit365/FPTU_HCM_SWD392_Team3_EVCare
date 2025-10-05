@@ -1,14 +1,14 @@
 import { createContext, useState, useEffect } from 'react';
-import { apiClient } from '../service/api.tsx';
+import { apiClient } from '../service/api.ts';
 
 // Định nghĩa type cho user
 type User = {
-    id: string;
-    email: string;
-    fullName: string;
-    role: string;
-    phone: string;
-    avatar: string;
+    userId: string,
+    username: string,
+    email: string,
+    numberPhone: string,
+    isDeleted: boolean,
+    active: boolean,
 } | null;
 
 // Định nghĩa type cho context
@@ -31,23 +31,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Hàm refresh user từ API
     const refreshUser = async () => {
+        setIsLoading(true);
         const token = localStorage.getItem('access_token');
-        if (token) {
-            try {
-                const response = await apiClient.get('/auth/me');
-                if (response?.data?.success) {
-                    setUser(response.data.data);
-                } else {
-                    setUser(null);
-                }
-            } catch {
-                setUser(null);
-            }
-        } else {
+        if (!token) {
             setUser(null);
+            setIsLoading(false);
+            return;
         }
-        setIsLoading(false);
+
+        try {
+            const response = await apiClient.post('/auth/user/token', { token: token });
+            setUser(response?.data?.success ? response.data.data : null);
+        } catch {
+            setUser(null);
+        } finally {
+            setIsLoading(false);
+        }
     };
+
 
     // useEffect để refresh khi app khởi động và check F5
     useEffect(() => {
@@ -59,7 +60,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser,
         isLoading,
         refreshUser,
-        // logout
     };
 
     return (
@@ -70,4 +70,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Hook để sử dụng context
-export {AuthContext};
+export { AuthContext };

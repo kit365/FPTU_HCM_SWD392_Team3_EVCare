@@ -5,7 +5,9 @@ import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { pathAdmin } from "../../../constants/paths.constant";
 import type { ButtonItemProps } from "../../../types/admin/button-item.types";
 import { TableAdmin } from "../../../components/admin/ui/Table";
-import type { StaffProps } from "../../../types/admin/staff.types";
+// Update the import to match the actual exported member from vehicle.types
+import type { VehicleProps } from "../../../types/admin/vehicle.types";
+
 
 export const Vehicle = () => {
     
@@ -24,19 +26,109 @@ export const Vehicle = () => {
         },
     ]
 
-    // Fake data
-const staffList: StaffProps[] = [
-  { id: "1", name: "VinFast Lux A2.0", email: "", status: "active", lastLogin: "" },
-  { id: "2", name: "VinFast Lux SA2.0", email: "", status: "inactive", lastLogin: "" },
-  { id: "3", name: "VinFast Fadil", email: "", status: "active", lastLogin: "" },
-  { id: "4", name: "VinFast VF e34", email: "", status: "inactive", lastLogin: "" },
-  { id: "5", name: "VinFast VF 8", email: "", status: "active", lastLogin: "" },
-  { id: "6", name: "VinFast VF 9", email: "", status: "inactive", lastLogin: "" },
-  { id: "7", name: "McLaren 570S", email: "", status: "active", lastLogin: "" },
-  { id: "8", name: "McLaren 720S", email: "", status: "inactive", lastLogin: "" },
-  { id: "9", name: "McLaren GT", email: "", status: "active", lastLogin: "" },
-  { id: "10", name: "McLaren Artura", email: "", status: "inactive", lastLogin: "" },
+const vehicleList: VehicleProps[] = [
+  {
+    id: "1",
+    vehicleTypeName: "VinFast Lux A2.0",
+    manufacturer: "VinFast",
+    modelYear: 2020,
+    batteryCapacity: 0, // xe xăng, nên để 0
+    maintenanceIntervalKm: 10000,
+    maintenanceIntervalMonths: 6,
+    description: "Sedan hạng D của VinFast"
+  },
+  {
+    id: "2",
+    vehicleTypeName: "VinFast Lux SA2.0",
+    manufacturer: "VinFast",
+    modelYear: 2020,
+    batteryCapacity: 0,
+    maintenanceIntervalKm: 10000,
+    maintenanceIntervalMonths: 6,
+    description: "SUV hạng E của VinFast"
+  },
+  {
+    id: "3",
+    vehicleTypeName: "VinFast Fadil",
+    manufacturer: "VinFast",
+    modelYear: 2019,
+    batteryCapacity: 0,
+    maintenanceIntervalKm: 8000,
+    maintenanceIntervalMonths: 6,
+    description: "Xe hatchback hạng A"
+  },
+  {
+    id: "4",
+    vehicleTypeName: "VinFast VF e34",
+    manufacturer: "VinFast",
+    modelYear: 2021,
+    batteryCapacity: 42,
+    maintenanceIntervalKm: 15000,
+    maintenanceIntervalMonths: 12,
+    description: "Crossover điện cỡ C"
+  },
+  {
+    id: "5",
+    vehicleTypeName: "VinFast VF 8",
+    manufacturer: "VinFast",
+    modelYear: 2022,
+    batteryCapacity: 82,
+    maintenanceIntervalKm: 15000,
+    maintenanceIntervalMonths: 12,
+    description: "SUV điện hạng D"
+  },
+  {
+    id: "6",
+    vehicleTypeName: "VinFast VF 9",
+    manufacturer: "VinFast",
+    modelYear: 2022,
+    batteryCapacity: 92,
+    maintenanceIntervalKm: 15000,
+    maintenanceIntervalMonths: 12,
+    description: "SUV điện cỡ lớn hạng E"
+  },
+  {
+    id: "7",
+    vehicleTypeName: "McLaren 570S",
+    manufacturer: "McLaren",
+    modelYear: 2019,
+    batteryCapacity: 0,
+    maintenanceIntervalKm: 10000,
+    maintenanceIntervalMonths: 12,
+    description: "Siêu xe thể thao V8 Twin-Turbo"
+  },
+  {
+    id: "8",
+    vehicleTypeName: "McLaren 720S",
+    manufacturer: "McLaren",
+    modelYear: 2020,
+    batteryCapacity: 0,
+    maintenanceIntervalKm: 10000,
+    maintenanceIntervalMonths: 12,
+    description: "Siêu xe hiệu suất cao dòng Super Series"
+  },
+  {
+    id: "9",
+    vehicleTypeName: "McLaren GT",
+    manufacturer: "McLaren",
+    modelYear: 2020,
+    batteryCapacity: 0,
+    maintenanceIntervalKm: 10000,
+    maintenanceIntervalMonths: 12,
+    description: "Siêu xe Grand Tourer, tiện nghi hơn"
+  },
+  {
+    id: "10",
+    vehicleTypeName: "McLaren Artura",
+    manufacturer: "McLaren",
+    modelYear: 2021,
+    batteryCapacity: 7.4, // hybrid plug-in
+    maintenanceIntervalKm: 10000,
+    maintenanceIntervalMonths: 12,
+    description: "Siêu xe hybrid V6 đầu tiên của McLaren"
+  }
 ];
+
 
     interface TableColumn {
         title: string;
@@ -64,7 +156,7 @@ const staffList: StaffProps[] = [
                         buttons={buttonsList}
                     />
                     {/* Content */}
-                    <TableAdmin dataList={staffList} columns={columns} />
+                    <TableAdmin dataList={vehicleList} columns={columns} />
                 </Card >
             </div >
         </>

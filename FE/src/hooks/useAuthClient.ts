@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { LoginRequest } from "../type/auth";
+import type { LoginRequest, LogoutRequest } from "../type/auth";
 import type { RegisterUserRequest } from "../type/auth";
 import { authService } from "../service/authService";
 import { notify } from "../components/admin/common/Toast";
@@ -8,9 +8,9 @@ import { AxiosError } from "axios";
 import { useAuthContext } from '../context/useAuthContext.tsx';
 
 
-export function useAuth() {
+export function useAuthClient() {
   const [isLoading, setIsLoading] = useState(false);
-  const { refreshUser } = useAuthContext();
+  const { refreshUser, setUser } = useAuthContext();
   const navigate = useNavigate();
 
   const login = async (data: LoginRequest) => {
@@ -23,8 +23,10 @@ export function useAuth() {
       //   }
       if (response?.data.success === true) {
         notify.success(response?.data.message || "Đăng nhập thành công")
+        //in token ra màn hình
+        console.log("token trả về:", response.data.data.token)
         //lưu accesstoken local storage
-        //localStorage.setItem('user_info', JSON.stringify(response.data.user));
+        localStorage.setItem('access_token', response.data.data.token);
         await refreshUser(); // Gọi API lấy user và set vào context      
         navigate("/");
       } else {
@@ -62,11 +64,37 @@ export function useAuth() {
     }
   };
 
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user?.id;
 
+      if (userId) {
+        const logoutData: LogoutRequest = { userId };
+        const response = await authService.logout(logoutData);
+        
+        if (response?.data?.success) {
+          notify.success(response?.data?.message || "Đăng xuất thành công");
+        }
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Vẫn logout ở client dù API fail
+    } finally {
+      // Clear token và user data
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsLoading(false);
+      navigate("/client/login");
+    }
+  };
 
   return {
     login,
     registerUser,
     isLoading,
+    logout
   };
 }
