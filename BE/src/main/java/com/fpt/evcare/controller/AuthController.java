@@ -10,6 +10,7 @@ import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.RegisterUserResponse;
 import com.fpt.evcare.dto.response.TokenResponse;
+import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.AuthService;
 import com.fpt.evcare.service.UserService;
 import com.nimbusds.jose.JOSEException;
@@ -90,13 +91,27 @@ public class AuthController {
                 .build());
     }
 
+    @PostMapping(AuthConstants.USER_TOKEN)
+    public ResponseEntity<ApiResponse<UserResponse>> getUserByToken(@RequestBody TokenRequest request) {
+        UserResponse tokenResponse = authService.getUserByToken(request);
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_VALIDATE_TOKEN)
+                .data(tokenResponse)
+                .build());
+    }
+
 
 
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody LogoutRequest request) {
-        authService.logout(request);
-        return ResponseEntity.ok("Logout successful");
+    public ResponseEntity<ApiResponse<String>> logout(@RequestBody LogoutRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGOUT)
+                .data(authService.logout(request))
+                .build());
     }
 
 
@@ -104,21 +119,19 @@ public class AuthController {
     public Principal getCurrentUser(Principal principal) {
         return principal;
     }
+
     @GetMapping("/user")
-    public Map<String, Object> user(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> user(
             @AuthenticationPrincipal OAuth2User principal,
             @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient) {
 
-        String accessToken = authorizedClient.getAccessToken().getTokenValue();
-        OAuth2RefreshToken oAuth2RefreshToken = authorizedClient.getRefreshToken();
-        String refreshToken = (oAuth2RefreshToken != null) ? oAuth2RefreshToken.getTokenValue() : null;
+        Map<String, Object> request = authService.getUserInfo(principal, authorizedClient);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("user", principal.getAttributes());
-        response.put("accessToken", accessToken);
-        response.put("refreshToken", refreshToken);
-
-        return response;
+        return ResponseEntity.ok(ApiResponse.<Map<String, Object>>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_GOOGLE_LOGIN)
+                .data(request)
+                .build());
     }
 
 

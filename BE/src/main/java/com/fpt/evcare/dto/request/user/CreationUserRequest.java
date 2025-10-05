@@ -44,4 +44,7 @@ public class CreationUserRequest {
     @Nullable
     String avatarUrl;
 
+    @Nullable
+    String provider;
+
 }
