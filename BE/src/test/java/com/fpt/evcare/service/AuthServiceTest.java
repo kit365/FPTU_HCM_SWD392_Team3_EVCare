@@ -6,8 +6,12 @@ import com.fpt.evcare.dto.request.LogoutRequest;
 import com.fpt.evcare.dto.request.TokenRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.TokenResponse;
+import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.InvalidCredentialsException;
+import com.fpt.evcare.repository.RoleRepository;
+import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.serviceimpl.AuthServiceImpl;
 import com.fpt.evcare.serviceimpl.CustomJWTDecode;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -20,8 +24,16 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.fpt.evcare.exception.IllegalArgumentException;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,9 +44,14 @@ class AuthServiceTest {
 
     @Mock PasswordEncoder passwordEncoder;
     @Mock UserService userService;
+    @Mock UserRepository userRepository;
     @Mock CustomJWTDecode customJWTDecode;
     @Mock TokenService tokenService;
+    @Mock
+    RoleRepository roleRepository;
     @Mock RedisService redisService;
+    @Mock OAuth2AuthorizedClient authorizedClient;
+    @Mock OAuth2User principal;
 
     @Spy
     @InjectMocks
@@ -134,5 +151,94 @@ class AuthServiceTest {
         assertThrows(IllegalArgumentException.class,  // <— dùng custom exception
                 () -> authService.validateToken(tokenRequest));
 
+    }
+
+    @Test
+    void getUserInfo_ShouldReturnUserTokens_WhenUserExists() {
+        // GIVEN
+        String email = "test@gmail.com";
+        String name = "Test User";
+        String accessTokenValue = "access-token-123";
+        String refreshTokenValue = "refresh-token-456";
+
+        UUID userId = UUID.randomUUID();
+
+        UserEntity existingUser = new UserEntity();
+        existingUser.setUserId(userId);
+        existingUser.setEmail(email);
+
+        when(principal.getAttribute("email")).thenReturn(email);
+        when(principal.getAttribute("name")).thenReturn(name);
+
+        when(userRepository.findByEmailAndIsDeletedFalse(email)).thenReturn(existingUser);
+
+        OAuth2AccessToken accessToken = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                accessTokenValue,
+                Instant.now(),
+                Instant.now().plusSeconds(3600)
+        );
+        OAuth2RefreshToken refreshToken = new OAuth2RefreshToken(
+                refreshTokenValue,
+                Instant.now()
+        );
+        when(authorizedClient.getAccessToken()).thenReturn(accessToken);
+        when(authorizedClient.getRefreshToken()).thenReturn(refreshToken);
+
+        // WHEN
+        Map<String, Object> result = authService.getUserInfo(principal, authorizedClient);
+
+        // THEN
+        verify(tokenService).saveAccessToken(userId, accessTokenValue, 3600);
+        verify(tokenService).saveRefreshToken(userId, refreshTokenValue, 604800);
+        assertThat(result).containsKeys("user", "accessToken", "refreshToken");
+        assertThat(result.get("accessToken")).isEqualTo(accessTokenValue);
+        assertThat(result.get("refreshToken")).isEqualTo(refreshTokenValue);
+    }
+
+    @Test
+    void getUserInfo_ShouldCreateUser_WhenUserNotExists() {
+        // GIVEN
+        String email = "newuser@gmail.com";
+        String name = "New User";
+        String accessTokenValue = "access-token-xyz";
+        String refreshTokenValue = "refresh-token-xyz";
+
+        when(principal.getAttribute("email")).thenReturn(email);
+        when(principal.getAttribute("name")).thenReturn(name);
+
+        when(userRepository.findByEmailAndIsDeletedFalse(email)).thenReturn(null);
+
+        RoleEntity customerRole = new RoleEntity();
+        customerRole.setRoleName(RoleEnum.CUSTOMER);
+        when(roleRepository.findByRoleName(RoleEnum.CUSTOMER)).thenReturn(customerRole);
+
+        OAuth2AccessToken accessToken = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                accessTokenValue,
+                Instant.now(),
+                Instant.now().plusSeconds(3600)
+        );
+        OAuth2RefreshToken refreshToken = new OAuth2RefreshToken(
+                refreshTokenValue,
+                Instant.now()
+        );
+        when(authorizedClient.getAccessToken()).thenReturn(accessToken);
+        when(authorizedClient.getRefreshToken()).thenReturn(refreshToken);
+
+        UserEntity savedUser = new UserEntity();
+        savedUser.setUserId(UUID.randomUUID());
+        savedUser.setEmail(email);
+        when(userRepository.save(any(UserEntity.class))).thenReturn(savedUser);
+
+        // WHEN
+        Map<String, Object> result = authService.getUserInfo(principal, authorizedClient);
+
+        // THEN
+        verify(userRepository).save(any(UserEntity.class));
+        verify(tokenService).saveAccessToken(savedUser.getUserId(), accessTokenValue, 3600);
+        verify(tokenService).saveRefreshToken(savedUser.getUserId(), refreshTokenValue, 604800);
+
+        assertThat(result).containsKeys("user", "accessToken", "refreshToken");
     }
 }
