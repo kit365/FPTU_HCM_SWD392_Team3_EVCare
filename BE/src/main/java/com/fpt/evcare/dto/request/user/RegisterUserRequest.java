@@ -31,4 +31,8 @@ public class RegisterUserRequest {
     @Nullable
     @Pattern(regexp = "\\d{10}|^$", message = "Số điện thoại phải là 10 chữ số")
     private String numberPhone;
+
+    @Nullable
+    private String provider;
+
 }
