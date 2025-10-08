@@ -1,8 +1,8 @@
-package com.fpt.evcare.dto.request.vehicle;
+package com.fpt.evcare.dto.response;
 
-import com.fpt.evcare.base.BaseEntity;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.entity.VehicleTypeEntity;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,18 +14,20 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdationVehicleRequest implements Serializable {
+public class VehicleResponse implements Serializable {
 
-    UUID userId;
+    UUID vehicleId;
 
-    UUID vehicleTypeId;
+
+    UserResponse user;
+
+    VehicleTypeResponse vehicleType;
 
     String plateNumber;
 
-    @Size(min = 1, message = "Khung xe phải có ít nhất 1 kí tự")
     String vin;
 
     Float currentKm;
@@ -35,4 +37,17 @@ public class UpdationVehicleRequest implements Serializable {
     Float lastMaintenanceKm;
 
     String notes;
+
+    String search;
+
+    Boolean isDeleted;
+
+    LocalDateTime createdAt;
+
+    LocalDateTime updatedAt;
+
+    String createdBy;
+
+    String updatedBy;
+
 }

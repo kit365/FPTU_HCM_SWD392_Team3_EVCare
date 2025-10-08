@@ -1,6 +1,7 @@
 package com.fpt.evcare.dto.request.vehicle;
 
 import com.fpt.evcare.base.BaseEntity;
+import com.fpt.evcare.entity.UserEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
@@ -9,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -16,13 +18,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CreationVehicleRequest extends BaseEntity {
-
-    @NotBlank(message = "Người dùng không được để trống")
-    UUID userId;
+public class CreationVehicleRequest implements Serializable {
 
     @NotBlank(message = "Loại xe không được để trống")
     UUID vehicleTypeId;
+
+    @NotBlank(message = "Khách hàng không được để trống")
+    UUID userId;
 
     @NotBlank(message = "Biển số không được để trống")
     String plateNumber;
@@ -35,7 +37,7 @@ public class CreationVehicleRequest extends BaseEntity {
 
     LocalDateTime lastMaintenanceDate;
 
-    LocalDateTime lastMaintenanceKm;
+    Float lastMaintenanceKm;
 
     String notes;
 }
