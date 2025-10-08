@@ -1,14 +1,20 @@
-import React from 'react'
 import { Card } from "@mui/material";
 import { TrashSolid, Plus } from 'iconoir-react';
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { pathAdmin } from "../../../constants/paths.constant";
 import type { ButtonItemProps } from "../../../types/admin/button-item.types";
 import { TableAdmin } from "../../../components/admin/ui/Table";
-import type { StaffProps } from "../../../types/admin/staff.types";
+import { useEffect } from "react";
+import { useCarModel } from "../../../hooks/useCarModel";
 
 export const Vehicle = () => {
-    
+    const {
+        vehicleList, fetchVehicleTypeList } = useCarModel();
+    useEffect(() => {
+        console.log("useEffect gọi fetchVehicleTypeList")
+        fetchVehicleTypeList({ page: 0, pageSize: 10, keyword: "" });
+    }, []);
+
     const buttonsList: ButtonItemProps[] = [
         {
             icon: TrashSolid,
@@ -24,19 +30,6 @@ export const Vehicle = () => {
         },
     ]
 
-    // Fake data
-const staffList: StaffProps[] = [
-  { id: "1", name: "VinFast Lux A2.0", email: "", status: "active", lastLogin: "" },
-  { id: "2", name: "VinFast Lux SA2.0", email: "", status: "inactive", lastLogin: "" },
-  { id: "3", name: "VinFast Fadil", email: "", status: "active", lastLogin: "" },
-  { id: "4", name: "VinFast VF e34", email: "", status: "inactive", lastLogin: "" },
-  { id: "5", name: "VinFast VF 8", email: "", status: "active", lastLogin: "" },
-  { id: "6", name: "VinFast VF 9", email: "", status: "inactive", lastLogin: "" },
-  { id: "7", name: "McLaren 570S", email: "", status: "active", lastLogin: "" },
-  { id: "8", name: "McLaren 720S", email: "", status: "inactive", lastLogin: "" },
-  { id: "9", name: "McLaren GT", email: "", status: "active", lastLogin: "" },
-  { id: "10", name: "McLaren Artura", email: "", status: "inactive", lastLogin: "" },
-];
 
     interface TableColumn {
         title: string;
@@ -47,11 +40,15 @@ const staffList: StaffProps[] = [
 
     const columns: TableColumn[] = [
         { title: "", width: 5, align: "center", key: "checkbox" },
-        { title: "STT", width: 10, align: "left", key: "stt" },
-        { title: "Tên mẫu xe", width: 15, key: "name" },
-        { title: "Trạng thái", width: 15, align: "left", key: "status" },
-        // { title: "Lần đăng nhập cuối", width: 15, align: "left", key: "lastLogin" },
-        { title: "Hành động", width: 20, align: "center", key: "actions" },
+        { title: "STT", width: 8, align: "center", key: "stt" },
+        { title: "Tên mẫu xe", width: 20, align: "left", key: "vehicleTypeName" },
+        { title: "Hãng sản xuất", width: 15, align: "left", key: "manufacturer" },
+        { title: "Năm sản xuất", width: 10, align: "center", key: "modelYear" },
+        { title: "Dung lượng pin (kWh)", width: 15, align: "center", key: "batteryCapacity" },
+        { title: "Bảo dưỡng (km)", width: 15, align: "center", key: "maintenanceIntervalKm" },
+        { title: "Bảo dưỡng (tháng)", width: 15, align: "center", key: "maintenanceIntervalMonths" },
+        { title: "Mô tả", width: 30, align: "left", key: "description" },
+        { title: "Hành động", width: 15, align: "center", key: "actions" },
     ];
 
     return (
@@ -64,11 +61,10 @@ const staffList: StaffProps[] = [
                         buttons={buttonsList}
                     />
                     {/* Content */}
-                    <TableAdmin dataList={staffList} columns={columns} />
+                    <TableAdmin dataList={vehicleList} columns={columns} />
                 </Card >
             </div >
         </>
     )
 }
 
- 

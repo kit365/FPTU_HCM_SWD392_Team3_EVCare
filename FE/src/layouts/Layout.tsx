@@ -4,12 +4,12 @@ import ClientFooter from '../components/client/ClientFooter'
 
 export const Layout = () => {
     return (
-        <div className="min-h-screen flex flex-col">
-            <ClientHeader/>
-            <main className="flex-1">
-                <Outlet />
-            </main>
-            <ClientFooter/>
-        </div>
+            <div className="min-h-screen flex flex-col">
+                <ClientHeader />
+                <main className="flex-1">
+                    <Outlet />
+                </main>
+                <ClientFooter />
+            </div>
     )
 }
