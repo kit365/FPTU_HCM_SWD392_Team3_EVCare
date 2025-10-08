@@ -56,4 +56,7 @@ public class UpdationUserRequest {
 
     @Nullable
     String updatedBy;
+
+    @Nullable
+    String provider;
 }
