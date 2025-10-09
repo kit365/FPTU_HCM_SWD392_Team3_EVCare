@@ -17,6 +17,7 @@ public class VehicleConstants {
     public static final String MESSAGE_ERROR_VEHICLE_EXISTED = "Xe đã tồn tại";
     public static final String MESSAGE_ERROR_VIN_EXISTED = "Số khung xe đã tồn tại";
     public static final String MESSAGE_ERROR_PLATE_NUMBER_EXISTED = "Biển số xe đã tồn tại";
+    public static final String MESSAGE_ERR_VEHICLE_NOT_FOUND = "Không tìm thấy danh mục xe";
 
 
     // Endpoint

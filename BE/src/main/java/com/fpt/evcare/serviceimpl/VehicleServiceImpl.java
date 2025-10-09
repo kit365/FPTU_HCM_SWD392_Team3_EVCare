@@ -2,9 +2,11 @@ package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.constants.VehicleConstants;
+import com.fpt.evcare.constants.VehiclePartCategoryConstants;
 import com.fpt.evcare.dto.request.vehicle.CreationVehicleRequest;
 import com.fpt.evcare.dto.request.vehicle.UpdationVehicleRequest;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.VehiclePartCategoryResponse;
 import com.fpt.evcare.dto.response.VehicleResponse;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.entity.VehicleEntity;
@@ -20,10 +22,12 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -50,7 +54,35 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public PageResponse<VehicleResponse> searchVehicle(String keyword, Pageable pageable) {
-        return null;
+        Page<VehicleEntity> vehicleEntityPage;
+        if(keyword == null){
+            vehicleEntityPage = vehicleRepository.findAllByIsDeletedFalse(pageable);
+        }
+         else {
+            vehicleEntityPage = vehicleRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
+        }
+        if (vehicleEntityPage.isEmpty()) {
+            log.warn(VehicleConstants.MESSAGE_ERR_VEHICLE_NOT_FOUND);
+            throw new ResourceNotFoundException(VehicleConstants.MESSAGE_ERR_VEHICLE_NOT_FOUND);
+        }
+
+        List<VehicleResponse> vehicleResponseList = vehicleEntityPage.map(vehicleMapper::toVehicleResponse).getContent();
+
+
+        log.info(VehiclePartCategoryConstants.LOG_INFO_SHOWING_VEHICLE_PART_CATEGORY_LIST, keyword);
+        return PageResponse.<VehicleResponse>builder()
+                .data(vehicleResponseList)
+                .page(vehicleEntityPage.getNumber())
+                .totalElements(vehicleEntityPage.getTotalElements())
+                .totalPages(vehicleEntityPage.getTotalPages())
+                .build();
+    }
+
+    private String concatenateSearchField(String plateNumber, String vin) {
+        return String.join("-",
+                plateNumber != null ? plateNumber : "",
+                vin != null ? vin : ""
+        );
     }
 
     @Override
@@ -66,6 +98,7 @@ public class VehicleServiceImpl implements VehicleService {
         VehicleTypeEntity type = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(VehicleConstants.MESSAGE_ERROR_NOT_FOUND));
 
+        String search = concatenateSearchField(request.getPlateNumber(), request.getVin());
         VehicleEntity vehicle = new VehicleEntity();
         vehicle.setUser(user);
         vehicle.setVehicleType(type);
@@ -74,6 +107,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setCurrentKm(request.getCurrentKm());
         vehicle.setLastMaintenanceDate(request.getLastMaintenanceDate());
         vehicle.setLastMaintenanceKm(request.getLastMaintenanceKm());
+        vehicle.setSearch(search);
         vehicle.setNotes(request.getNotes());
 
         return vehicleMapper.toVehicleResponse(vehicleRepository.save(vehicle));
@@ -140,6 +174,13 @@ public class VehicleServiceImpl implements VehicleService {
         }
         if (vehicleRequest.getNotes() != null) {
             vehicleEntity.setNotes(vehicleRequest.getNotes());
+        }
+        if(vehicleRequest.getPlateNumber() != null || vehicleRequest.getVin() != null){
+            String search = concatenateSearchField(
+                    vehicleEntity.getPlateNumber(),
+                    vehicleEntity.getVin()
+            );
+            vehicleEntity.setSearch(search);
         }
 
         vehicleEntity.setSearch(
