@@ -24,7 +24,7 @@ public class VehicleEntity extends BaseEntity {
     @Column(name = "id")
     UUID vehicleId;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
     @JoinColumn(name = "user_id")
     UserEntity user;
 
@@ -32,10 +32,10 @@ public class VehicleEntity extends BaseEntity {
     @JoinColumn(name = "vehicle_type_id")
     VehicleTypeEntity vehicleType;
 
-    @Column(name = "plate_number")
+    @Column(name = "plate_number", unique = true)
     String plateNumber;
 
-    @Column(name = "vin")
+    @Column(name = "vin", unique = true)
     String vin;
 
     @Column(name = "current_km")
@@ -45,7 +45,7 @@ public class VehicleEntity extends BaseEntity {
     LocalDateTime lastMaintenanceDate;
 
     @Column(name = "last_maintenance_km")
-    LocalDateTime lastMaintenanceKm;
+    Float lastMaintenanceKm;
 
     @Column(name = "notes")
     String notes;
