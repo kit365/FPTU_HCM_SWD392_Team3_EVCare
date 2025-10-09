@@ -5,7 +5,6 @@ import com.fpt.evcare.constants.VehicleConstants;
 import com.fpt.evcare.dto.request.vehicle.CreationVehicleRequest;
 import com.fpt.evcare.dto.request.vehicle.UpdationVehicleRequest;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.dto.response.VehicleResponse;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.entity.VehicleEntity;
@@ -81,14 +80,14 @@ public class VehicleServiceImpl implements VehicleService {
     }
     public boolean existsPlate(String plateNumber) {
         if (vehicleRepository.existsByPlateNumberAndIsDeletedFalse(plateNumber)) {
-            throw new ResourceAlreadyExistsException("Biển số xe này đã tồn tại");
+            throw new ResourceAlreadyExistsException(VehicleConstants.MESSAGE_ERROR_PLATE_NUMBER_EXISTED);
         }
         return false;
     }
 
     public boolean existsVin(String vin) {
         if (vehicleRepository.existsByPlateNumberAndIsDeletedFalse(vin)) {
-            throw new ResourceAlreadyExistsException("Khung xe này đã tồn tại");
+            throw new ResourceAlreadyExistsException(VehicleConstants.MESSAGE_ERROR_VIN_EXISTED);
         }
         return false;
     }
@@ -155,8 +154,21 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     @Transactional
     public void deleteVehicle(UUID vehicleId) {
-        VehicleEntity vehicleEntity = vehicleRepository.findById(vehicleId).orElseThrow(() -> new ResourceNotFoundException(VehicleConstants.MESSAGE_ERROR_NOT_FOUND));
+        VehicleEntity vehicleEntity = vehicleRepository.findByVehicleIdAndIsDeletedFalse(vehicleId);
+        if (vehicleEntity == null) {
+            throw new ResourceNotFoundException(VehicleConstants.MESSAGE_ERROR_NOT_FOUND);
+        }
         vehicleEntity.setIsDeleted(true);
+        vehicleRepository.save(vehicleEntity);
+    }
+
+    @Override
+    public void restoreVehicle(UUID vehicleId) {
+        VehicleEntity vehicleEntity = vehicleRepository.findByVehicleIdAndIsDeletedTrue(vehicleId);
+        if (vehicleEntity == null) {
+            throw new ResourceNotFoundException(VehicleConstants.MESSAGE_ERROR_NOT_FOUND);
+        }
+        vehicleEntity.setIsDeleted(false);
         vehicleRepository.save(vehicleEntity);
     }
 
