@@ -163,7 +163,6 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        user.setUserId(id);
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
 
