@@ -33,9 +33,9 @@ public class VehiclePartController {
     @Operation(summary = "Lấy thông tin phụ tùng theo ID")
     @GetMapping(VehiclePartConstants.VEHICLE_PART)
     public ResponseEntity<ApiResponse<VehiclePartResponse>> getVehiclePart(@PathVariable UUID id) {
-        log.info(VehiclePartConstants.LOG_INFO_SHOWING_VEHICLE_PART, id);
         VehiclePartResponse response = vehiclePartService.getVehiclePart(id);
 
+        log.info(VehiclePartConstants.LOG_SUCCESS_SHOWING_VEHICLE_PART, id);
         return ResponseEntity.ok(ApiResponse.<VehiclePartResponse>builder()
                 .success(true)
                 .message(VehiclePartConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_PART)
@@ -51,11 +51,10 @@ public class VehiclePartController {
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
             @Nullable @RequestParam(name = "keyword") String keyword) {
 
-        log.info(VehiclePartConstants.LOG_INFO_SHOWING_VEHICLE_PART_LIST, keyword);
-
         Pageable pageable = PageRequest.of(page, pageSize);
         PageResponse<VehiclePartResponse> response = vehiclePartService.searchVehiclePart(keyword, pageable);
 
+        log.info(VehiclePartConstants.LOG_SUCCESS_SHOWING_VEHICLE_PART_LIST, keyword);
         return ResponseEntity.ok(ApiResponse.<PageResponse<VehiclePartResponse>>builder()
                 .success(true)
                 .message(VehiclePartConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_PART_LIST)
@@ -67,9 +66,9 @@ public class VehiclePartController {
     @Operation(summary = "Tạo mới phụ tùng")
     @PostMapping(VehiclePartConstants.VEHICLE_PART_CREATION)
     public ResponseEntity<ApiResponse<String>> createVehiclePart(@Valid @RequestBody CreationVehiclePartRequest request) {
-        log.info(VehiclePartConstants.LOG_INFO_CREATING_VEHICLE_PART, request);
         boolean result = vehiclePartService.addVehiclePart(request);
 
+        log.info(VehiclePartConstants.LOG_SUCCESS_CREATING_VEHICLE_PART, request);
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .success(result)
                 .message(VehiclePartConstants.MESSAGE_SUCCESS_CREATING_VEHICLE_PART)
@@ -80,9 +79,9 @@ public class VehiclePartController {
     @Operation(summary = "Cập nhật phụ tùng")
     @PatchMapping(VehiclePartConstants.VEHICLE_PART_UPDATE)
     public ResponseEntity<ApiResponse<String>> updateVehiclePart(@PathVariable UUID id, @Valid @RequestBody UpdationVehiclePartRequest request) {
-        log.info(VehiclePartConstants.LOG_INFO_UPDATING_VEHICLE_PART, id);
         boolean result = vehiclePartService.updateVehiclePart(id, request);
 
+        log.info(VehiclePartConstants.LOG_SUCCESS_UPDATING_VEHICLE_PART, id);
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .success(result)
                 .message(VehiclePartConstants.MESSAGE_SUCCESS_UPDATING_VEHICLE_PART)
@@ -93,9 +92,9 @@ public class VehiclePartController {
     @Operation(summary = "Xóa phụ tùng")
     @DeleteMapping(VehiclePartConstants.VEHICLE_PART_DELETE)
     public ResponseEntity<ApiResponse<String>> deleteVehiclePart(@PathVariable UUID id) {
-        log.info(VehiclePartConstants.LOG_INFO_DELETING_VEHICLE_PART, id);
         boolean result = vehiclePartService.deleteVehiclePart(id);
 
+        log.info(VehiclePartConstants.LOG_SUCCESS_DELETING_VEHICLE_PART, id);
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .success(result)
                 .message(VehiclePartConstants.MESSAGE_SUCCESS_DELETING_VEHICLE_PART)
@@ -106,9 +105,9 @@ public class VehiclePartController {
     @Operation(summary = "Khôi phục phụ tùng đã xóa")
     @PatchMapping(VehiclePartConstants.VEHICLE_PART_RESTORE)
     public ResponseEntity<ApiResponse<String>> restoreVehiclePart(@PathVariable UUID id) {
-        log.info(VehiclePartConstants.LOG_INFO_RESTORING_VEHICLE_PART, id);
         boolean result = vehiclePartService.restoreVehiclePart(id);
 
+        log.info(VehiclePartConstants.LOG_SUCCESS_RESTORING_VEHICLE_PART, id);
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .success(result)
                 .message(VehiclePartConstants.MESSAGE_SUCCESS_RESTORING_VEHICLE_PART)

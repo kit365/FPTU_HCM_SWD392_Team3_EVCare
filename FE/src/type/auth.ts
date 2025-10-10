@@ -16,10 +16,20 @@ export interface RegisterUserRequest {
     numberPhone: string;
 }
 
-
-
 export interface RegisterUserResponse {
     userId: string;
     email: string;
     token: string;
+}
+
+export interface LogoutRequest {
+    userId: string;
+}
+
+export interface LogoutResponse {
+    success: boolean;
+    message: string;
+    data: string;
+    timestamp: string;
+    errorCode: string;
 }

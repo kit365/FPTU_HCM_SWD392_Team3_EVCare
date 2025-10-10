@@ -245,6 +245,21 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(AppointmentValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAppointmentValidationException(AppointmentValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("AppointmentValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
     @ExceptionHandler(JWTInitializationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
         if (log.isErrorEnabled()) {

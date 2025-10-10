@@ -59,4 +59,7 @@ public class UserEntity extends BaseEntity {
 
     @Column(name = "last_login")
     String lastLogin;
+
+    @Column(name = "provider")
+    String provider;
 }
