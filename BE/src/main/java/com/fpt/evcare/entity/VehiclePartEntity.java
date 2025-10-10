@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -40,6 +41,7 @@ public class VehiclePartEntity extends BaseEntity {
     LocalDateTime lastRestockDate;
 
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     VehiclePartStatusEnum status = VehiclePartStatusEnum.AVAILABLE;
 
     @Column(name = "note", length = 500)
@@ -54,5 +56,8 @@ public class VehiclePartEntity extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "vehicle_part_category_id")
-    VehiclePartCategoryEntity vehiclePartCategory;
+    VehiclePartCategoryEntity vehiclePartCategories;
+
+    @OneToMany(mappedBy = "vehiclePart", fetch = FetchType.LAZY)
+    List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartList;
 }

@@ -12,4 +12,6 @@ public interface ServiceTypeVehiclePartService {
     boolean createServiceTypeVehiclePart(CreationServiceTypeVehiclePartRequest creationServiceTypeVehiclePartRequest);
     boolean updateServiceTypeVehiclePart(UUID id, UpdationServiceTypeVehiclePartRequest updationServiceTypeVehiclePartRequest);
     boolean deleteServiceTypeVehiclePart(UUID id);
+    void deleteServiceTypeVehiclePartByServiceTypeId(UUID id);
+
 }

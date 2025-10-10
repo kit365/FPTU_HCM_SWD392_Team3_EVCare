@@ -11,4 +11,6 @@ public interface ServiceTypeVehiclePartRepository extends JpaRepository<ServiceT
     ServiceTypeVehiclePartEntity findByServiceTypeVehiclePartIdAndIsDeletedTrue(UUID id);
     List<ServiceTypeVehiclePartEntity> findAllByServiceTypeServiceTypeIdAndIsDeletedFalse(UUID id);
     boolean existsByServiceTypeVehiclePartIdAndIsDeletedFalse(UUID id);
+
+    void deleteByServiceTypeServiceTypeId(UUID serviceTypeServiceTypeId);
 }
