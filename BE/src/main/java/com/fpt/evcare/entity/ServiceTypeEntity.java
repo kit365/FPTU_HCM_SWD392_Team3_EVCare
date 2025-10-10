@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 @Entity
@@ -40,4 +42,10 @@ public class ServiceTypeEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id", insertable = false, updatable = false)  // Không chèn/cập nhật qua đây
     private ServiceTypeEntity parent;
+
+    @ManyToMany(mappedBy = "serviceTypes")
+    List<AppointmentEntity> appointments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "serviceType", fetch = FetchType.LAZY)
+    List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartList;
 }
