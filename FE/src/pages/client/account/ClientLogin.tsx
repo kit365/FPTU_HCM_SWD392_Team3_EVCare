@@ -5,11 +5,11 @@ import { useForm } from 'react-hook-form';
 import { useForgotPassword } from '../../../hooks/useForgotPassword';
 import { useState } from 'react';
 import type { RequestOtpRequest, VerifyOtpRequest } from '../../../type/forgot-password';
-import { useAuth } from '../../../hooks/useAuthClient';
+import { useAuthClient } from '../../../hooks/useAuthClient';
 import type { LoginRequest } from '../../../type/auth';
 
 const ClientLogin = () => {
-    const { login, isLoading } = useAuth();
+    const { login, isLoading } = useAuthClient();
 
     const onFinish: FormProps['onFinish'] = async (values) => {
         const payload: LoginRequest = {
