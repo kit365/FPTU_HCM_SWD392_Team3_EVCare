@@ -1,5 +1,7 @@
 package com.fpt.evcare.config;
 
+import lombok.NonNull;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -7,15 +9,33 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    @Override
-    public void addCorsMappings(CorsRegistry corsRegistry) {
-        corsRegistry.addMapping("/**")
-         .allowedOrigins("*")
-                .allowedMethods("*")
-            .allowedHeaders("*")
-                .exposedHeaders("Access-Control-Allow-Origin", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers")
-//                .allowCredentials(true) //neu can cokkies thi can cu the dia chi ben FE(vd: localhost:3000) khong duoc la *
-                .maxAge(3600);
-    }
+    private static final String[] ALLOWED_ORIGINS = {
+            "http://localhost:3000",
+            "http://localhost:5000"
+    };
 
+    // Define constant array for allowed methods
+    private static final String[] ALLOWED_METHODS = {
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH"
+    };
+
+
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+
+            @Override
+            public void addCorsMappings(@NonNull CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedOriginPatterns(ALLOWED_ORIGINS)
+                        .allowedHeaders("*")
+                        .allowedMethods(ALLOWED_METHODS)
+                        .allowCredentials(true);
+            }
+        };
+    }
 }

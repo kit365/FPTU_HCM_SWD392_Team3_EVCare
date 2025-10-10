@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${subject}">Xác thực thay đổi email</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        body {
+            margin: 0; padding: 0;
+            background: #f0f2f5;
+            font-family: 'Roboto', Arial, sans-serif;
+            color: #333;
+        }
+        .container {
+            max-width: 550px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+        .header {
+            background: #4a90e2;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            border-bottom: 5px solid #357abd;
+        }
+        .content {
+            padding: 30px 25px;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+        .content p {
+            margin: 15px 0;
+            color: #555;
+        }
+        .otp-box {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .otp-title {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        .otp-code-container {
+            display: inline-block;
+            position: relative;
+            background: #e9f2ff;
+            color: #4a90e2;
+            font-size: 40px;
+            font-weight: 700;
+            padding: 15px 35px;
+            border-radius: 8px;
+            letter-spacing: 8px;
+            border: 2px solid #4a90e2;
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        .copy-button {
+            position: absolute;
+            top: 50%;
+            right: -10px;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #4a90e2;
+            background-color: #4a90e2;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s, right 0.3s;
+            font-size: 18px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .otp-code-container:hover .copy-button {
+            opacity: 1;
+            right: -25px;
+        }
+        .copy-button:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        .otp-code {
+            pointer-events: none;
+            user-select: none;
+        }
+        .otp-expiry {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #999;
+            padding: 20px;
+            background: #f9f9f9;
+            border-top: 1px solid #eee;
+        }
+        #copy-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; border-radius: 0; }
+            .otp-code-container { font-size: 32px; letter-spacing: 6px; padding: 12px 25px; }
+            .copy-button { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"> EV Care</div>
+    <div class="content">
+        <p>Xin chào, <strong th:text="${fullName}">Người dùng</strong></p>
+        <p>
+            Chúng tôi đã nhận được yêu cầu thay đổi địa chỉ email cho tài khoản của bạn.
+            Vui lòng sử dụng mã xác nhận bên dưới để xác nhận thay đổi.
+        </p>
+        <div class="otp-box">
+            <div class="otp-title">Mã xác nhận của bạn là:</div>
+            <div class="otp-code-container" onclick="copyOTP()">
+                <span id="otpCode" class="otp-code" th:text="${code}">123456</span>
+                <button class="copy-button">
+                    <span style="display: block;">&#x2398;</span>
+                </button>
+            </div>
+            <div class="otp-expiry">Mã có hiệu lực trong 5 phút.</div>
+        </div>
+        <p>Nếu bạn không yêu cầu thay đổi này, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức.</p>
+    </div>
+    <div class="footer">
+        &copy; 2025 EV Care. Bảo lưu mọi quyền.
+    </div>
+</div>
+
+<div id="copy-notification">Đã sao chép!</div>
+
+<script>
+    function copyOTP() {
+        const otpCode = document.getElementById('otpCode').innerText;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(otpCode)
+                .then(() => showNotification());
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = otpCode;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showNotification();
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+    }
+
+    function showNotification() {
+        const notification = document.getElementById('copy-notification');
+        notification.style.opacity = '1';
+        setTimeout(() => {
+            notification.style.opacity = '0';
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>

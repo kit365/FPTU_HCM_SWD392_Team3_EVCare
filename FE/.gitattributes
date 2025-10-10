@@ -1,0 +1,29 @@
+# Force all text files to use LF line endings in repo
+* text=auto eol=lf
+
+# Specific for TypeScript, JavaScript, JSX/TSX
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+
+# JSON, CSS, HTML files should also use LF
+*.json text eol=lf
+*.css  text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+
+# Windows batch files should keep CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Images and other binaries should be treated as binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.exe  binary
+*.dll  binary
