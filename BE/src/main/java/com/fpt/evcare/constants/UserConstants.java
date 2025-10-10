@@ -16,6 +16,7 @@ public class UserConstants {
     public static final String MESSAGE_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại";
     public static final String MESSAGE_ERR_USER_DELETED = "Tài khoản đã bị xóa.";
     public static final String MESSAGE_ERR_DUPLICATED_USER_PHONE = "Số điện thoại này đã tồn tại";
+    public static final String MESSAGE_ERR_USER_NOT_EXIST = "Người dùng không tồn tại";
 
 
     //Log message
