@@ -11,7 +11,7 @@ import java.util.UUID;
 public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
     VehicleEntity findByVehicleIdAndIsDeletedFalse(UUID vehicleId);
     VehicleEntity findByVehicleIdAndIsDeletedTrue(UUID vehicleId);
-    Page<VehicleEntity> findByIsDeletedFalse(Pageable pageable);
+    Page<VehicleEntity> findAllByIsDeletedFalse(Pageable pageable);
     Page<VehicleEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
 
     boolean existsByVehicleIdAndIsDeletedFalse(UUID isDeleted);
@@ -19,4 +19,5 @@ public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
     boolean existsByPlateNumberAndIsDeletedFalse(String plateNumber);
 
     boolean existsByVinAndIsDeletedFalse(String vin);
+
 }

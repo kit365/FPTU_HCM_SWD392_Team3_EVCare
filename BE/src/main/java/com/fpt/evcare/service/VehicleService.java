@@ -14,6 +14,7 @@ public interface VehicleService {
     VehicleResponse addVehicle(CreationVehicleRequest vehicleRequest);
     VehicleResponse updateVehicle(UUID vehicleId, UpdationVehicleRequest vehicleRequest);
     void deleteVehicle(UUID vehicleId);
+    void restoreVehicle(UUID vehicleId);
 
 
 

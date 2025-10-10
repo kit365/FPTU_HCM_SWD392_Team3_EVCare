@@ -7,6 +7,7 @@ import com.fpt.evcare.dto.request.service_type_vehicle_part.CreationServiceTypeV
 import com.fpt.evcare.dto.request.service_type_vehicle_part.UpdationServiceTypeVehiclePartRequest;
 import com.fpt.evcare.dto.response.ServiceTypeResponse;
 import com.fpt.evcare.dto.response.ServiceTypeVehiclePartResponse;
+import com.fpt.evcare.dto.response.VehiclePartResponse;
 import com.fpt.evcare.entity.ServiceTypeEntity;
 import com.fpt.evcare.entity.ServiceTypeVehiclePartEntity;
 import com.fpt.evcare.entity.VehiclePartEntity;
@@ -22,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,29 +41,27 @@ public class ServiceTypeVehiclePartServiceImpl implements ServiceTypeVehiclePart
     @Override
     public List<ServiceTypeVehiclePartResponse> getVehiclePartByServiceTypeId(UUID id) {
         List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartEntityList = serviceTypeVehiclePartRepository.findAllByServiceTypeServiceTypeIdAndIsDeletedFalse(id);
-        if(serviceTypeVehiclePartEntityList == null){
-            log.warn(ServiceTypeVehiclePartConstants.LOG_ERR_SERVICE_TYPE_VEHICLE_PART_NOT_FOUND + id);
-            throw new ResourceNotFoundException(ServiceTypeVehiclePartConstants.MESSAGE_ERR_SERVICE_TYPE_VEHICLE_PART_NOT_FOUND);
-        }
 
+        if(!serviceTypeVehiclePartEntityList.isEmpty()){
         List<ServiceTypeVehiclePartResponse> responseList = serviceTypeVehiclePartEntityList.stream().map(serviceTypeVehiclePartEntity -> {
             ServiceTypeVehiclePartResponse serviceTypeVehiclePartResponse = serviceTypeVehiclePartMapper.toResponse(serviceTypeVehiclePartEntity);
 
-            ServiceTypeEntity serviceType = serviceTypeVehiclePartEntity.getServiceType();
-            ServiceTypeResponse serviceTypeResponse = new ServiceTypeResponse();
-            if(serviceType != null && serviceType.getParent() != null){
-                serviceTypeResponse.setServiceTypeId(serviceType.getServiceTypeId());
-                serviceTypeResponse.setServiceName(serviceType.getServiceName());
-                serviceTypeVehiclePartResponse.setServiceType(serviceTypeResponse);
-            }
-            serviceTypeVehiclePartResponse.setServiceType(serviceTypeResponse);
+            VehiclePartEntity vehiclePartEntity = serviceTypeVehiclePartEntity.getVehiclePart();
+            VehiclePartResponse partResponse = new VehiclePartResponse();
+            partResponse.setVehiclePartId(vehiclePartEntity.getVehiclePartId());
+            partResponse.setVehiclePartName(vehiclePartEntity.getVehiclePartName());
+
+            serviceTypeVehiclePartResponse.setVehiclePart(partResponse);
 
             return serviceTypeVehiclePartResponse;
 
         }).toList();
 
-        log.info(ServiceTypeVehiclePartConstants.LOG_INFO_SHOWING_SERVICE_TYPE_VEHICLE_PART + id);
-        return responseList;
+            log.info(ServiceTypeVehiclePartConstants.LOG_INFO_SHOWING_SERVICE_TYPE_VEHICLE_PART + id);
+            return responseList;
+        }
+
+        return Collections.emptyList();
     }
 
     @Override
@@ -124,6 +124,16 @@ public class ServiceTypeVehiclePartServiceImpl implements ServiceTypeVehiclePart
 
         log.warn(ServiceTypeVehiclePartConstants.LOG_INFO_DELETING_SERVICE_TYPE_VEHICLE_PART + id);
         serviceTypeVehiclePartRepository.deleteById(id);
-        return false;
+        return true;
+    }
+
+    @Override
+    public void deleteServiceTypeVehiclePartByServiceTypeId(UUID id) {
+        ServiceTypeEntity serviceTypeEntity = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(id);
+        if(serviceTypeEntity != null) {
+            log.warn(ServiceTypeVehiclePartConstants.LOG_INFO_DELETING_SERVICE_TYPE_VEHICLE_PART_BY_SERVICE_TYPE_ID + id);
+            serviceTypeVehiclePartRepository.deleteByServiceTypeServiceTypeId(id);
+        }
+        log.warn(ServiceTypeVehiclePartConstants.LOG_ERR_CAN_NOT_DELETE_UNAVAILABLE_SERVICE_TYPE + id);
     }
 }
