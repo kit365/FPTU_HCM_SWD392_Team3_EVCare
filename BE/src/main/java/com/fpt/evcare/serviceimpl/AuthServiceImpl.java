@@ -15,7 +15,6 @@ import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.DisabledException;
-import com.fpt.evcare.exception.IllegalArgumentException;
 import com.fpt.evcare.exception.InvalidCredentialsException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.UserMapper;
