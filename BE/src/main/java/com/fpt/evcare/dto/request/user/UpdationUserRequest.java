@@ -49,11 +49,17 @@ public class UpdationUserRequest {
     LocalDateTime lastLogin;
 
     @Nullable
-    boolean isDeleted;
+    Boolean isDeleted;
+
+    @Nullable
+    Boolean isActive;
 
     @Nullable
     String createdBy;
 
     @Nullable
     String updatedBy;
+
+    @Nullable
+    String provider;
 }

@@ -10,10 +10,11 @@ import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.TokenResponse;
 import com.fpt.evcare.dto.response.RegisterUserResponse;
+import com.fpt.evcare.dto.response.UserResponse;
+import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.DisabledException;
-import com.fpt.evcare.exception.IllegalArgumentException;
 import com.fpt.evcare.exception.InvalidCredentialsException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.UserMapper;
@@ -34,14 +35,14 @@ import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -57,6 +58,7 @@ public class AuthServiceImpl implements AuthService {
     UserRepository userRepository;
     UserMapper userMapper;
     RoleRepository roleRepository;
+
     @Override
     public LoginResponse login(LoginRequest loginRequest) throws JOSEException {
         UserEntity user = userService.getUserByEmail(loginRequest.getEmail());
@@ -134,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
 
         long remainingTtl = redisService.getExpire(TokenConstants.REFRESH_PREFIX + userId, TimeUnit.SECONDS);
         if (remainingTtl <= 0) {
-            throw new InvalidCredentialsException("Refresh token đã hết hạn");
+            throw new InvalidCredentialsException(TokenConstants.MESSAGE_ERR_REFRESH_TOKEN_EXPIRED);
         }
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
@@ -156,13 +158,13 @@ public class AuthServiceImpl implements AuthService {
         // 1. Kiểm tra refresh token trong Redis
         String refreshment = redisService.getValue(TokenConstants.REFRESH_PREFIX + userId);
         if (!refreshment.equals(request.getToken())) {
-            throw new InvalidCredentialsException("Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new InvalidCredentialsException(TokenConstants.MESSAGE_ERR_TOKEN_INVALID);
         }
 
         // 2. Lấy TTL còn lại của refresh token cũ
         long remainingTtl = redisService.getExpire(TokenConstants.REFRESH_PREFIX + userId, TimeUnit.SECONDS);
         if (remainingTtl <= 0) {
-            throw new InvalidCredentialsException("Refresh token đã hết hạn");
+            throw new InvalidCredentialsException(TokenConstants.MESSAGE_ERR_REFRESH_TOKEN_EXPIRED);
         }
 
         // 3. Sinh access token mới
@@ -190,11 +192,12 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public void logout(LogoutRequest request) {
+    public String logout(LogoutRequest request) {
         tokenService.removeTokens(request.getUserId());
         if (log.isInfoEnabled()) {
             log.info("User with ID {} logged out successfully", request.getUserId());
         }
+        return null;
     }
 
     @Override
@@ -225,7 +228,7 @@ public class AuthServiceImpl implements AuthService {
                     .authorized(isValid)
                     .build();
         } catch (Exception e) {
-            throw new IllegalArgumentException(AuthConstants.MESSAGE_ERR_TOKEN_DISABLED);
+            throw new IllegalArgumentException(TokenConstants.MESSAGE_ERR_TOKEN_INVALID);
         }
     }
 
@@ -238,6 +241,21 @@ public class AuthServiceImpl implements AuthService {
                 log.error("Failed to extract email from token: {}", e.getMessage());
             }
             throw new IllegalArgumentException("Invalid token");
+        }
+    }
+
+    @Override
+    public UserResponse getUserByToken(TokenRequest token) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token.getToken());
+            String userId = signedJWT.getJWTClaimsSet().getSubject();
+            UserEntity userEntity = userRepository.findByUserIdAndIsDeletedFalse(UUID.fromString(userId));
+            return userMapper.toResponse(userEntity);
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("Failed to extract email from token: {}", e.getMessage());
+            }
+            throw new IllegalArgumentException(TokenConstants.MESSAGE_ERR_TOKEN_DISABLED);
         }
     }
 
@@ -283,4 +301,50 @@ public class AuthServiceImpl implements AuthService {
         registerUserResponse.setRefreshToken(refreshToken);
         return registerUserResponse;
     }
+
+    @Override
+    public Map<String, Object> getUserInfo(OAuth2User principal, OAuth2AuthorizedClient authorizedClient) {
+        String accessToken = authorizedClient.getAccessToken().getTokenValue();
+        OAuth2RefreshToken oAuth2RefreshToken = authorizedClient.getRefreshToken();
+        String refreshToken = (oAuth2RefreshToken != null) ? oAuth2RefreshToken.getTokenValue() : null;
+
+        String email = principal.getAttribute("email");
+        String name = principal.getAttribute("name");
+
+        UserEntity userEntity = userRepository.findByEmailAndIsDeletedFalse(email);
+        List<RoleEntity> role = new ArrayList<>();
+        role.add(roleRepository.findByRoleName(RoleEnum.CUSTOMER));
+
+        if (userEntity == null) {
+            String search = concatenateSearchField(name, "", email, email);
+            UserEntity user = new UserEntity();
+            user.setRoles(role);
+            user.setPassword(UUID.randomUUID().toString());
+            user.setSearch(search);
+            user.setUsername(email); // Sử dụng email làm username
+            user.setEmail(email);
+            user.setFullName(name);
+            user.setProvider("GOOGLE");
+            userEntity = userRepository.save(user);
+            log.info("Saved user from Google login: " + user);
+        }
+        tokenService.saveAccessToken(userEntity.getUserId(), accessToken, 3600);
+        tokenService.saveRefreshToken(userEntity.getUserId(), refreshToken, 604800);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("user", principal.getAttributes());
+        response.put("accessToken", accessToken);
+        response.put("refreshToken", refreshToken);
+
+        return response;
+    }
+    private String concatenateSearchField(String fullName, String numberPhone, String email, String username) {
+        return String.join("-",
+                fullName != null ? fullName : "",
+                numberPhone != null ? numberPhone : "",
+                email != null ? email : "",
+                username != null ? username : ""
+        );
+    }
+
 }

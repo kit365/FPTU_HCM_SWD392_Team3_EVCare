@@ -95,7 +95,6 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-
     @Override
     public UserEntity getUserByEmail(String email) {
         UserEntity userEntity = userRepository.findByEmailAndIsDeletedFalse(email);
@@ -164,7 +163,6 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        user.setUserId(id);
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
 
