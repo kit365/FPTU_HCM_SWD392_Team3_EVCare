@@ -1,9 +1,8 @@
 import { useState } from "react";
-import type { RequestOtpRequest, VerifyOtpResponse, ResetPasswordRequest } from "../type/forgot-password";
-import { forgotPasswordService } from "../service/forgot-password-service";
 import { notify } from "../components/admin/common/Toast";
-import type { VerifyOtpRequest } from "../type/forgot-password";
-import type { ApiResponse } from "../type/api";
+import type { RequestOtpRequest, ResetPasswordRequest, VerifyOtpRequest, VerifyOtpResponse } from "../types/admin/forgot-password";
+import type { ApiResponse } from "../types/api";
+import { forgotPasswordService } from "../service/forgot-password-service";
 
 
 export function useForgotPassword() {

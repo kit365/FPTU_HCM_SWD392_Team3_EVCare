@@ -1,8 +1,8 @@
 
 import { API_BASE_URL } from "../constants/apiConstants";
 import { REQUEST_OTP, RESET_PASSWORD, VERIFY_OTP } from "../constants/forgot-password.constant";
-import type { ApiResponse } from "../type/api";
-import type { RequestOtpRequest, ResetPasswordRequest, VerifyOtpRequest, VerifyOtpResponse } from "../type/forgot-password";
+import type { RequestOtpRequest, ResetPasswordRequest, VerifyOtpRequest, VerifyOtpResponse } from "../types/admin/forgot-password";
+import type { ApiResponse } from "../types/api";
 import { apiClient } from "./api";
 
 export const forgotPasswordService = {

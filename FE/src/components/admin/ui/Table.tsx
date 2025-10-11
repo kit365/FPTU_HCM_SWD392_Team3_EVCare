@@ -4,6 +4,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import { Pagination, Stack } from "@mui/material";
 import slugify from "slugify";
 import { FormSearch } from "./FormSearch";
@@ -16,9 +17,11 @@ interface TableAdminProps {
     dataList: any[];
     limit?: number;
     columns: any[];
+    getEditUrl?: (item: any) => string;
+    getViewUrl?: (item: any) => string;
 }
 
-export const TableAdmin = ({ dataList, limit, columns }: TableAdminProps) => {
+export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }: TableAdminProps) => {
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [statusFilter, setStatusFilter] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -197,12 +200,24 @@ export const TableAdmin = ({ dataList, limit, columns }: TableAdminProps) => {
                                                     key={col.key}
                                                     className="p-[1.2rem] text-center flex justify-center"
                                                 >
-                                                    <Link
-                                                        to={"#"}
-                                                        className="text-blue-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
-                                                    >
-                                                        <EditIcon className="!w-full !h-full" />
-                                                    </Link>
+                                                    {getViewUrl && (
+                                                        <Link
+                                                            to={getViewUrl(item)}
+                                                            className="text-green-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
+                                                            title="Xem chi tiết"
+                                                        >
+                                                            <RemoveRedEyeIcon className="!w-full !h-full" />
+                                                        </Link>
+                                                    )}
+                                                    {getEditUrl && (
+                                                        <Link
+                                                            to={getEditUrl(item)}
+                                                            className="text-blue-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <EditIcon className="!w-full !h-full" />
+                                                        </Link>
+                                                    )}
                                                     <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
                                                         <DeleteOutlineIcon className="!w-full !h-full" />
                                                     </button>
