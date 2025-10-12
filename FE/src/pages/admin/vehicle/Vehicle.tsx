@@ -10,10 +10,11 @@ import { useCarModel } from "../../../hooks/useCarModel";
 export const Vehicle = () => {
     const {
         vehicleList, fetchVehicleTypeList } = useCarModel();
+
     useEffect(() => {
-        console.log("useEffect gọi fetchVehicleTypeList")
         fetchVehicleTypeList({ page: 0, pageSize: 10, keyword: "" });
     }, []);
+
 
     const buttonsList: ButtonItemProps[] = [
         {
