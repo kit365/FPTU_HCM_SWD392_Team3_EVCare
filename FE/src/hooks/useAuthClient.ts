@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { LoginRequest, LogoutRequest } from "../type/auth";
-import type { RegisterUserRequest } from "../type/auth";
 import { authService } from "../service/authService";
 import { notify } from "../components/admin/common/Toast";
 import { AxiosError } from "axios";
 import { useAuthContext } from '../context/useAuthContext.tsx';
+import type { LoginRequest, RegisterUserRequest } from "../types/admin/auth.ts";
 
 
 export function useAuthClient() {
@@ -71,12 +70,12 @@ export function useAuthClient() {
       const userId = user?.id;
 
       if (userId) {
-        const logoutData: LogoutRequest = { userId };
-        const response = await authService.logout(logoutData);
+        // const logoutData: LogoutRequest = { userId };
+        // const response = await authService.logout(logoutData);
         
-        if (response?.data?.success) {
-          notify.success(response?.data?.message || "Đăng xuất thành công");
-        }
+        // if (response?.data?.success) {
+        //   notify.success(response?.data?.message || "Đăng xuất thành công");
+        // }
       }
     } catch (error) {
       console.error("Logout error:", error);

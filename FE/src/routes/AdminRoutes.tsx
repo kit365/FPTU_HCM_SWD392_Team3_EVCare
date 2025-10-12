@@ -6,6 +6,7 @@ import { StaffPage } from "../pages/admin/staff/Staff";
 import { StaffCreatePage } from "../pages/admin/staff/StaffCreate";
 import { Vehicle } from "../pages/admin/vehicle/Vehicle";
 import { VehicleCreate } from "../pages/admin/vehicle/VehicleCreate";
+import { VehicleDetail } from "../pages/admin/vehicle/VehicleDetail";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -14,6 +15,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "staff/create", element: <StaffCreatePage /> },
     { path: "vehicle", element: <Vehicle/> },    
     { path: "vehicle/create", element: <VehicleCreate/> },
+    { path: "vehicle/edit/:id", element: <VehicleDetail/> },
+    { path: "vehicle/view/:id", element: <VehicleDetail/> },
 ];
 
 export const AuthAdminRoutes = [

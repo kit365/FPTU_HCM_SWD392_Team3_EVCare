@@ -16,8 +16,7 @@ public class AuthConstants {
 
     // Error Messages
     public static final String MESSAGE_ERR_INVALID_PASSWORD = "Mật khẩu không đúng.";
-
-
+    public static final String MESSAGE_ERR_TOKEN_DISABLED = "Token không tồn tại.";
 
 
     public static final String BASE_URL = EndpointConstants.V1.API + "/auth";
@@ -29,6 +28,7 @@ public class AuthConstants {
     public static final String GET_USER_INFO = "/api/v1/auth/user";
     public static final String LOGIN_GOOGLE = "/oauth2/authorization/google";
     public static final String LOGOUT_GOOGLE = "/api/v1/auth/logout";
+    public static final String LOGOUT = "/logout";
 
 
 

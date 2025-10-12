@@ -22,6 +22,9 @@ public class ServiceTypeConstants {
     public static final String MESSAGE_ERR_CAN_NOT_DELETE_SERVICE_TYPE = "Có cuộc hẹn đang sử dụng loại dịch vụ này, không thể xóa";
     public static final String MESSAGE_ERR_CAN_NOT_DELETE_PARENT_SERVICE_TYPE= "Không thể xóa loại dịch vụ cha";
 
+    public static final String DEFAULT_PAGE_SIZE = "10";
+    public static final String DEFAULT_PAGE_NUMBER = "0";
+
 
     //Log message
 
@@ -48,6 +51,8 @@ public class ServiceTypeConstants {
     public static final String SERVICE_TYPE_LIST= "/";
     public static final String SERVICE_TYPE = "/{id}";
     public static final String SERVICE_TYPE_UPDATE = "/{id}";
+
+
     public static final String SERVICE_TYPE_DELETE = "/{id}";
     public static final String RESTORING_SERVICE_TYPE = "/restore/{id}";
     public static final String SERVICE_TYPE_CREATION = "/";

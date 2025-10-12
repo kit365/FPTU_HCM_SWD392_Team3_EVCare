@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useForgotPassword } from '../../../hooks/useForgotPassword';
 import { useState } from 'react';
-import type { RequestOtpRequest, VerifyOtpRequest } from '../../../type/forgot-password';
+import type { RequestOtpRequest, VerifyOtpRequest } from '../../../types/admin/forgot-password';
 import { useAuthClient } from '../../../hooks/useAuthClient';
 import type { LoginRequest } from '../../../type/auth';
 

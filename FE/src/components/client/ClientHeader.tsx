@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AliwangwangOutlined, HomeOutlined, IdcardOutlined, LogoutOutlined, ScheduleOutlined, LoginOutlined } from '@ant-design/icons';
 import { Menu, notification } from 'antd';
 import type { MenuProps } from 'antd';
