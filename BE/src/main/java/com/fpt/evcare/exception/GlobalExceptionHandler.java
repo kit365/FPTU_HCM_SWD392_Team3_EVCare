@@ -215,6 +215,51 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(VehicleTypeValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehicleTypeValidationException(VehicleTypeValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehicleTypeValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(VehiclePartValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVehiclePartValidationException(VehiclePartValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("VehiclePartValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(AppointmentValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAppointmentValidationException(AppointmentValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("AppointmentValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
     @ExceptionHandler(JWTInitializationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
         if (log.isErrorEnabled()) {

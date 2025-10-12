@@ -3,6 +3,7 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
+import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
@@ -95,6 +96,42 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    @Override
+    public PageResponse<EmployeeResponse> findAllEmployee(Pageable pageable, String keyword) {
+        return null;
+//        Page<UserEntity> usersPage;
+//        if (keyword == null || keyword.trim().isEmpty()) {
+//            usersPage = userRepository.findByIsDeletedFalse(pageable);
+//        } else {
+//            usersPage = userRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword.trim(), pageable);
+//        }
+//
+//        if (usersPage.isEmpty()) {
+//            log.error(UserConstants.LOG_ERR_USER_LIST_NOT_FOUND);
+//            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_LIST_NOT_FOUND);
+//        }
+//
+//        List<EmployeeResponse> userResponses = usersPage.map(user -> {
+//            EmployeeResponse response = userMapper.toResponse(user);
+//            List<String> roleNames = new ArrayList<>();
+//            if (user.getRoles() != null) {
+//                for (RoleEntity role : user.getRoles()) {
+//                    roleNames.add(role.getRoleName().toString());
+//                }
+//            }
+//            response.setRoleName(roleNames);
+//            return response;
+//        }).getContent();
+//
+//        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER_LIST);
+//        return PageResponse.<EmployeeResponse>builder()
+//                .data(userResponses)
+//                .page(usersPage.getNumber())
+//                .size(usersPage.getSize())
+//                .totalElements(usersPage.getTotalElements())
+//                .totalPages(usersPage.getTotalPages())
+//                .build();
+    }
 
     @Override
     public UserEntity getUserByEmail(String email) {
@@ -156,16 +193,14 @@ public class UserServiceImpl implements UserService {
         List<RoleEntity> roleIdList = new ArrayList<>();
 
         if(updationUserRequest.getRoleIds() != null && !updationUserRequest.getRoleIds().isEmpty()){
-            for(String roleId : updationUserRequest.getRoleIds()){
-                UUID formattedRoleId = UUID.fromString(roleId);
-                RoleEntity roleEntity = roleRepository.findRoleByRoleId(formattedRoleId);
+            for(UUID roleId : updationUserRequest.getRoleIds()){
+                RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
                 if( roleEntity != null) {
                     roleIdList.add(roleEntity);
                 }
             }
         }
 
-        user.setUserId(id);
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
 

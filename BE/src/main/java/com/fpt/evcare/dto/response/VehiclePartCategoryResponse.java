@@ -26,7 +26,7 @@ public class VehiclePartCategoryResponse implements Serializable {
 
     Integer averageLifespan;
 
-    boolean isActive;
+    Boolean isActive;
 
     LocalDateTime createdAt;
 

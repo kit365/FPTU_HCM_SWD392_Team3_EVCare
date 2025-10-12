@@ -15,10 +15,10 @@ public interface ServiceTypeMapper {
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "parentId", ignore = true)
     @Mapping(target = "parent", ignore = true)
-    @Mapping(target = "isActive", ignore = true)
     ServiceTypeEntity toEntity (CreationServiceTypeRequest serviceTypeEntity);
 
     @Mapping(target = "children", ignore = true) // Ignore children to avoid recursion
+    @Mapping(target = "serviceTypeVehiclePartResponses", ignore = true) // Ignore children to avoid recursion
     ServiceTypeResponse toResponse (ServiceTypeEntity serviceTypeEntity);
 
     @Mapping(target = "serviceTypeId", ignore = true)

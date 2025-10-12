@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { LoginRequest } from "../type/auth";
-import type { RegisterUserRequest } from "../type/auth";
 import { authService } from "../service/authService";
 import { notify } from "../components/admin/common/Toast";
 import { AxiosError } from "axios";
+import type { LoginRequest, RegisterUserRequest } from "../types/admin/auth";
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
