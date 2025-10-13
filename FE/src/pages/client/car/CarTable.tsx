@@ -1,6 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Table, Popconfirm } from 'antd';
+import type { TableColumnsType } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import CarUpdate from './CarUpdate.tsx';
+import type { CarProfile } from '../../../type/carModel.ts';
+import CarDetail from './CarDetail.tsx';
 
 //định nghĩa prop
 type Vehicle = {
@@ -11,13 +15,14 @@ type Vehicle = {
 };
 
 type CarTableProps = {
-    vehicles:Vehicle[];
+    vehicles: Vehicle[];
     total: number;
     current: number;
     setCurrent: React.Dispatch<React.SetStateAction<number>>;
     pageSize: number;
     setPageSize: React.Dispatch<React.SetStateAction<number>>;
 };
+
 
 const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurrent, pageSize, setPageSize }) => {
 
@@ -45,7 +50,7 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
         //neu thay doi trang: current
         if (pagination && pagination.current) {
             if (pagination.current !== +current) {
-                setCurrent(+pagination.current) 
+                setCurrent(+pagination.current)
             }
         }
         //neu thay doi tong so Ptu: pageSize
@@ -58,7 +63,13 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
         console.log({ pagination, filters, sorter, extra })
     };
 
-    const columns = [
+    const [dataUpdate, setDataUpdate] = useState<CarProfile | null>(null);
+    const [dataDetail, setDataDetail] = useState<CarProfile | null>(null);
+    const [isOpenUpdate, setIsOpenUpdate] = useState(false);
+    const [isOpenDetail, setIsOpenDetail] = useState(false);
+
+
+    const columns: TableColumnsType<Vehicle> = [
         {
             title: 'STT',
             render: (_: any, record: any, index: number) => {
@@ -68,9 +79,22 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
             }
         },
         {
-            title: 'Car Name',
+            title: 'Tên xe',
             dataIndex: 'carName',
+            sorter: (a, b) => a.carName.localeCompare(b.carName, 'vi', { sensitivity: 'base' }),
+            sortDirections: ['ascend', 'descend'],
 
+            render: (_: any, record: any) => {
+                return (
+                    <a
+                        href='#'
+                        onClick={() => {
+                            setDataDetail(record);
+                            setIsOpenDetail(true);
+                        }}
+                    >{record.carName}</a>
+                )
+            }
         },
 
         {
@@ -88,7 +112,8 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
                 <div style={{ display: "flex", gap: "20px" }}>
                     <EditOutlined
                         onClick={() => {
-                            //hanh dong EDIT
+                            setDataUpdate(record)
+                            setIsOpenUpdate(true)
                         }}
                         style={{ cursor: "pointer", color: "orange" }} />
                     <Popconfirm
@@ -122,11 +147,21 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
                         showTotal: (total, range) => { return (<div> {range[0]}-{range[1]} trên {total} rows</div>) }
                     }}
                 onChange={onChange}
-
             />
 
+            <CarUpdate
+                dataUpdate={dataUpdate}
+                setDataUpdate={setDataUpdate}
+                isOpenUpdate={isOpenUpdate}
+                setIsOpenUpdate={setIsOpenUpdate}
+            />
 
-
+            <CarDetail
+                dataDetail={dataDetail}
+                setDataDetail={setDataDetail}
+                isOpenDetail={isOpenDetail}
+                setIsOpenDetail={setIsOpenDetail}
+            />
         </>
     )
 }
