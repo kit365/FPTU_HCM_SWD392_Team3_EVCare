@@ -2,7 +2,6 @@
 import { useRef, useState } from "react";
 import { carModelService } from "../service/carModelService";
 import type { GetVehicleTypeListRequest } from "../type/carModel";
-import { notify } from "../components/admin/common/Toast";
 import type { VehicleProps } from "../types/admin/car.types";
 
 
@@ -21,9 +20,9 @@ export const useCarModel = () => {
 
             if (!hasNotified.current) { // 👈 chỉ chạy notify lần đầu
                 if (response?.data.success === true) {
-                    notify.success(response?.data.message || "lấy mẫu xe thành công")
+                    console.log(response?.data.message || "lấy mẫu xe thành công");
                 } else {
-                    notify.error(response?.data.message || "lấy mẫu xe thất bại!");
+                    console.error(response?.data.message || "lấy mẫu xe thất bại!");
                 }
                 hasNotified.current = true;
             }

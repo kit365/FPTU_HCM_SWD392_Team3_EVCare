@@ -1,13 +1,13 @@
 package com.fpt.evcare.controller;
 
 import com.fpt.evcare.base.ApiResponse;
+import com.fpt.evcare.constants.PaginationConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.UserService;
-import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -42,9 +42,12 @@ public class UserController {
 
     @GetMapping(UserConstants.USER_LIST)
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-           @Nullable @RequestParam(name = "keyword") String keyword) {
+            @RequestParam(name = PaginationConstants.PAGE_KEY,
+                    defaultValue = UserConstants.DEFAULT_PAGE_NUMBER) int page,
+            @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY,
+                    defaultValue = UserConstants.DEFAULT_PAGE_SIZE) int pageSize,
+           @RequestParam(name = PaginationConstants.KEYWORD_KEY,
+                   required = false) String keyword) {
         Pageable pageable = PageRequest.of(page, pageSize);
         PageResponse<UserResponse> userResponses = userService.searchUser(pageable, keyword);
         return ResponseEntity

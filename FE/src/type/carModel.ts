@@ -1,9 +1,9 @@
 //tạo request và response
 import type { VehicleListData } from "../types/admin/car.types";
 export interface GetVehicleTypeListRequest {
-  page?: number;       
-  pageSize?: number;   
-  keyword?: string;    
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
 }
 
 export interface VehicleListResponse {
@@ -38,3 +38,34 @@ export interface CarProfile {
   licensePlate: string;
   carType: string;
 }
+export interface VehicleDetailResponse {
+  vehicleTypeId: string;
+  vehicleTypeName: string;
+  manufacturer: string;
+  modelYear: number;
+  batteryCapacity: number;
+  maintenanceIntervalKm: number;
+  maintenanceIntervalMonths: number;
+  description: string;
+  isDeleted: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+}
+;
+
+export interface UpdateVehicleTypeRequest {
+  vehicleTypeName: string;
+  manufacturer: string;
+  modelYear: number;
+  batteryCapacity: number;
+  maintenanceIntervalKm: number;
+  maintenanceIntervalMonths: number;
+  description: string;
+  isActive: boolean;
+}
+
+
+

@@ -5,14 +5,12 @@ import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
 import com.fpt.evcare.dto.request.LogoutRequest;
 import com.fpt.evcare.dto.request.TokenRequest;
-import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.RegisterUserResponse;
 import com.fpt.evcare.dto.response.TokenResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.AuthService;
-import com.fpt.evcare.service.UserService;
 import com.nimbusds.jose.JOSEException;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
@@ -39,8 +37,6 @@ import java.util.Map;
 @RequestMapping(AuthConstants.BASE_URL)
 public class AuthController {
     AuthService authService;
-    UserService userService;
-
 
     @PostMapping(AuthConstants.LOGIN)
     @Operation(summary = "Đăng nhập tài khoản", description = "Người dùng đăng nhập bằng email và mật khẩu, trả về JWT token")
@@ -104,7 +100,7 @@ public class AuthController {
 
 
 
-    @PostMapping("/logout")
+    @PostMapping(AuthConstants.LOGOUT)
     public ResponseEntity<ApiResponse<String>> logout(@RequestBody LogoutRequest request) {
 
         return ResponseEntity.ok(ApiResponse.<String>builder()

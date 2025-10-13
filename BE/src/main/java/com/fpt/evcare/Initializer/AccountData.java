@@ -27,6 +27,17 @@ public class AccountData implements CommandLineRunner {
         RoleEntity role = new RoleEntity();
         role.setRoleName(RoleEnum.CUSTOMER);
         roleRepository.save(role);
+
+        RoleEntity role1 = new RoleEntity();
+        role1.setRoleName(RoleEnum.ADMIN);
+        roleRepository.save(role1);
+
+        RoleEntity role2 = new RoleEntity();
+        role2.setRoleName(RoleEnum.STAFF);
+        roleRepository.save(role2);
+
+        RoleEntity role3 = new RoleEntity();
+        role3.setRoleName(RoleEnum.TECHNICIAN);
     }
 
     private void createUser() {
