@@ -31,3 +31,10 @@ export interface CreateVehicleTypeResponse {
   timestamp: string;
   errorCode: string;
 }
+
+export interface CarProfile {
+  carId: number;
+  carName: string;
+  licensePlate: string;
+  carType: string;
+}
