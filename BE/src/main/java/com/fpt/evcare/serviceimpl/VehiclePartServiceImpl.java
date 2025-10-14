@@ -69,8 +69,8 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             vehiclePartResponse.setVehicleType(null);
         }
 
-        if(vehiclePartEntity.getVehiclePartCategory() != null) {
-            VehiclePartCategoryResponse vehiclePartCategoryResponse = vehiclePartCategoryMapper.toResponse(vehiclePartEntity.getVehiclePartCategory());
+        if(vehiclePartEntity.getVehiclePartCategories() != null) {
+            VehiclePartCategoryResponse vehiclePartCategoryResponse = vehiclePartCategoryMapper.toResponse(vehiclePartEntity.getVehiclePartCategories());
             VehiclePartCategoryResponse parsedVehiclePartCategoryResponse = new VehiclePartCategoryResponse();
 
             parsedVehiclePartCategoryResponse.setVehiclePartCategoryId(vehiclePartCategoryResponse.getVehiclePartCategoryId());
@@ -115,8 +115,8 @@ public class VehiclePartServiceImpl implements VehiclePartService {
                 vehiclePartResponse.setVehicleType(null);
             }
 
-            if(vehiclePartEntity.getVehiclePartCategory() != null) {
-                VehiclePartCategoryResponse vehiclePartCategoryResponse = vehiclePartCategoryMapper.toResponse(vehiclePartEntity.getVehiclePartCategory());
+            if(vehiclePartEntity.getVehiclePartCategories() != null) {
+                VehiclePartCategoryResponse vehiclePartCategoryResponse = vehiclePartCategoryMapper.toResponse(vehiclePartEntity.getVehiclePartCategories());
                 VehiclePartCategoryResponse parsedVehiclePartCategoryResponse = new VehiclePartCategoryResponse();
 
                 parsedVehiclePartCategoryResponse.setVehiclePartCategoryId(vehiclePartCategoryResponse.getVehiclePartCategoryId());
@@ -160,7 +160,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             log.warn(VehiclePartCategoryConstants.LOG_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND + categoryId);
             throw new ResourceNotFoundException(VehiclePartCategoryConstants.MESSAGE_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND);
         } else {
-            vehiclePart.setVehiclePartCategory(vehiclePartCategory);
+            vehiclePart.setVehiclePartCategories(vehiclePartCategory);
         }
 
         vehiclePart.setSearch(vehiclePart.getVehiclePartName());
@@ -202,7 +202,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             log.warn(VehiclePartCategoryConstants.LOG_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND + categoryId);
             throw new ResourceNotFoundException(VehiclePartCategoryConstants.MESSAGE_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND);
         } else {
-            vehiclePart.setVehiclePartCategory(vehiclePartCategory);
+            vehiclePart.setVehiclePartCategories(vehiclePartCategory);
         }
 
         vehiclePart.setSearch(updationVehiclePartRequest.getVehiclePartName());

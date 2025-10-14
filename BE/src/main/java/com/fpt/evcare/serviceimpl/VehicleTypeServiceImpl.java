@@ -5,7 +5,6 @@ import com.fpt.evcare.dto.request.vehicle_type.CreationVehicleTypeRequest;
 import com.fpt.evcare.dto.request.vehicle_type.UpdationVehicleTypeRequest;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.VehicleTypeResponse;
-import com.fpt.evcare.entity.VehiclePartEntity;
 import com.fpt.evcare.entity.VehicleTypeEntity;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.VehicleTypeValidationException;

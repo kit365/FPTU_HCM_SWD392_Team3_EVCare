@@ -59,4 +59,16 @@ public class UserEntity extends BaseEntity {
 
     @Column(name = "last_login")
     String lastLogin;
+
+    @Column(name = "provider")
+    String provider;
+
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+    List<AppointmentEntity> appointmentsCustomer;
+
+    @OneToMany(mappedBy = "technician", fetch = FetchType.LAZY)
+    List<AppointmentEntity> appointmentsTechnician;
+
+    @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
+    List<AppointmentEntity> appointmentsAssignee;
 }

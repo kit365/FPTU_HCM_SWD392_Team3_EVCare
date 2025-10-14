@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -16,18 +17,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdationVehicleRequest extends BaseEntity {
+public class UpdationVehicleRequest implements Serializable {
 
-    @NotBlank(message = "Người dùng không được để trống")
     UUID userId;
 
-    @NotBlank(message = "Loại xe không được để trống")
     UUID vehicleTypeId;
 
-    @NotBlank(message = "Biển số không được để trống")
     String plateNumber;
 
-    @NotBlank(message = "Khung xe không được để trống")
     @Size(min = 1, message = "Khung xe phải có ít nhất 1 kí tự")
     String vin;
 
@@ -35,7 +32,7 @@ public class UpdationVehicleRequest extends BaseEntity {
 
     LocalDateTime lastMaintenanceDate;
 
-    LocalDateTime lastMaintenanceKm;
+    Float lastMaintenanceKm;
 
     String notes;
 }
