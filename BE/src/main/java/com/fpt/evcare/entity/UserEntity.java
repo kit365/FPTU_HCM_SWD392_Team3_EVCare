@@ -71,4 +71,7 @@ public class UserEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
     List<AppointmentEntity> appointmentsAssignee;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    List<EmployeeProfileEntity> employeeProfiles;
 }
