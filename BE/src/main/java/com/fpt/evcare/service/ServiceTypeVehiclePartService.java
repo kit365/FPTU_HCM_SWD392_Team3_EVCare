@@ -8,10 +8,14 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ServiceTypeVehiclePartService {
-    List<ServiceTypeVehiclePartResponse> getVehiclePartByServiceTypeId(UUID id);
+    ServiceTypeVehiclePartResponse getServiceTypeVehiclePartById(UUID id);
+    List<ServiceTypeVehiclePartResponse> getVehiclePartResponseByServiceTypeId(UUID id);
     boolean createServiceTypeVehiclePart(CreationServiceTypeVehiclePartRequest creationServiceTypeVehiclePartRequest);
     boolean updateServiceTypeVehiclePart(UUID id, UpdationServiceTypeVehiclePartRequest updationServiceTypeVehiclePartRequest);
     boolean deleteServiceTypeVehiclePart(UUID id);
-    void deleteServiceTypeVehiclePartByServiceTypeId(UUID id);
+    boolean restoreServiceTypeVehiclePart(UUID id);
 
+    // For related entity
+    void checkDependOnAppointmentByServiceTypeId(UUID serviceTypeId);
+    void checkDependOnAppointmentByVehiclePartId(UUID vehiclePartId);
 }

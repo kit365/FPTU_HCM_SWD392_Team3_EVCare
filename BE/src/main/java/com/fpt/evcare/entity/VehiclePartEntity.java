@@ -14,6 +14,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "vehicle_part_inventories")
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -43,6 +44,9 @@ public class VehiclePartEntity extends BaseEntity {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     VehiclePartStatusEnum status = VehiclePartStatusEnum.AVAILABLE;
+
+    @Column(name = "average_lifespan")
+    Integer averageLifespan;
 
     @Column(name = "note", length = 500)
     String note;

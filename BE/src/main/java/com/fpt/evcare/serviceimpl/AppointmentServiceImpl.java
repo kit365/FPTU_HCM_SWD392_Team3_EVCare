@@ -79,8 +79,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointmentResponse.setCustomer(assigneeResponse);
         }
 
-        List<ServiceTypeResponse> serviceTypeResponses = getServiceTypeResponses(appointmentEntity.getServiceTypes());
-        appointmentResponse.setServiceTypes(serviceTypeResponses);
+//        List<ServiceTypeVehiclePartResponse> serviceTypeVehiclePartResponses = getServiceTypeResponses(appointmentEntity.getServiceTypes());
+//        appointmentResponse.setServiceTypes(serviceTypeResponses);
 
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT + id);
         return appointmentResponse;
@@ -123,8 +123,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             UserEntity assignee = appointmentEntity.getAssignee();
             appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
 
-            List<ServiceTypeResponse> serviceTypeResponses = getServiceTypeResponses(appointmentEntity.getServiceTypes());
-            appointmentResponse.setServiceTypes(serviceTypeResponses);
+//            List<ServiceTypeResponse> serviceTypeResponses = getServiceTypeResponses(appointmentEntity.getServiceTypes());
+//            appointmentResponse.setServiceTypes(serviceTypeResponses);
 
             return appointmentResponse;
         }).getContent();
@@ -166,8 +166,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             UserEntity assignee = appointmentEntity.getAssignee();
             appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
 
-            List<ServiceTypeResponse> serviceTypeResponses = getServiceTypeResponses(appointmentEntity.getServiceTypes());
-            appointmentResponse.setServiceTypes(serviceTypeResponses);
+//            List<ServiceTypeResponse> serviceTypeResponses = getServiceTypeResponses(appointmentEntity.getServiceTypes());
+//            appointmentResponse.setServiceTypes(serviceTypeResponses);
 
             return appointmentResponse;
         }
@@ -186,77 +186,77 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public boolean addAppointment(CreationAppointmentRequest creationAppointmentRequest) {
-        if(creationAppointmentRequest.getServiceTypeIds().isEmpty()) {
-            log.warn(AppointmentConstants.LOG_ERR_SERVICE_TYPE_IS_REQUIRED);
-            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_SERVICE_TYPE_IS_REQUIRED);
-        }
-
-        AppointmentEntity appointmentEntity = appointmentMapper.toEntity(creationAppointmentRequest);
-
-        UserEntity customer = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getCustomerId());
-        if(customer != null) {
-            checkRoleUser(customer, RoleEnum.CUSTOMER);
-            appointmentEntity.setCustomer(customer);
-        }
-
-        UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getTechnicianId());
-        if(technician != null) {
-            checkRoleUser(technician, RoleEnum.TECHNICIAN);
-            appointmentEntity.setTechnician(technician);
-        }
-
-        UserEntity assignee = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getAssigneeId());
-        if(assignee != null) {
-            checkRoleUser(assignee, RoleEnum.STAFF);
-            appointmentEntity.setAssignee(assignee);
-        }
-
-        isValidServiceMode(creationAppointmentRequest.getServiceMode());
-        appointmentEntity.setServiceMode(creationAppointmentRequest.getServiceMode());
-
-        isValidAppointmentStatus(creationAppointmentRequest.getStatus());
-        appointmentEntity.setStatus(creationAppointmentRequest.getStatus());
-
-        List<ServiceTypeEntity> serviceTypeEntityList = creationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
-            ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
-            if(serviceType == null) {
-                log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND + serviceTypeId);
-                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
-            } else if(serviceType.getParent() == null){
-                log.warn(ServiceTypeConstants.LOG_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE + serviceTypeId);
-                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE);
-            }
-            return serviceType;
-        }).toList();
-        appointmentEntity.setServiceTypes(serviceTypeEntityList);
-
-        String customerSearch = customer != null ? customer.getSearch() : "";
-        String technicianSearch = technician != null ? technician.getSearch() : "";
-        String assigneeSearch = assignee != null ? assignee.getSearch() : "";
-
-        String search = concatenateSearchField(
-                creationAppointmentRequest.getCustomerFullName(),
-                creationAppointmentRequest.getCustomerPhoneNumber(),
-                creationAppointmentRequest.getCustomerEmail(),
-                customerSearch,
-                technicianSearch,
-                assigneeSearch
-        );
-
-        appointmentEntity.setSearch(search);
-
-        log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT);
-        appointmentRepository.save(appointmentEntity);
+//        if(creationAppointmentRequest.getServiceTypeIds().isEmpty()) {
+//            log.warn(AppointmentConstants.LOG_ERR_SERVICE_TYPE_IS_REQUIRED);
+//            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_SERVICE_TYPE_IS_REQUIRED);
+//        }
+//
+//        AppointmentEntity appointmentEntity = appointmentMapper.toEntity(creationAppointmentRequest);
+//
+//        UserEntity customer = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getCustomerId());
+//        if(customer != null) {
+//            checkRoleUser(customer, RoleEnum.CUSTOMER);
+//            appointmentEntity.setCustomer(customer);
+//        }
+//
+//        UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getTechnicianId());
+//        if(technician != null) {
+//            checkRoleUser(technician, RoleEnum.TECHNICIAN);
+//            appointmentEntity.setTechnician(technician);
+//        }
+//
+//        UserEntity assignee = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getAssigneeId());
+//        if(assignee != null) {
+//            checkRoleUser(assignee, RoleEnum.STAFF);
+//            appointmentEntity.setAssignee(assignee);
+//        }
+//
+//        isValidServiceMode(creationAppointmentRequest.getServiceMode());
+//        appointmentEntity.setServiceMode(creationAppointmentRequest.getServiceMode());
+//
+//        isValidAppointmentStatus(creationAppointmentRequest.getStatus());
+//        appointmentEntity.setStatus(creationAppointmentRequest.getStatus());
+//
+//        List<ServiceTypeEntity> serviceTypeEntityList = creationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
+//            ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
+//            if(serviceType == null) {
+//                log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND + serviceTypeId);
+//                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
+//            } else if(serviceType.getParent() == null){
+//                log.warn(ServiceTypeConstants.LOG_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE + serviceTypeId);
+//                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE);
+//            }
+//            return serviceType;
+//        }).toList();
+//        appointmentEntity.setServiceTypes(serviceTypeEntityList);
+//
+//        String customerSearch = customer != null ? customer.getSearch() : "";
+//        String technicianSearch = technician != null ? technician.getSearch() : "";
+//        String assigneeSearch = assignee != null ? assignee.getSearch() : "";
+//
+//        String search = concatenateSearchField(
+//                creationAppointmentRequest.getCustomerFullName(),
+//                creationAppointmentRequest.getCustomerPhoneNumber(),
+//                creationAppointmentRequest.getCustomerEmail(),
+//                customerSearch,
+//                technicianSearch,
+//                assigneeSearch
+//        );
+//
+//        appointmentEntity.setSearch(search);
+//
+//        log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT);
+//        appointmentRepository.save(appointmentEntity);
         return true;
     }
 
     @Override
     @Transactional
     public boolean updateAppointment(UUID id, UpdationAppointmentRequest updationAppointmentRequest) {
-        if(updationAppointmentRequest.getServiceTypeIds().isEmpty()) {
-            log.warn(AppointmentConstants.LOG_ERR_SERVICE_TYPE_IS_REQUIRED);
-            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_SERVICE_TYPE_IS_REQUIRED);
-        }
+//        if(updationAppointmentRequest.getServiceTypeIds().isEmpty()) {
+//            log.warn(AppointmentConstants.LOG_ERR_SERVICE_TYPE_IS_REQUIRED);
+//            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_SERVICE_TYPE_IS_REQUIRED);
+//        }
 
         AppointmentEntity appointmentEntity = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(id);
         if(appointmentEntity == null) {
@@ -289,18 +289,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         isValidAppointmentStatus(updationAppointmentRequest.getStatus());
         appointmentEntity.setStatus(updationAppointmentRequest.getStatus());
 
-        List<ServiceTypeEntity> serviceTypeEntityList = updationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
-            ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
-            if(serviceType == null) {
-                log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND + serviceTypeId);
-                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
-            } else if(serviceType.getParent() == null){
-                log.warn(ServiceTypeConstants.LOG_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE + serviceTypeId);
-                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE);
-            }
-            return serviceType;
-        }).toList();
-        appointmentEntity.setServiceTypes(serviceTypeEntityList);
+//        List<ServiceTypeEntity> serviceTypeEntityList = updationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
+//            ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
+//            if(serviceType == null) {
+//                log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND + serviceTypeId);
+//                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
+//            } else if(serviceType.getParent() == null){
+//                log.warn(ServiceTypeConstants.LOG_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE + serviceTypeId);
+//                throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CHOOSING_NOT_SPECIFIC_SERVICE_TYPE);
+//            }
+//            return serviceType;
+//        }).toList();
+//        appointmentEntity.setServiceTypes(serviceTypeEntityList);
 
         String customerSearch = customer != null ? customer.getSearch() : "";
         String technicianSearch = technician != null ? technician.getSearch() : "";
@@ -404,53 +404,53 @@ public class AppointmentServiceImpl implements AppointmentService {
         return userResponse;
     }
 
-    private List<ServiceTypeResponse> getServiceTypeResponses(List<ServiceTypeEntity> serviceTypeEntityList){
-        Set<ServiceTypeEntity> allServiceTypes = new HashSet<>(serviceTypeEntityList);
-
-        // Thêm cha của mỗi service nếu có
-        for (ServiceTypeEntity st : serviceTypeEntityList) {
-            ServiceTypeEntity parent = st.getParent();
-            while (parent != null) {
-                allServiceTypes.add(parent);
-                parent = parent.getParent();
-            }
-        }
-
-        // map sang response
-        Map<UUID, ServiceTypeResponse> serviceTypeMap = new HashMap<>();
-        allServiceTypes.forEach(serviceType -> {
-            ServiceTypeResponse response = new ServiceTypeResponse();
-            response.setServiceTypeId(serviceType.getServiceTypeId());
-            response.setServiceName(serviceType.getServiceName());
-
-            ServiceTypeEntity parent = serviceType.getParent();
-            if(parent != null){
-                response.setParentId(parent.getServiceTypeId());
-            }
-
-            // Response thêm phụ tùng được sử dụng trong dịch vụ đó
-            List<ServiceTypeVehiclePartResponse> vehiclePartResponses = serviceTypeVehiclePartService.getVehiclePartByServiceTypeId(serviceType.getServiceTypeId());
-            response.setServiceTypeVehiclePartResponses(vehiclePartResponses.isEmpty() ? null : vehiclePartResponses);
-
-            serviceTypeMap.put(response.getServiceTypeId(), response);
-        });
-
-        // build cây cha - con
-        List<ServiceTypeResponse> serviceTypeNodes = new ArrayList<>();
-        serviceTypeMap.forEach((uuid, serviceTypeResponse) -> {
-            if (serviceTypeResponse.getParentId() == null) {
-                serviceTypeNodes.add(serviceTypeResponse);
-            } else {
-                ServiceTypeResponse parent = serviceTypeMap.get(serviceTypeResponse.getParentId());
-                if (parent != null) {
-                    if (parent.getChildren() == null) parent.setChildren(new ArrayList<>());
-                    parent.getChildren().add(serviceTypeResponse);
-                }
-            }
-        });
-
-        return serviceTypeNodes;
-    }
+//    private List<ServiceTypeResponse> getServiceTypeResponses(List<ServiceTypeEntity> serviceTypeEntityList){
+//        Set<ServiceTypeEntity> allServiceTypes = new HashSet<>(serviceTypeEntityList);
+//
+//        // Thêm cha của mỗi service nếu có
+//        for (ServiceTypeEntity st : serviceTypeEntityList) {
+//            ServiceTypeEntity parent = st.getParent();
+//            while (parent != null) {
+//                allServiceTypes.add(parent);
+//                parent = parent.getParent();
+//            }
+//        }
+//
+//        // map sang response
+//        Map<UUID, ServiceTypeResponse> serviceTypeMap = new HashMap<>();
+//        allServiceTypes.forEach(serviceType -> {
+//            ServiceTypeResponse response = new ServiceTypeResponse();
+//            response.setServiceTypeId(serviceType.getServiceTypeId());
+//            response.setServiceName(serviceType.getServiceName());
+//
+//            ServiceTypeEntity parent = serviceType.getParent();
+//            if(parent != null){
+//                response.setParentId(parent.getServiceTypeId());
+//            }
+//
+//            // Response thêm phụ tùng được sử dụng trong dịch vụ đó
+//            List<ServiceTypeVehiclePartResponse> vehiclePartResponses = serviceTypeVehiclePartService.getVehiclePartByServiceTypeId(serviceType.getServiceTypeId());
+//            response.setServiceTypeVehiclePartResponses(vehiclePartResponses.isEmpty() ? null : vehiclePartResponses);
+//
+//            serviceTypeMap.put(response.getServiceTypeId(), response);
+//        });
+//
+//        // build cây cha - con
+//        List<ServiceTypeResponse> serviceTypeNodes = new ArrayList<>();
+//        serviceTypeMap.forEach((uuid, serviceTypeResponse) -> {
+//            if (serviceTypeResponse.getParentId() == null) {
+//                serviceTypeNodes.add(serviceTypeResponse);
+//            } else {
+//                ServiceTypeResponse parent = serviceTypeMap.get(serviceTypeResponse.getParentId());
+//                if (parent != null) {
+//                    if (parent.getChildren() == null) parent.setChildren(new ArrayList<>());
+//                    parent.getChildren().add(serviceTypeResponse);
+//                }
+//            }
+//        });
+//
+//        return serviceTypeNodes;
+//    }
 
     private boolean isExistedUserRole(UserEntity userEntity, RoleEnum role) {
         if (userEntity == null || userEntity.getRoles() == null) {

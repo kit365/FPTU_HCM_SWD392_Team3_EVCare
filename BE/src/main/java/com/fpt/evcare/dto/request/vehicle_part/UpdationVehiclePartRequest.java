@@ -36,10 +36,13 @@ public class UpdationVehiclePartRequest implements Serializable {
 
     VehiclePartStatusEnum status;
 
-    String note;
+    @NotNull(message = "Tuổi thọ trung bình không được để trống")
+    @Min(value = 0, message = "Tuổi thọ trung bình không được nhỏ hơn 0")
+    @Max(value = 100, message = "Tuổi thọ trung bình không được vượt quá 100 năm")
+    @PositiveOrZero(message = "Tuổi thọ trung bình phải là số không âm")
+    Integer averageLifespan;
 
-    @NotNull(message = "Loại xe không được để trống")
-    UUID vehicleTypeId;
+    String note;
 
     @NotNull(message = "Danh mục phụ tùng không được để trống")
     UUID vehiclePartCategoryId;

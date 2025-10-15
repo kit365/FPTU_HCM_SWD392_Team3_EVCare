@@ -6,7 +6,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
-import java.util.ArrayList;
 import java.util.UUID;
 
 @Entity
@@ -28,23 +27,21 @@ public class ServiceTypeEntity extends BaseEntity {
     @Column(name = "parent_id")
     UUID parentId; // Thêm để set từ DTO
 
-    @Column(name = "service_name", nullable = false, unique = true)
+    @Column(name = "service_name", nullable = false)
     String serviceName;
 
     String description;
 
     String search;
 
-    @Column(name = "is_active")
-    boolean isActive = true;
-
     // Mối quan hệ tự tham chiếu (cha-con)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id", insertable = false, updatable = false)  // Không chèn/cập nhật qua đây
-    private ServiceTypeEntity parent;
+    @JoinColumn(name = "parent", insertable=false, updatable=false)
+    ServiceTypeEntity parent;
 
-    @ManyToMany(mappedBy = "serviceTypes")
-    List<AppointmentEntity> appointments = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_part_id")
+    VehicleTypeEntity vehicleTypeEntity;
 
     @OneToMany(mappedBy = "serviceType", fetch = FetchType.LAZY)
     List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartList;

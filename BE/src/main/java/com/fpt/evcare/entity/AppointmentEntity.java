@@ -74,9 +74,9 @@ public class AppointmentEntity extends BaseEntity {
 
     @ManyToMany
     @JoinTable(
-            name = "appointment_service_types",
+            name = "appointment_service_type_vehicle_parts",
             joinColumns = @JoinColumn(name = "appointment_id"),
-            inverseJoinColumns = @JoinColumn(name = "service_type_id")
+            inverseJoinColumns = @JoinColumn(name = "Service_types_vehicle_parts_id")
     )
-    List<ServiceTypeEntity> serviceTypes;
+    List<ServiceTypeVehiclePartEntity> vehiclePartEntities;
 }

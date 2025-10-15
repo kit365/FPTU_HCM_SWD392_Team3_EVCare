@@ -14,6 +14,7 @@ import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.RoleRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.UserService;
+import com.fpt.evcare.utils.UtilFunction;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -167,11 +168,10 @@ public class UserServiceImpl implements UserService {
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(creationUserRequest.getPassword()));
 
-        String search = concatenateSearchField(
-                creationUserRequest.getFullName(),
+        String search = UtilFunction.concatenateSearchField(creationUserRequest.getFullName(),
                 creationUserRequest.getNumberPhone(),
                 creationUserRequest.getEmail(),
-                creationUserRequest.getUsername()
+                user.getUsername()
         );
         user.setSearch(search);
 
@@ -214,9 +214,7 @@ public class UserServiceImpl implements UserService {
             user.setEmail(updationUserRequest.getEmail());
         }
 
-
-        String search = concatenateSearchField(
-                updationUserRequest.getFullName(),
+        String search = UtilFunction.concatenateSearchField(updationUserRequest.getFullName(),
                 updationUserRequest.getNumberPhone(),
                 updationUserRequest.getEmail(),
                 user.getUsername()
@@ -260,16 +258,6 @@ public class UserServiceImpl implements UserService {
         log.info(UserConstants.LOG_SUCCESS_RESTORING_USER, user.getUsername());
         userRepository.save(user);
         return true;
-    }
-
-    //Ghép các chuỗi lại phục vụ cho việc tìm kiếm dễ hơn (thay vì phải chia các câu truy vấn khi search như WHERE user.email = ..., user.fullName = ...)
-    private String concatenateSearchField(String fullName, String numberPhone, String email, String username) {
-        return String.join("-",
-                fullName != null ? fullName : "",
-                numberPhone != null ? numberPhone : "",
-                email != null ? email : "",
-                username != null ? username : ""
-        );
     }
 
     private void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {
