@@ -6,6 +6,7 @@ import com.fpt.evcare.dto.request.service_type_vehicle_part.CreationServiceTypeV
 import com.fpt.evcare.dto.request.service_type_vehicle_part.UpdationServiceTypeVehiclePartRequest;
 import com.fpt.evcare.dto.response.ServiceTypeVehiclePartResponse;
 import com.fpt.evcare.service.ServiceTypeVehiclePartService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,6 +24,7 @@ import java.util.UUID;
 public class ServiceTypeVehiclePartController {
     ServiceTypeVehiclePartService serviceTypeVehiclePartService;
 
+    @Operation(summary = "Lấy thông tin dịch vụ - phụ tùng theo ID")
     @GetMapping(ServiceTypeVehiclePartConstants.STVP)
     public ResponseEntity<ApiResponse<ServiceTypeVehiclePartResponse>> getServiceTypeVehiclePartById(@PathVariable(name = "id") UUID id) {
         ServiceTypeVehiclePartResponse response = serviceTypeVehiclePartService.getServiceTypeVehiclePartById(id);
@@ -35,6 +37,7 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
+    @Operation(summary = "Tạo thông tin dịch vụ - phụ tùng theo dịch vụ ID")
     @PostMapping(ServiceTypeVehiclePartConstants.STVP_CREATION)
     public ResponseEntity<ApiResponse<String>> createServiceTypeVehiclePart(
             @Valid @RequestBody CreationServiceTypeVehiclePartRequest request) {
@@ -48,6 +51,7 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
+    @Operation(summary = "Cập nhật dịch vụ - phụ tùng")
     @PatchMapping(ServiceTypeVehiclePartConstants.STVP_UPDATE)
     public ResponseEntity<ApiResponse<String>> updateServiceTypeVehiclePart(
             @PathVariable UUID id,
@@ -62,6 +66,7 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
+    @Operation(summary = "Xóa thông tin dịch vụ - phụ tùng theo ID")
     @DeleteMapping(ServiceTypeVehiclePartConstants.STVP_DELETE)
     public ResponseEntity<ApiResponse<String>> deleteServiceTypeVehiclePart(@PathVariable UUID id) {
         boolean result = serviceTypeVehiclePartService.deleteServiceTypeVehiclePart(id);
@@ -73,6 +78,7 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
+    @Operation(summary = "Khôi phục thông tin dịch vụ - phụ tùng theo ID")
     @PatchMapping(ServiceTypeVehiclePartConstants.STVP_RESTORE)
     public ResponseEntity<ApiResponse<String>> restoreServiceTypeVehiclePart(@PathVariable UUID id) {
 

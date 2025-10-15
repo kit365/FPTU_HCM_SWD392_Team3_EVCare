@@ -39,7 +39,6 @@ public class ServiceTypeVehiclePartServiceImpl implements ServiceTypeVehiclePart
     ServiceTypeVehiclePartMapper serviceTypeVehiclePartMapper;
     ServiceTypeRepository serviceTypeRepository;
     VehiclePartRepository vehiclePartRepository;
-    AppointmentRepository appointmentRepository;
 
     @Override
     public ServiceTypeVehiclePartResponse getServiceTypeVehiclePartById(UUID id){
@@ -79,21 +78,24 @@ public class ServiceTypeVehiclePartServiceImpl implements ServiceTypeVehiclePart
             List<ServiceTypeVehiclePartResponse> responseList = serviceTypeVehiclePartEntityList.stream().map(serviceTypeVehiclePartEntity -> {
 
                 ServiceTypeVehiclePartResponse serviceTypeVehiclePartResponse = new ServiceTypeVehiclePartResponse();
-            serviceTypeVehiclePartResponse.setServiceTypeVehiclePartId(serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
-            serviceTypeVehiclePartResponse.setRequiredQuantity(serviceTypeVehiclePartEntity.getRequiredQuantity());
-            serviceTypeVehiclePartResponse.setEstimatedTimeDefault(serviceTypeVehiclePartEntity.getEstimatedTimeDefault());
+                serviceTypeVehiclePartResponse.setServiceTypeVehiclePartId(serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
+                serviceTypeVehiclePartResponse.setRequiredQuantity(serviceTypeVehiclePartEntity.getRequiredQuantity());
+                serviceTypeVehiclePartResponse.setEstimatedTimeDefault(serviceTypeVehiclePartEntity.getEstimatedTimeDefault());
 
-            VehiclePartEntity vehiclePartEntity = serviceTypeVehiclePartEntity.getVehiclePart();
-            if(vehiclePartEntity != null){
-                VehiclePartResponse vehiclePartResponse = new VehiclePartResponse();
-                vehiclePartResponse.setVehiclePartId(vehiclePartEntity.getVehiclePartId());
-                vehiclePartResponse.setVehiclePartName(vehiclePartEntity.getVehiclePartName());
-                vehiclePartResponse.setCurrentQuantity(vehiclePartEntity.getCurrentQuantity());
-                vehiclePartResponse.setMinStock(vehiclePartEntity.getMinStock());
-                vehiclePartResponse.setUnitPrice(vehiclePartEntity.getUnitPrice());
+                if(serviceTypeVehiclePartEntity.getVehiclePart() != null){
+                    UUID vehiclePartId = serviceTypeVehiclePartEntity.getVehiclePart().getVehiclePartId();
+                    VehiclePartEntity vehiclePartEntity = vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(vehiclePartId);
+                    if(vehiclePartEntity != null){
+                        VehiclePartResponse vehiclePartResponse = new VehiclePartResponse();
+                        vehiclePartResponse.setVehiclePartId(vehiclePartEntity.getVehiclePartId());
+                        vehiclePartResponse.setVehiclePartName(vehiclePartEntity.getVehiclePartName());
+                        vehiclePartResponse.setCurrentQuantity(vehiclePartEntity.getCurrentQuantity());
+                        vehiclePartResponse.setMinStock(vehiclePartEntity.getMinStock());
+                        vehiclePartResponse.setUnitPrice(vehiclePartEntity.getUnitPrice());
 
-                serviceTypeVehiclePartResponse.setVehiclePart(vehiclePartResponse);
-            }
+                        serviceTypeVehiclePartResponse.setVehiclePart(vehiclePartResponse);
+                    }
+                }
 
             return serviceTypeVehiclePartResponse;
 
@@ -205,17 +207,18 @@ public class ServiceTypeVehiclePartServiceImpl implements ServiceTypeVehiclePart
             log.warn(ServiceTypeVehiclePartConstants.LOG_ERR_SERVICE_TYPE_VEHICLE_PART_NOT_FOUND + id);
             throw new ResourceNotFoundException(ServiceTypeVehiclePartConstants.MESSAGE_ERR_SERVICE_TYPE_VEHICLE_PART_NOT_FOUND);
         }
-        //Kiểm tra có cuộc hẹn nào đang sử dụng dịch vụ - phụ tùng đó không
-        if(!serviceTypeVehiclePartEntity.getAppointments().isEmpty()){
-            existActiveAppointment(id);
 
-            // Nếu có, chỉnh lại trạng thái toàn bộ cuộc hẹn sử dụng dịch vụ - phụ tùng này
-            List<AppointmentEntity> appointmentEntities = appointmentRepository.getUnactiveAppointmentListInServiceTypeVehiclePartId(id);
-            if(!appointmentEntities.isEmpty()){
-                appointmentEntities.forEach(appointmentEntity -> appointmentEntity.setStatus(AppointmentStatusEnum.CANCELLED));
-            }
+        // Kiểm tra bảng trung gian có dịch vụ không
+        ServiceTypeEntity serviceTypeEntity = serviceTypeVehiclePartEntity.getServiceType();
+        if(serviceTypeEntity == null){
+            log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND);
+            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
         }
-
+        //Kiểm tra dịch vụ đó có được cuộc hẹn sử dụng không
+        if(serviceTypeVehiclePartRepository.existsActiveAppointmentsInServiceTypeVehiclePartByServiceTypeId(serviceTypeEntity.getServiceTypeId())){
+           log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_IS_USED_ON_APPOINTMENT + serviceTypeEntity.getServiceTypeId());
+           throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_IS_USED_ON_APPOINTMENT);
+        }
         log.info(ServiceTypeVehiclePartConstants.LOG_INFO_DELETING_SERVICE_TYPE_VEHICLE_PART + id);
         serviceTypeVehiclePartEntity.setIsDeleted(true);
         serviceTypeVehiclePartRepository.save(serviceTypeVehiclePartEntity);
@@ -242,29 +245,4 @@ public class ServiceTypeVehiclePartServiceImpl implements ServiceTypeVehiclePart
             throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_QUANTITY_NOT_ENOUGH);
         }
     }
-
-    private void existActiveAppointment(UUID serviceTypeVehiclePartId) {
-        boolean existedActiveAppointment = serviceTypeVehiclePartRepository.existsActiveAppointmentsInServiceTypeVehiclePartId(serviceTypeVehiclePartId);
-        if(existedActiveAppointment){
-            log.warn(ServiceTypeVehiclePartConstants.LOG_ERR_APPOINTMENT_IS_USING_THIS_STVP);
-            throw new EntityValidationException(ServiceTypeVehiclePartConstants.MESSAGE_ERR_APPOINTMENT_IS_USING_THIS_STVP);
-        }
-    }
-
-    public void checkDependOnAppointmentByServiceTypeId(UUID serviceTypeId){
-        boolean existedActiveAppointmentByServiceTypeId = serviceTypeVehiclePartRepository.existsActiveAppointmentsInServiceTypeVehiclePartByServiceTypeId(serviceTypeId);
-        if(existedActiveAppointmentByServiceTypeId){
-            log.warn(ServiceTypeConstants.LOG_ERR_CAN_NOT_DELETE_SERVICE_TYPE + serviceTypeId);
-            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_CAN_NOT_DELETE_SERVICE_TYPE);
-        }
-    }
-
-    public void checkDependOnAppointmentByVehiclePartId(UUID vehiclePartId){
-        boolean existedActiveAppointmentByVehiclePartId = serviceTypeVehiclePartRepository.existsActiveAppointmentsInServiceTypeVehiclePartByVehiclePartId(vehiclePartId);
-        if(existedActiveAppointmentByVehiclePartId){
-            log.warn(VehiclePartConstants.LOG_ERR_CAN_NOT_DELETE_VEHICLE_PART + vehiclePartId);
-            throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_CAN_NOT_DELETE_VEHICLE_PART);
-        }
-    }
-
 }

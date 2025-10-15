@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +37,7 @@ public class ServiceTypeEntity extends BaseEntity {
 
     // Mối quan hệ tự tham chiếu (cha-con)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent", insertable=false, updatable=false)
+    @JoinColumn(insertable=false, updatable=false)
     ServiceTypeEntity parent;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,4 +46,7 @@ public class ServiceTypeEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "serviceType", fetch = FetchType.LAZY)
     List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartList;
+
+    @ManyToMany(mappedBy = "serviceTypeEntities")
+    List<AppointmentEntity> appointmentEntities = new ArrayList<>();
 }

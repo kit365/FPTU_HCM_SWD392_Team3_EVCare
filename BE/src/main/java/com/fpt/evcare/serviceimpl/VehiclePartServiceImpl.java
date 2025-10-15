@@ -8,15 +8,15 @@ import com.fpt.evcare.dto.response.VehiclePartCategoryResponse;
 import com.fpt.evcare.dto.response.VehiclePartResponse;
 import com.fpt.evcare.dto.response.VehicleTypeResponse;
 import com.fpt.evcare.entity.*;
+import com.fpt.evcare.enums.VehiclePartStatusEnum;
+import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.VehiclePartValidationException;
 import com.fpt.evcare.mapper.VehiclePartCategoryMapper;
 import com.fpt.evcare.mapper.VehiclePartMapper;
 import com.fpt.evcare.mapper.VehicleTypeMapper;
-import com.fpt.evcare.repository.AppointmentRepository;
-import com.fpt.evcare.repository.VehiclePartCategoryRepository;
-import com.fpt.evcare.repository.VehiclePartRepository;
-import com.fpt.evcare.repository.VehicleTypeRepository;
+import com.fpt.evcare.repository.*;
+import com.fpt.evcare.service.AppointmentService;
 import com.fpt.evcare.service.ServiceTypeVehiclePartService;
 import com.fpt.evcare.service.VehiclePartService;
 import com.fpt.evcare.utils.UtilFunction;
@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -49,6 +50,8 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     VehiclePartCategoryRepository vehiclePartCategoryRepository;
     VehiclePartCategoryMapper vehiclePartCategoryMapper;
     ServiceTypeVehiclePartService serviceTypeVehiclePartService;
+    AppointmentService appointmentService;
+    ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
 
     @Override
     public VehiclePartResponse getVehiclePart(UUID vehiclePartId) {
@@ -89,6 +92,13 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     }
 
     @Override
+    public List<String> getAllVehiclePartStatuses() {
+        return Arrays.stream(VehiclePartStatusEnum.values())
+                .map(Enum::name) // Lấy tên của từng enum
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<VehiclePartResponse> getAllVehiclePartsByVehicleTypeId(UUID vehicleTypeId){
         VehicleTypeEntity vehicleTypeEntity = vehicleTypeRepository.findByVehicleTypeIdAndIsDeletedFalse(vehicleTypeId);
         if (vehicleTypeEntity == null) {
@@ -96,7 +106,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
         }
 
-        List<VehiclePartEntity> vehiclePartEntityList = vehiclePartRepository.findAllByVehicleTypeVehicleTypeIdAndIsDeletedFalse(vehicleTypeId);
+        List<VehiclePartEntity> vehiclePartEntityList = vehiclePartRepository.findByVehicleTypeVehicleTypeIdAndIsDeletedFalse(vehicleTypeId);
 
         return vehiclePartEntityList.stream().map(vehiclePartEntity -> {
             VehiclePartResponse vehiclePartResponse = new VehiclePartResponse();
@@ -203,7 +213,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     @Transactional
 
     public boolean updateVehiclePart(UUID id, UpdationVehiclePartRequest updationVehiclePartRequest) {
-        serviceTypeVehiclePartService.checkDependOnAppointmentByVehiclePartId(id);
+        checkDependOnAppointmentByVehiclePartId(id);
 
         VehiclePartEntity vehiclePart= vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(id);
         if(vehiclePart == null) {
@@ -254,9 +264,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         }
 
         // Kiểm tra phụ thuộc trong appointment
-        serviceTypeVehiclePartService.checkDependOnAppointmentByVehiclePartId(id);
-
-        deleteVehiclePartsOfVehiclePart(vehiclePartEntity);
+        checkDependOnAppointmentByVehiclePartId(id);
 
         vehiclePartEntity.setIsDeleted(true);
 
@@ -280,20 +288,18 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         return true;
     }
 
-    // Xóa các bản ghi trung gian có liên kết với phụ tùng này
-    private void deleteVehiclePartsOfVehiclePart(VehiclePartEntity vehiclePartEntity) {
-        vehiclePartEntity.getServiceTypeVehiclePartList().forEach(serviceTypeVehiclePartEntity -> {
-            if(serviceTypeVehiclePartEntity != null) {
-                log.info(ServiceTypeVehiclePartConstants.LOG_INFO_DELETING_SERVICE_TYPE_VEHICLE_PART, serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
-                serviceTypeVehiclePartService.deleteServiceTypeVehiclePart(serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
-            }
-        });
-    }
-
     private void checkDuplicatedPartName(String name){
         if(vehiclePartRepository.existsByVehiclePartNameAndIsDeletedFalse(name)) {
             log.warn(VehiclePartConstants.LOG_ERR_DUPLICATED_VEHICLE_PART + name);
             throw new VehiclePartValidationException(VehiclePartConstants.MESSAGE_ERR_DUPLICATED_VEHICLE_PART);
+        }
+    }
+
+    public void checkDependOnAppointmentByVehiclePartId(UUID vehiclePartId){
+        boolean existedActiveAppointmentByVehiclePartId = serviceTypeVehiclePartRepository.existsActiveAppointmentsInServiceTypeVehiclePartByVehiclePartId(vehiclePartId);
+        if(existedActiveAppointmentByVehiclePartId){
+            log.warn(VehiclePartConstants.LOG_ERR_CAN_NOT_DELETE_VEHICLE_PART + vehiclePartId);
+            throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_CAN_NOT_DELETE_VEHICLE_PART);
         }
     }
 }

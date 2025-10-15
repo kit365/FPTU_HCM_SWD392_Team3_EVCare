@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public interface VehiclePartService {
     VehiclePartResponse getVehiclePart(UUID vehiclePartId);
+    List<String> getAllVehiclePartStatuses();
     List<VehiclePartResponse> getAllVehiclePartsByVehicleTypeId(UUID vehicleTypeId);
     PageResponse<VehiclePartResponse> searchVehiclePart(String search, Pageable pageable);
     boolean addVehiclePart(CreationVehiclePartRequest creationVehiclePartRequest);

@@ -45,6 +45,20 @@ public class VehiclePartController {
         );
     }
 
+    @Operation(summary = "Lấy ra giá trị enum của phụ tùng")
+    @GetMapping(VehiclePartConstants.VEHICLE_PART_ENUM_LIST)
+    public ResponseEntity<ApiResponse<List<String>>> getAllVehiclePartStatuses() {
+        List<String> enumString = vehiclePartService.getAllVehiclePartStatuses();
+
+        log.info(VehiclePartConstants.LOG_SUCCESS_SHOWING_VEHICLE_PART_ENUM);
+        return ResponseEntity.ok(ApiResponse.<List<String>>builder()
+                .success(true)
+                .message(VehiclePartConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_PART_ENUM)
+                .data(enumString)
+                .build()
+        );
+    }
+
     @Operation(summary = "Lấy phụ tùng theo loại xe tương ứng")
     @GetMapping(VehiclePartConstants.VEHICLE_PART_LIST_BY_VEHICLE_TYPE_ID)
     public ResponseEntity<ApiResponse<List<VehiclePartResponse>>> getAllVehiclePartsByVehicleTypeId(@PathVariable(name = "vehicle_type_id") UUID vehicleTypeId) {

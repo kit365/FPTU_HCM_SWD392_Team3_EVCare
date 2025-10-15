@@ -34,7 +34,7 @@ public class UpdationAppointmentRequest {
     @Email(message = "Email không hợp lệ")
     String customerEmail;
 
-    UUID technicianId;
+    List<UUID> technicianId;
 
     UUID assigneeId;
 
@@ -59,5 +59,5 @@ public class UpdationAppointmentRequest {
     String updatedBy;
 
     @NotNull(message = "Loại dịch vụ không được để trống")
-    List<UUID> serviceTypeVehiclePartIds;
+    List<UUID> serviceTypeIds;
 }

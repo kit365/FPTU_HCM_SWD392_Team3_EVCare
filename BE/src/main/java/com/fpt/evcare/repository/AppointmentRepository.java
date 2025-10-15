@@ -46,15 +46,18 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
     @Query(value = "SELECT EXISTS (" +
             "SELECT 1 " +
             "FROM appointments a " +
-            "JOIN appointment_service_type_vehicle_parts astvp ON a.id = astvp.appointment_id " +
-            "JOIN service_types_vehicle_parts stvp ON astvp.service_types_vehicle_parts_id = stvp.id " +
-            "WHERE stvp.id = :serviceTypeVehiclePartId " +
+            "JOIN appointment_service_types ast ON a.id = ast.appointment_id " +
+            "JOIN service_types_vehicle_parts stvp ON ast.service_types_vehicle_parts_id = stvp.id " +
+            "JOIN service_types st ON stvp.service_type_id = st.id " +
+            "WHERE st.id = :serviceTypeId " +
             "AND a.status IN ('PENDING', 'COMPLETED') " +
             "AND a.is_deleted = FALSE " +
             "AND a.is_active = TRUE " +
+            "AND st.is_deleted = FALSE " +
+            "AND st.is_active = TRUE " +
             "AND stvp.is_deleted = FALSE " +
             "AND stvp.is_active = TRUE) ",
             nativeQuery = true)
-    List<AppointmentEntity> getUnactiveAppointmentListInServiceTypeVehiclePartId(@Param("serviceTypeVehiclePartId") UUID uuid);
+    List<AppointmentEntity> getUnactiveAppointmentListInServiceTypeVehiclePartId(@Param("serviceTypeId") UUID serviceTypeId);
 
 }
