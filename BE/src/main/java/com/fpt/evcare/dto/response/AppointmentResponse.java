@@ -31,7 +31,7 @@ public class AppointmentResponse implements Serializable {
 
     String customerEmail;
 
-    UserResponse technician;
+    transient List<UserResponse> technicianResponses;
 
     UserResponse assignee;
 
@@ -47,9 +47,9 @@ public class AppointmentResponse implements Serializable {
 
     String notes;
 
-    transient List<ServiceTypeResponse> serviceTypes;
+    transient List<ServiceTypeResponse> serviceTypeResponses;
 
-    boolean isActive;
+    Boolean isActive;
 
     Boolean isDeleted;
 

@@ -32,7 +32,7 @@ public class CreationAppointmentRequest {
     @Email(message = "Email không hợp lệ")
     String customerEmail;
 
-    UUID technicianId;
+    List<UUID> technicianId;
 
     UUID assigneeId;
 
@@ -48,6 +48,6 @@ public class CreationAppointmentRequest {
 
     String notes;
 
-    @NotNull(message = "Vui lòng chọn loại dịch v cụ thể")
-    List<UUID> serviceTypeVehiclePartIds;
+    @NotNull(message = "Loại dịch vụ không được để trống")
+    List<UUID> serviceTypeIds;
 }

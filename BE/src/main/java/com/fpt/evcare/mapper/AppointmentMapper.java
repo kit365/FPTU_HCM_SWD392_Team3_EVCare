@@ -13,22 +13,22 @@ public interface AppointmentMapper {
 
     @Mapping(target = "appointmentId", ignore = true)
     @Mapping(target = "customer", ignore = true)
-    @Mapping(target = "technician", ignore = true)
+    @Mapping(target = "serviceTypeEntities", ignore = true)
     @Mapping(target = "assignee", ignore = true)
     @Mapping(target = "serviceMode", ignore = true)
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "quotePrice", ignore = true)
     AppointmentEntity toEntity(CreationAppointmentRequest creationAppointmentRequest);
 
-
     @Mapping(target = "customer", ignore = true)
-    @Mapping(target = "technician", ignore = true)
+    @Mapping(target = "technicianResponses", ignore = true)
     @Mapping(target = "assignee", ignore = true)
+    @Mapping(target = "serviceTypeResponses", ignore = true)
     AppointmentResponse toResponse(AppointmentEntity appointmentEntity);
 
     @Mapping(target = "appointmentId", ignore = true)
     @Mapping(target = "customer", ignore = true)
-    @Mapping(target = "technician", ignore = true)
+    @Mapping(target = "serviceTypeEntities", ignore = true)
     @Mapping(target = "assignee", ignore = true)
     @Mapping(target = "serviceMode", ignore = true)
     @Mapping(target = "status", ignore = true)

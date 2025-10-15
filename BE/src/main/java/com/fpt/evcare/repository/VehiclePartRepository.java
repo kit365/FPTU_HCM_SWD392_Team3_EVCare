@@ -13,7 +13,7 @@ import java.util.UUID;
 public interface VehiclePartRepository extends JpaRepository<VehiclePartEntity, UUID> {
     VehiclePartEntity findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(UUID id);
     VehiclePartEntity findVehiclePartEntityByVehiclePartIdAndIsDeletedTrue(UUID id);
-    List<VehiclePartEntity> findAllByVehicleTypeVehicleTypeIdAndIsDeletedFalse(UUID vehicleTypeId);
+    List<VehiclePartEntity> findByVehicleTypeVehicleTypeIdAndIsDeletedFalse(UUID vehicleTypeId);
     Page<VehiclePartEntity> findAllByIsDeletedFalse(Pageable pageable);
     Page<VehiclePartEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String search, Pageable pageable);
     boolean existsByVehiclePartNameAndIsDeletedFalse(String name);

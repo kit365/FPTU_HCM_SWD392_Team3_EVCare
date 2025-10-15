@@ -22,12 +22,14 @@ public class ServiceTypeConstants {
     public static final String MESSAGE_ERR_DUPLICATED_SERVICE_TYPE = "Loại dịch vụ này đã tồn tại";
     public static final String MESSAGE_ERR_CAN_NOT_DELETE_SERVICE_TYPE = "Có cuộc hẹn đang sử dụng loại dịch vụ này";
     public static final String MESSAGE_ERR_MUST_CHOOSING_SPECIFIC_SERVICE_TYPE = "Vui lòng chọn loại dịch vụ cụ thể";
+    public static final String MESSAGE_ERR_SERVICE_TYPE_IS_USED_ON_APPOINTMENT = "Loại dịch vụ này được sử dụng trong cuộc hẹn: {}";
 
     //Log message
 
     //Error Logs
     public static final String LOG_ERR_PARENT_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy dịch vụ cha: {}";
     public static final String LOG_ERR_MUST_CHOOSING_SPECIFIC_SERVICE_TYPE = "Vui lòng chọn loại dịch vụ cụ thể: {}";
+    public static final String LOG_ERR_SERVICE_TYPE_IS_USED_ON_APPOINTMENT = "Loại dịch vụ này được sử dụng trong cuộc hẹn: {}";
 
     public static final String LOG_ERR_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ: {}";
     public static final String LOG_ERR_PARENT_SERVICE_TYPE_IS_DELETED = "Loại dịch vụ cha đã bị xóa: {}";

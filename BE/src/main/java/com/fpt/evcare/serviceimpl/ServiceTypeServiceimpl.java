@@ -17,6 +17,7 @@ import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.mapper.ServiceTypeMapper;
 import com.fpt.evcare.repository.*;
+import com.fpt.evcare.service.AppointmentService;
 import com.fpt.evcare.service.ServiceTypeService;
 import com.fpt.evcare.service.ServiceTypeVehiclePartService;
 import com.fpt.evcare.utils.UtilFunction;
@@ -41,6 +42,7 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     VehicleTypeRepository vehicleTypeRepository;
     ServiceTypeRepository serviceTypeRepository;
     ServiceTypeMapper serviceTypeMapper;
+    ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
 
     @Override
     public List<ServiceTypeEntity> getAllServiceTypes(){
@@ -173,7 +175,7 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     @Override
     @Transactional
     public boolean updateServiceType(UUID id, UpdationServiceTypeRequest updationServiceTypeRequest) {
-        serviceTypeVehiclePartService.checkDependOnAppointmentByServiceTypeId(id);
+        checkDependOnAppointmentByServiceTypeId(id);
 
         ServiceTypeEntity serviceTypeEntity = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(id);
         if (serviceTypeEntity == null) {
@@ -210,20 +212,19 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
             throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
         }
 
-        serviceTypeVehiclePartService.checkDependOnAppointmentByServiceTypeId(id);
+        checkDependOnAppointmentByServiceTypeId(id);
 
         // Nếu là cha, xóa các con, đồng thời xóa bảng trung gian mà các con và cha có
-        if (serviceType.getParent() == null) {
+        if (serviceType.getParentId() == null) {
             List<ServiceTypeEntity> children = serviceTypeRepository.findByParentServiceTypeIdAndIsDeletedFalse(id);
             for (ServiceTypeEntity child : children) {
-                serviceTypeVehiclePartService.checkDependOnAppointmentByServiceTypeId(child.getServiceTypeId());
+                checkDependOnAppointmentByServiceTypeId(child.getServiceTypeId());
                 deleteVehiclePartsOfServiceType(child);
                 log.info(ServiceTypeConstants.LOG_INFO_DELETING_SERVICE_TYPE, id);
                 child.setIsDeleted(true);
             }
             serviceTypeRepository.saveAll(children);
         }
-
         deleteVehiclePartsOfServiceType(serviceType);
 
         log.info(ServiceTypeConstants.LOG_INFO_DELETING_SERVICE_TYPE, id);
@@ -235,10 +236,10 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     // Xóa các bản ghi trung gian có liên kết với dịch vụ này
     private void deleteVehiclePartsOfServiceType(ServiceTypeEntity serviceType) {
         serviceType.getServiceTypeVehiclePartList().forEach(serviceTypeVehiclePartEntity -> {
-            if(serviceTypeVehiclePartEntity != null) {
-                log.info(ServiceTypeVehiclePartConstants.LOG_INFO_DELETING_SERVICE_TYPE_VEHICLE_PART, serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
-                serviceTypeVehiclePartService.deleteServiceTypeVehiclePart(serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
-            }
+            log.info(ServiceTypeVehiclePartConstants.LOG_INFO_DELETING_SERVICE_TYPE_VEHICLE_PART, serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
+            // Thực hiện xóa nếu vehicle thỏa không thuộc trong active appointment
+            serviceTypeVehiclePartEntity.setIsDeleted(true);
+            serviceTypeVehiclePartRepository.save(serviceTypeVehiclePartEntity);
         });
     }
 
@@ -258,18 +259,34 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
         if (serviceTypeEntity.getParentId() == null) {
             List<ServiceTypeEntity> childServiceTypes = serviceTypeRepository.findByParentServiceTypeIdAndIsDeletedTrue(id);
             if (!childServiceTypes.isEmpty()) {
-                childServiceTypes.forEach(child -> child.setIsDeleted(false));
+                childServiceTypes.forEach(child -> {
+                    child.setIsDeleted(false);
+
+                    //Khôi phục con, đồng thời khôi phục bảng trung gian
+                    child.getServiceTypeVehiclePartList().forEach(serviceTypeVehiclePartEntity -> {
+                        log.info(ServiceTypeVehiclePartConstants.LOG_INFO_RESTORING_SERVICE_TYPE_VEHICLE_PART, serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
+                        serviceTypeVehiclePartEntity.setIsDeleted(false);
+                        serviceTypeVehiclePartRepository.save(serviceTypeVehiclePartEntity);
+                    });
+                });
                 entitiesToRestore.addAll(childServiceTypes);
                 log.info(ServiceTypeConstants.LOG_INFO_RESTORING_CHILD_SERVICE_TYPE, id);
             }
         }
-        // Nếu là CON
+        // Nếu là CON (Một mình)
         else {
-            ServiceTypeEntity parentServiceTypeEntity =
-                    serviceTypeRepository.findByServiceTypeIdAndIsDeletedTrue(serviceTypeEntity.getParentId());
+            ServiceTypeEntity parentServiceTypeEntity = serviceTypeRepository.findByServiceTypeIdAndIsDeletedTrue(serviceTypeEntity.getParentId());
 
             if (parentServiceTypeEntity != null) {
                 parentServiceTypeEntity.setIsDeleted(false);
+
+                //Khôi phục bảng trung gian của dịch vụ
+                parentServiceTypeEntity.getServiceTypeVehiclePartList().forEach(serviceTypeVehiclePartEntity -> {
+                    log.info(ServiceTypeConstants.LOG_INFO_RESTORING_SERVICE_TYPE, serviceTypeVehiclePartEntity.getServiceTypeVehiclePartId());
+                    serviceTypeVehiclePartEntity.setIsDeleted(false);
+                    serviceTypeVehiclePartRepository.save(serviceTypeVehiclePartEntity);
+                });
+
                 entitiesToRestore.add(parentServiceTypeEntity);
                 log.info(ServiceTypeConstants.LOG_INFO_RESTORING_PARENT_SERVICE_TYPE, parentServiceTypeEntity.getServiceTypeId());
             }
@@ -331,6 +348,14 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
         if (serviceTypeRepository.existsByServiceNameAndVehicleTypeId(serviceName, serviceTypeId)) {
             log.warn(ServiceTypeConstants.LOG_ERR_DUPLICATED_SERVICE_TYPE);
             throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_DUPLICATED_SERVICE_TYPE);
+        }
+    }
+
+    public void checkDependOnAppointmentByServiceTypeId(UUID serviceTypeId){
+        boolean existedActiveAppointmentByServiceTypeId = serviceTypeVehiclePartRepository.existsActiveAppointmentsInServiceTypeVehiclePartByServiceTypeId(serviceTypeId);
+        if(existedActiveAppointmentByServiceTypeId){
+            log.warn(ServiceTypeConstants.LOG_ERR_CAN_NOT_DELETE_SERVICE_TYPE + serviceTypeId);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_CAN_NOT_DELETE_SERVICE_TYPE);
         }
     }
 }

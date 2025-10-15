@@ -14,8 +14,4 @@ public interface ServiceTypeVehiclePartService {
     boolean updateServiceTypeVehiclePart(UUID id, UpdationServiceTypeVehiclePartRequest updationServiceTypeVehiclePartRequest);
     boolean deleteServiceTypeVehiclePart(UUID id);
     boolean restoreServiceTypeVehiclePart(UUID id);
-
-    // For related entity
-    void checkDependOnAppointmentByServiceTypeId(UUID serviceTypeId);
-    void checkDependOnAppointmentByVehiclePartId(UUID vehiclePartId);
 }
