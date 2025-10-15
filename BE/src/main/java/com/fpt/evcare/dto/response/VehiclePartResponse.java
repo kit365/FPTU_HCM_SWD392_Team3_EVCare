@@ -1,5 +1,6 @@
 package com.fpt.evcare.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fpt.evcare.enums.VehiclePartStatusEnum;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class VehiclePartResponse implements Serializable {
 
     UUID vehiclePartId;
@@ -33,11 +35,15 @@ public class VehiclePartResponse implements Serializable {
 
     LocalDateTime lastRestockDate;
 
+    Integer averageLifespan;
+
     VehiclePartStatusEnum status;
 
     String note;
 
     Boolean isDeleted;
+
+    Boolean isActive;
 
     LocalDateTime createdAt;
 

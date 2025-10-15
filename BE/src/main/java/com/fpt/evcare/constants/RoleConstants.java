@@ -11,6 +11,7 @@ public class RoleConstants {
     public static final String SUCCESS_UPDATE_ROLE = "Cập nhật role thành công.";
     public static final String SUCCESS_GET_ALL_ROLE = "Lấy danh sách role thành công.";
     public static final String SUCCESS_GET_ROLE_BY_ID = "Lấy role theo ID thành công.";
+    public static final String MESSAGE_SUCCESS_ROLE_DELETED = "Xóa role thành công";
 
 
     // Error Messages

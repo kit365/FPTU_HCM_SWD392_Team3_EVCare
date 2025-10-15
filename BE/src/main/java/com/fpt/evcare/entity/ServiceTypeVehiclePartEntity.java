@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -34,4 +36,7 @@ public class ServiceTypeVehiclePartEntity extends BaseEntity {
 
     @Column(name = "estimated_time_default")
     Integer estimatedTimeDefault;
+
+    @ManyToMany(mappedBy = "vehiclePartEntities")
+    List<AppointmentEntity> appointments = new ArrayList<>();
 }

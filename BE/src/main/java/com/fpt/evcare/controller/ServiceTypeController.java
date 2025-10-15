@@ -1,6 +1,7 @@
 package com.fpt.evcare.controller;
 
 import com.fpt.evcare.base.ApiResponse;
+import com.fpt.evcare.constants.PaginationConstants;
 import com.fpt.evcare.constants.ServiceTypeConstants;
 import com.fpt.evcare.dto.request.service_type.CreationServiceTypeRequest;
 import com.fpt.evcare.dto.request.service_type.UpdationServiceTypeRequest;
@@ -8,7 +9,6 @@ import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.ServiceTypeResponse;
 import com.fpt.evcare.service.ServiceTypeService;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,7 +36,7 @@ public class ServiceTypeController {
         return ResponseEntity.ok(ApiResponse.<ServiceTypeResponse>builder()
                 .success(true)
                 .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE)
-            .data(response)
+                .data(response)
                 .build()
         );
     }
@@ -44,12 +44,13 @@ public class ServiceTypeController {
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST)
     @Operation(summary = "Lấy ra danh sách dịch vụ", description = "Lấy ra thông tin tất cả dịch vụ, có cấu trúc cây")
     public ResponseEntity<ApiResponse<PageResponse<ServiceTypeResponse>>> getAllServiceTypes(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-            @Nullable @RequestParam(name = "keyword", defaultValue = "") String keyword) {
-         Pageable pageable = PageRequest.of(page, pageSize);
+            @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_NUMBER) int page,
+            @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @RequestParam(name = PaginationConstants.KEYWORD_KEY, defaultValue = "", required = false) String keyword,
+            @RequestParam(name = PaginationConstants.VEHICLE_TYPE_ID, required = true) UUID vehicleTypeId) {
+        Pageable pageable = PageRequest.of(page, pageSize);
 
-        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, pageable);
+        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, vehicleTypeId, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ServiceTypeResponse>>builder()
                 .success(true)
@@ -100,5 +101,6 @@ public class ServiceTypeController {
                 .success(result)
                 .message(ServiceTypeConstants.MESSAGE_SUCCESS_RESTORING_SERVICE_TYPE)
                 .build()
-        );    }
+        );
+    }
 }

@@ -9,14 +9,17 @@ interface SelectAdminProps {
     name: string;
     id: string;
     options: SelectOption[];
+    placeholder: string | null; 
+    disable: boolean | null;
 }
 
-export const SelectAdmin = ({ name, id, options }: SelectAdminProps) => {
+export const SelectAdmin = ({ name, id, options,  }: SelectAdminProps) => {
     return (
         <div className="relative">
             <select
                 name={name}
                 id={id}
+
                 className="
           appearance-none border border-[#e2e7f1] rounded-[0.64rem] text-admin-secondary font-[400] text-[1.3rem] 
           py-[0.827rem] pr-[4.56rem] pl-[1.52rem] outline-none focus:outline-none w-full

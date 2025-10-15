@@ -59,5 +59,5 @@ public class UpdationAppointmentRequest {
     String updatedBy;
 
     @NotNull(message = "Loại dịch vụ không được để trống")
-    List<UUID> serviceTypeIds;
+    List<UUID> serviceTypeVehiclePartIds;
 }

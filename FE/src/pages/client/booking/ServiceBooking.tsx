@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Button,
-  Checkbox,
   DatePicker,
   Form,
   Input,
@@ -139,12 +138,16 @@ export const ServiceBookingPage: React.FC = () => {
                   name="licensePlate"
                   rules={[
                     { required: true, message: "Vui lòng nhập biển số xe" },
-                    { min: 7, message: 'Biển số xe phải có ít nhất 7 ký tự', },
-                    { max: 8, message: 'Biển số xe không được vượt quá 8 ký tự', },
-                    { pattern: /^[A-Za-z0-9-]+$/, message: 'Biển số xe chỉ được chứa chữ, số và dấu gạch ngang', },
+                    { min: 7, message: "Biển số xe phải có ít nhất 7 ký tự" },
+                    { max: 8, message: "Biển số xe không được vượt quá 8 ký tự" },
+                    {
+                      pattern: /^(0[1-9]|[1-9][0-9])[A-Z]-\d{5}$/,
+                      message: "Biển số xe không đúng định dạng. Ví dụ: 30A-12345"
+                    }
                   ]}
+
                 >
-                  <Input placeholder="Nhập biển số xe" />
+                  <Input placeholder="Ví dụ: 30A-12345" />
                 </Form.Item>
               </div>
             </div>
@@ -156,8 +159,8 @@ export const ServiceBookingPage: React.FC = () => {
                 name="services"
                 label="Chọn dịch vụ"
                 rules={[
-                    { required: true, message: "Vui lòng chọn dịch vụ" },
-                    ]}
+                  { required: true, message: "Vui lòng chọn dịch vụ" },
+                ]}
               >
                 <TreeSelect
                   treeData={serviceTreeData}

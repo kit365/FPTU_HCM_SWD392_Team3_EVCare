@@ -23,14 +23,11 @@ public class VehiclePartCategoryEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID vehiclePartCategoryId;
 
-    @Column(name = "part_category_name", nullable = false, unique = true)
+    @Column(name = "part_category_name", nullable = false)
     String partCategoryName;
 
     @Column(name = "description", length = 500)
     String description;
-
-    @Column(name = "average_lifespan")
-    Integer averageLifespan;
 
     @Column(name = "search", length = 255)
     String search;

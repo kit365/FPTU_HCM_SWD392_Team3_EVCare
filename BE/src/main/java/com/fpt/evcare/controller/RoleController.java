@@ -1,7 +1,6 @@
 package com.fpt.evcare.controller;
 
 import com.fpt.evcare.base.ApiResponse;
-import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.constants.RoleConstants;
 import com.fpt.evcare.dto.request.RoleRequest;
 import com.fpt.evcare.dto.response.RoleResponse;
@@ -74,7 +73,7 @@ public class RoleController {
         roleService.deleteRole(roleId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
-                .message("Xóa role thành công.")
+                .message(RoleConstants.MESSAGE_SUCCESS_ROLE_DELETED)
                 .build()
         );
     }

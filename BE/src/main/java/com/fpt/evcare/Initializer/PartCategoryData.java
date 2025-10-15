@@ -22,28 +22,24 @@ public class PartCategoryData implements CommandLineRunner {
         CreationVehiclePartCategoryRequest battery = new CreationVehiclePartCategoryRequest();
         battery.setPartCategoryName("Pin xe điện");
         battery.setDescription("Dung lượng pin dùng để lưu trữ và cung cấp năng lượng cho xe điện.");
-        battery.setAverageLifespan(8); // 8 năm
         vehiclePartCategoryService.createVehiclePartCategory(battery);
 
         // Động cơ điện
         CreationVehiclePartCategoryRequest motor = new CreationVehiclePartCategoryRequest();
         motor.setPartCategoryName("Động cơ điện");
         motor.setDescription("Động cơ điện truyền động trực tiếp, công suất từ 110kW - 300kW.");
-        motor.setAverageLifespan(15);
         vehiclePartCategoryService.createVehiclePartCategory(motor);
 
         // Bộ sạc
         CreationVehiclePartCategoryRequest charger = new CreationVehiclePartCategoryRequest();
         charger.setPartCategoryName("Bộ sạc");
         charger.setDescription("Bộ sạc nhanh/ chậm cho pin xe điện.");
-        charger.setAverageLifespan(10);
         vehiclePartCategoryService.createVehiclePartCategory(charger);
 
         // Hệ thống phanh
         CreationVehiclePartCategoryRequest brake = new CreationVehiclePartCategoryRequest();
         brake.setPartCategoryName("Hệ thống phanh");
         brake.setDescription("Phanh đĩa và phanh tái tạo năng lượng cho xe điện.");
-        brake.setAverageLifespan(7);
         vehiclePartCategoryService.createVehiclePartCategory(brake);
     }
 

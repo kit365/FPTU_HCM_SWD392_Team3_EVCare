@@ -15,6 +15,7 @@ public interface VehiclePartMapper {
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "vehicleType", ignore = true)
     @Mapping(target = "vehiclePartCategories", ignore = true)
+    @Mapping(target = "lastRestockDate", ignore = true)
     VehiclePartEntity toEntity(CreationVehiclePartRequest creationVehiclePartRequest);
 
     @Mapping(target = "vehicleType", ignore = true)
@@ -26,6 +27,7 @@ public interface VehiclePartMapper {
     @Mapping(target = "vehiclePartCategories", ignore = true)
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "vehiclePartName",ignore = true)
+    @Mapping(target = "lastRestockDate", ignore = true)
     void toUpdate(@MappingTarget VehiclePartEntity vehiclePartEntity, UpdationVehiclePartRequest updationVehiclePartRequest);
 
 }

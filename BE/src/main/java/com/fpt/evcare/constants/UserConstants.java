@@ -37,9 +37,12 @@ public class UserConstants {
     public static final String LOG_SUCCESS_RESTORING_USER = "Đang khôi phục người dùng: {}";
     public static final String LOG_SUCCESS_VALIDATION_USER_ROLE = "Người dùng có vai trò hợp lệ: {}";
 
+    public static final String DEFAULT_PAGE_SIZE = "10";
+    public static final String DEFAULT_PAGE_NUMBER = "0";
 
 
     public static final String BASE_URL = EndpointConstants.V1.API + "/user";
+
     public static final String USER_LIST= "/";
     public static final String USER = "/{id}";
     public static final String USER_UPDATE = "/{id}";

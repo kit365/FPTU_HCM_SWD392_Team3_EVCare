@@ -3,6 +3,7 @@ import { NavArrowDown } from 'iconoir-react';
 interface StatusFilterProps {
     value: string;
     onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    options: { label: string; value: string }[] | null;
 }
 
 export const StatusFilter = ({ value, onChange }: StatusFilterProps) => {

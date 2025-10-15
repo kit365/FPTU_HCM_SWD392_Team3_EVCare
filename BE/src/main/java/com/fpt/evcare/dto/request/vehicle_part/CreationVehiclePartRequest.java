@@ -32,6 +32,12 @@ public class CreationVehiclePartRequest  {
 
     VehiclePartStatusEnum status;
 
+    @NotNull(message = "Tuổi thọ trung bình không được để trống")
+    @Min(value = 0, message = "Tuổi thọ trung bình không được nhỏ hơn 0")
+    @Max(value = 100, message = "Tuổi thọ trung bình không được vượt quá 100 năm")
+    @PositiveOrZero(message = "Tuổi thọ trung bình phải là số không âm")
+    Integer averageLifespan;
+
     String note;
 
     @NotNull(message = "Loại xe không được để trống")

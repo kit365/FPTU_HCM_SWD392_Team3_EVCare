@@ -1,5 +1,5 @@
 import { useAuth } from "../../../hooks/useAuth";
-import type { LoginRequest } from "../../../type/auth";
+import type { LoginRequest } from "../../../types/admin/auth";
 import { useForm } from "react-hook-form";
 import {
     TextField,

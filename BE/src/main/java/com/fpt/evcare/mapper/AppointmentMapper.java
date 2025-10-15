@@ -18,14 +18,12 @@ public interface AppointmentMapper {
     @Mapping(target = "serviceMode", ignore = true)
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "quotePrice", ignore = true)
-    @Mapping(target = "serviceTypes", ignore = true)
     AppointmentEntity toEntity(CreationAppointmentRequest creationAppointmentRequest);
 
 
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "technician", ignore = true)
     @Mapping(target = "assignee", ignore = true)
-    @Mapping(target = "serviceTypes", ignore = true)
     AppointmentResponse toResponse(AppointmentEntity appointmentEntity);
 
     @Mapping(target = "appointmentId", ignore = true)
@@ -36,6 +34,5 @@ public interface AppointmentMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "quotePrice", ignore = true)
-    @Mapping(target = "serviceTypes", ignore = true)
     void toUpdate(@MappingTarget AppointmentEntity appointmentEntity, UpdationAppointmentRequest updationAppointmentRequest);
 }

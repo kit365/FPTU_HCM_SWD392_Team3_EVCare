@@ -2,6 +2,7 @@ package com.fpt.evcare.service;
 
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
+import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.UserEntity;
@@ -14,6 +15,9 @@ import java.util.UUID;
 public interface UserService {
     UserResponse getUserById(UUID id);
     PageResponse<UserResponse> searchUser(Pageable pageable, String keyword);
+
+    PageResponse<EmployeeResponse> findAllEmployee(Pageable pageable, String keyword);
+
     UserEntity getUserByEmail(String email);
     boolean createUser(CreationUserRequest creationUserRequest);
     boolean updateUser(UpdationUserRequest updationUserRequest, UUID id);

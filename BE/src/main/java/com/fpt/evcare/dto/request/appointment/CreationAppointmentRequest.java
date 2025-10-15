@@ -48,6 +48,6 @@ public class CreationAppointmentRequest {
 
     String notes;
 
-    @NotNull(message = "Loại dịch vụ không được để trống")
-    List<UUID> serviceTypeIds;
+    @NotNull(message = "Vui lòng chọn loại dịch v cụ thể")
+    List<UUID> serviceTypeVehiclePartIds;
 }

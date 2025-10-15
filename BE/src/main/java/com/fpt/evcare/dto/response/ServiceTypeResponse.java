@@ -26,6 +26,8 @@ public class ServiceTypeResponse implements Serializable {
 
     UUID parentId;
 
+    VehicleTypeResponse vehicleTypeResponse;
+
     Boolean isActive;
 
     Boolean isDeleted;
