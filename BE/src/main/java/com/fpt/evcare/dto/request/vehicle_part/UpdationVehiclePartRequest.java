@@ -8,13 +8,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdationVehiclePartRequest {
+public class UpdationVehiclePartRequest implements Serializable {
 
     @NotBlank(message = "Tên phụ tùng không được để trống")
     @Size(min = 3, max = 255, message = "Tên phụ tùng phải chứa ít nhất từ 3 đến 255 kí tự")

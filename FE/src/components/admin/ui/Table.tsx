@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { notification, Popconfirm } from 'antd';
 import { Link } from "react-router-dom";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -101,12 +102,20 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }:
     }, []);
     // Hết Lọc theo trạng thái
 
+    //xóa hồ sơ xe
+    const handleDeleteCar = () => {
+        notification.success({
+            message: "Delete Car file",
+            description: "Xóa hồ sơ xe thành công"
+        })
+    }
+    //hết xóa hồ sơ xe
     return (
         <>
             <div className="px-[2.4rem] pb-[2.4rem] h-full">
                 <div className="flex items-start justify-between">
                     <FormSearch onSearch={handleSearch} />
-                    <StatusFilter value={statusFilter} onChange={handleChangeStatus} />
+                    <StatusFilter options={null} value={statusFilter} onChange={handleChangeStatus} />
                 </div>
 
                 <BulkActionBar
@@ -219,7 +228,14 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }:
                                                         </Link>
                                                     )}
                                                     <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
-                                                        <DeleteOutlineIcon className="!w-full !h-full" />
+                                                        <Popconfirm title="Xóa hồ sơ xe"
+                                                            description="Bạn chắc chắn xóa hồ sơ xe này ?"
+                                                            onConfirm={() => handleDeleteCar()}
+                                                            okText="Yes"
+                                                            cancelText="No"
+                                                            placement="left">
+                                                            <DeleteOutlineIcon className="!w-full !h-full" />
+                                                        </Popconfirm>
                                                     </button>
                                                 </td>
                                             );

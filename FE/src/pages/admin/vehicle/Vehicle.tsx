@@ -26,9 +26,11 @@ export const Vehicle = () => {
 
     const {
         vehicleList, fetchVehicleTypeList } = useCarModel();
+
     useEffect(() => {
         fetchVehicleTypeList({ page: 0, pageSize: 10, keyword: "" });
     }, []);
+
 
     const buttonsList: ButtonItemProps[] = [
         // {
