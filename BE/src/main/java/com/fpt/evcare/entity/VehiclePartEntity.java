@@ -8,11 +8,13 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "vehicle_part_inventories")
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -40,7 +42,11 @@ public class VehiclePartEntity extends BaseEntity {
     LocalDateTime lastRestockDate;
 
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     VehiclePartStatusEnum status = VehiclePartStatusEnum.AVAILABLE;
+
+    @Column(name = "average_lifespan")
+    Integer averageLifespan;
 
     @Column(name = "note", length = 500)
     String note;
@@ -54,5 +60,8 @@ public class VehiclePartEntity extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "vehicle_part_category_id")
-    VehiclePartCategoryEntity vehiclePartCategory;
+    VehiclePartCategoryEntity vehiclePartCategories;
+
+    @OneToMany(mappedBy = "vehiclePart", fetch = FetchType.LAZY)
+    List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartList;
 }

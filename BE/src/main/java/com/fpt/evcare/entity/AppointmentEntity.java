@@ -12,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,9 +42,13 @@ public class AppointmentEntity extends BaseEntity {
     @Column(name = "customer_email")
     String customerEmail;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "technician_id")
-    UserEntity technician;
+    @ManyToMany
+    @JoinTable(
+            name = "appointment_technicians",
+            joinColumns = @JoinColumn(name = "appointment_id"),
+            inverseJoinColumns = @JoinColumn(name ="technician_id")
+    )
+    List<UserEntity> technicianEntities = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
@@ -64,7 +69,7 @@ public class AppointmentEntity extends BaseEntity {
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
-    AppointmentStatusEnum status;
+    AppointmentStatusEnum status = AppointmentStatusEnum.PENDING;
 
     @Column(name = "notes")
     String notes;
@@ -76,7 +81,7 @@ public class AppointmentEntity extends BaseEntity {
     @JoinTable(
             name = "appointment_service_types",
             joinColumns = @JoinColumn(name = "appointment_id"),
-            inverseJoinColumns = @JoinColumn(name = "service_type_id")
+            inverseJoinColumns = @JoinColumn(name = "Service_type_id")
     )
-    List<ServiceTypeEntity> serviceTypes;
+    List<ServiceTypeEntity> serviceTypeEntities = new ArrayList<>();
 }

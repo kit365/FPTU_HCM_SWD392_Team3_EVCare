@@ -8,13 +8,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UpdationVehiclePartRequest {
+public class UpdationVehiclePartRequest implements Serializable {
 
     @NotBlank(message = "Tên phụ tùng không được để trống")
     @Size(min = 3, max = 255, message = "Tên phụ tùng phải chứa ít nhất từ 3 đến 255 kí tự")
@@ -35,10 +36,13 @@ public class UpdationVehiclePartRequest {
 
     VehiclePartStatusEnum status;
 
-    String note;
+    @NotNull(message = "Tuổi thọ trung bình không được để trống")
+    @Min(value = 0, message = "Tuổi thọ trung bình không được nhỏ hơn 0")
+    @Max(value = 100, message = "Tuổi thọ trung bình không được vượt quá 100 năm")
+    @PositiveOrZero(message = "Tuổi thọ trung bình phải là số không âm")
+    Integer averageLifespan;
 
-    @NotNull(message = "Loại xe không được để trống")
-    UUID vehicleTypeId;
+    String note;
 
     @NotNull(message = "Danh mục phụ tùng không được để trống")
     UUID vehiclePartCategoryId;

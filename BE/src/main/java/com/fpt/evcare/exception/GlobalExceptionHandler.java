@@ -170,10 +170,10 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(UserValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
+    @ExceptionHandler(EntityValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleEntityValidationException(EntityValidationException ex) {
         if (log.isErrorEnabled()) {
-            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
+            log.error("EntityValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity
@@ -185,10 +185,10 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(ServiceTypeValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleServiceTypeValidationException(ServiceTypeValidationException ex) {
+    @ExceptionHandler(UserValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
         if (log.isErrorEnabled()) {
-            log.error("ServiceTypeValidationException caught: {}", ex.getMessage(), ex);
+            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity
@@ -234,6 +234,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleVehiclePartValidationException(VehiclePartValidationException ex) {
         if (log.isErrorEnabled()) {
             log.error("VehiclePartValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(AppointmentValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAppointmentValidationException(AppointmentValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("AppointmentValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity

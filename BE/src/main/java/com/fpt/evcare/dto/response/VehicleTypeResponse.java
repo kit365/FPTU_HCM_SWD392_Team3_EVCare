@@ -38,6 +38,8 @@ public class VehicleTypeResponse implements Serializable {
 
     Boolean isDeleted;
 
+    Boolean isActive;
+
     LocalDateTime createdAt;
 
     LocalDateTime updatedAt;

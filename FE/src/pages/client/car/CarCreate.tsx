@@ -1,30 +1,20 @@
-import React from 'react'
 import { Button, Input, notification, Modal } from "antd";
 import { useState } from "react";
 
-const CarCreate = () => {
+const { Search } = Input;
+
+interface CarCreateProps {
+    onSearch?: (value: string) => void;
+}
+
+const CarCreate: React.FC<CarCreateProps> = ({ onSearch }) => {
+   
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [carName, setCarName] = useState("");
     const [licensePlate, setLicensePlate] = useState("");
     const [carType, setCarType] = useState("");
 
     const handleSubmitBtn = async () => {
-        //     // const res = await createCarAPI(carName, licensePlate, carType);
-        //     if (res.data) {
-        //         notification.success({
-        //             message: "Create car",
-        //             description: "Tạo xe thành công"
-        //         })
-        //         resetAndCloseModal();
-        //         // await loadCar(); //load lai table car
-        //     } else {
-        //         notification.error({
-        //             message: "Error create car",
-        //             description: JSON.stringify(res.message)
-        //         })
-
-        //     }
-
         notification.success({
             message: "Create car",
             description: "Tạo xe thành công"
@@ -38,13 +28,31 @@ const CarCreate = () => {
         setLicensePlate("");
         setCarType("");
     }
+
+    const handleSearch = (value: string) => {
+        if (onSearch) {
+            onSearch(value);
+        }
+    }
+
     return (
         <div className="car-form" style={{ margin: "10px 0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3>Bảng Hồ Sơ Xe</h3>
-                <Button
-                    onClick={() => setIsModalOpen(true)}
-                    type="primary"> Tạo Hồ Sơ Xe </Button>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <Search 
+                        placeholder="Tìm kiếm xe" 
+                        onSearch={handleSearch}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        style={{ width: 300 }}
+                        enterButton 
+                        allowClear
+                    />
+                    <Button
+                        onClick={() => setIsModalOpen(true)}
+                        type="primary"> Tạo Hồ Sơ Xe 
+                    </Button>
+                </div>
             </div>
 
             <Modal

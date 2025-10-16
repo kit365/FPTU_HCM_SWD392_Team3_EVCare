@@ -3,6 +3,7 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
+import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
@@ -13,6 +14,7 @@ import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.RoleRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.UserService;
+import com.fpt.evcare.utils.UtilFunction;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -96,6 +98,43 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public PageResponse<EmployeeResponse> findAllEmployee(Pageable pageable, String keyword) {
+        return null;
+//        Page<UserEntity> usersPage;
+//        if (keyword == null || keyword.trim().isEmpty()) {
+//            usersPage = userRepository.findByIsDeletedFalse(pageable);
+//        } else {
+//            usersPage = userRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword.trim(), pageable);
+//        }
+//
+//        if (usersPage.isEmpty()) {
+//            log.error(UserConstants.LOG_ERR_USER_LIST_NOT_FOUND);
+//            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_LIST_NOT_FOUND);
+//        }
+//
+//        List<EmployeeResponse> userResponses = usersPage.map(user -> {
+//            EmployeeResponse response = userMapper.toResponse(user);
+//            List<String> roleNames = new ArrayList<>();
+//            if (user.getRoles() != null) {
+//                for (RoleEntity role : user.getRoles()) {
+//                    roleNames.add(role.getRoleName().toString());
+//                }
+//            }
+//            response.setRoleName(roleNames);
+//            return response;
+//        }).getContent();
+//
+//        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER_LIST);
+//        return PageResponse.<EmployeeResponse>builder()
+//                .data(userResponses)
+//                .page(usersPage.getNumber())
+//                .size(usersPage.getSize())
+//                .totalElements(usersPage.getTotalElements())
+//                .totalPages(usersPage.getTotalPages())
+//                .build();
+    }
+
+    @Override
     public UserEntity getUserByEmail(String email) {
         UserEntity userEntity = userRepository.findByEmailAndIsDeletedFalse(email);
         if (userEntity == null) {
@@ -129,11 +168,10 @@ public class UserServiceImpl implements UserService {
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(creationUserRequest.getPassword()));
 
-        String search = concatenateSearchField(
-                creationUserRequest.getFullName(),
+        String search = UtilFunction.concatenateSearchField(creationUserRequest.getFullName(),
                 creationUserRequest.getNumberPhone(),
                 creationUserRequest.getEmail(),
-                creationUserRequest.getUsername()
+                user.getUsername()
         );
         user.setSearch(search);
 
@@ -163,7 +201,6 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        user.setUserId(id);
         user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
 
@@ -177,9 +214,7 @@ public class UserServiceImpl implements UserService {
             user.setEmail(updationUserRequest.getEmail());
         }
 
-
-        String search = concatenateSearchField(
-                updationUserRequest.getFullName(),
+        String search = UtilFunction.concatenateSearchField(updationUserRequest.getFullName(),
                 updationUserRequest.getNumberPhone(),
                 updationUserRequest.getEmail(),
                 user.getUsername()
@@ -223,16 +258,6 @@ public class UserServiceImpl implements UserService {
         log.info(UserConstants.LOG_SUCCESS_RESTORING_USER, user.getUsername());
         userRepository.save(user);
         return true;
-    }
-
-    //Ghép các chuỗi lại phục vụ cho việc tìm kiếm dễ hơn (thay vì phải chia các câu truy vấn khi search như WHERE user.email = ..., user.fullName = ...)
-    private String concatenateSearchField(String fullName, String numberPhone, String email, String username) {
-        return String.join("-",
-                fullName != null ? fullName : "",
-                numberPhone != null ? numberPhone : "",
-                email != null ? email : "",
-                username != null ? username : ""
-        );
     }
 
     private void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {
