@@ -36,10 +36,37 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
     VehicleTypeRepository vehicleTypeRepository;
     VehicleTypeMapper vehicleTypeMapper;
 
-
+    // Hàm lấy tên và id của loại xe
     @Override
-    public List<VehicleTypeEntity> getAllVehicleTypes(){
-        return !vehicleTypeRepository.findAll().isEmpty() ? vehicleTypeRepository.findAll() : null;
+    public List<VehicleTypeResponse> getVehicleTypeNameList(){
+        List<VehicleTypeEntity> vehicleTypeEntities = vehicleTypeRepository.findByIsDeletedFalse();
+
+        return vehicleTypeEntities.stream().map(vehicleTypeEntity -> {
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            vehicleTypeResponse.setVehicleTypeId(vehicleTypeEntity.getVehicleTypeId());
+            vehicleTypeResponse.setVehicleTypeName(vehicleTypeEntity.getVehicleTypeName());
+
+            return vehicleTypeResponse;
+        }).collect(Collectors.toList());
+    }
+
+    // Hàm show menu cho loại dịch vụ
+    @Override
+    public List<VehicleTypeResponse> getVehicleTypeNameListForServiceType(){
+        List<VehicleTypeEntity> vehicleTypeEntities = vehicleTypeRepository.findByIsDeletedFalse();
+        if(vehicleTypeEntities == null){
+            log.warn(VehicleTypeConstants.LOG_ERR_VEHICLE_TYPE_LIST_NOT_FOUND);
+            throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_LIST_NOT_FOUND);
+        }
+
+        return vehicleTypeEntities.stream().map(vehicleTypeEntity -> {
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            vehicleTypeResponse.setVehicleTypeId(vehicleTypeEntity.getVehicleTypeId());
+            String vehicleTypeName = VehicleTypeConstants.PREFIX_SERVICE_NAME + vehicleTypeEntity.getVehicleTypeName();
+            vehicleTypeResponse.setVehicleTypeName(vehicleTypeName);
+
+            return vehicleTypeResponse;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -52,23 +79,6 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
 
         log.info(VehicleTypeConstants.LOG_SUCCESS_SHOWING_VEHICLE_TYPE);
         return vehicleTypeMapper.toResponse(vehicleTypeEntity);
-    }
-
-    @Override
-    public List<VehicleTypeResponse> getVehicleTypeNameList(){
-        List<VehicleTypeEntity> vehicleTypeEntity = vehicleTypeRepository.findByIsDeletedFalse();
-        if(vehicleTypeEntity == null){
-            log.warn(VehicleTypeConstants.LOG_ERR_VEHICLE_TYPE_LIST_NOT_FOUND);
-            throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_LIST_NOT_FOUND);
-        }
-
-        return vehicleTypeEntity.stream().map(vehicleTypeEntity1 -> {
-            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
-            vehicleTypeResponse.setVehicleTypeId(vehicleTypeEntity1.getVehicleTypeId());
-            vehicleTypeResponse.setVehicleTypeName(VehicleTypeConstants.PREFIX_SERVICE_NAME + vehicleTypeEntity1.getVehicleTypeName());
-
-            return vehicleTypeResponse;
-        }).collect(Collectors.toList());
     }
 
     @Override

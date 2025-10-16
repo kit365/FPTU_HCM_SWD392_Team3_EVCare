@@ -53,4 +53,5 @@ public class VehicleTypeEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "vehicleType",fetch = FetchType.LAZY)
     List<VehiclePartEntity> vehicleParts;
+
 }

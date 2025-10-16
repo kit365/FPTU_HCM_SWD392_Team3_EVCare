@@ -7,6 +7,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.CreatedDate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public class VehiclePartEntity extends BaseEntity {
     Integer minStock;
 
     @Column(name = "unit_price")
-    Float unitPrice;
+    BigDecimal unitPrice;
 
     @Column(name = "last_restock_date")
     @CreatedDate

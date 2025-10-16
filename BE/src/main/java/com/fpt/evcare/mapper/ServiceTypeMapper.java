@@ -23,11 +23,9 @@ public interface ServiceTypeMapper {
     @Mapping(target = "vehicleTypeResponse", ignore = true)
     ServiceTypeResponse toResponse (ServiceTypeEntity serviceTypeEntity);
 
-    @Mapping(target = "serviceTypeId", ignore = true)
     @Mapping(target = "serviceName", ignore = true)
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "parentId", ignore = true)
     @Mapping(target = "parent", ignore = true)
-    @Mapping(target = "vehicleTypeEntity", ignore = true)
     void updateServiceType(UpdationServiceTypeRequest updationServiceTypeRequest, @MappingTarget ServiceTypeEntity serviceTypeEntity);
 }

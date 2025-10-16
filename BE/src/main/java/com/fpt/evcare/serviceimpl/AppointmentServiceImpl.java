@@ -15,10 +15,7 @@ import com.fpt.evcare.mapper.AppointmentMapper;
 import com.fpt.evcare.mapper.ServiceTypeMapper;
 import com.fpt.evcare.mapper.ServiceTypeVehiclePartMapper;
 import com.fpt.evcare.mapper.UserMapper;
-import com.fpt.evcare.repository.AppointmentRepository;
-import com.fpt.evcare.repository.ServiceTypeRepository;
-import com.fpt.evcare.repository.ServiceTypeVehiclePartRepository;
-import com.fpt.evcare.repository.UserRepository;
+import com.fpt.evcare.repository.*;
 import com.fpt.evcare.service.AppointmentService;
 import com.fpt.evcare.service.ServiceTypeService;
 import com.fpt.evcare.service.ServiceTypeVehiclePartService;
@@ -33,8 +30,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,11 +46,21 @@ public class AppointmentServiceImpl implements AppointmentService {
     AppointmentRepository appointmentRepository;
     AppointmentMapper appointmentMapper;
     ServiceTypeRepository serviceTypeRepository;
-    ServiceTypeMapper serviceTypeMapper;
     UserRepository userRepository;
-    ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
-    ServiceTypeVehiclePartMapper serviceTypeVehiclePartMapper;
-    ServiceTypeService serviceTypeService;
+    VehiclePartRepository vehiclePartRepository;
+    VehicleTypeRepository vehicleTypeRepository;
+
+    @Override
+    public List<String> getAllServiceMode(){
+        log.info(AppointmentConstants.LOG_INFO_SHOWING_SERVICE_MODE_LIST);
+        return UtilFunction.getEnumValues(ServiceModeEnum.class);
+    }
+
+    @Override
+    public List<String> getAllStatus(){
+        log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT_STATUS_LIST);
+        return UtilFunction.getEnumValues(AppointmentStatusEnum.class);
+    }
 
     @Override
     public AppointmentResponse getAppointmentById(UUID id) {
@@ -64,50 +73,53 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
 
         UserEntity customer = appointmentEntity.getCustomer();
-        if(customer != null) {
-            UserResponse customerResponse = mapUserEntityToResponse(customer);
-            appointmentResponse.setCustomer(customerResponse);
-        }
+        appointmentResponse.setCustomer(mapUserEntityToResponse(customer));
 
+        List<UserResponse> technicianEntities = new ArrayList<>();
         appointmentEntity.getTechnicianEntities().forEach(technicianEntity -> {
             UserResponse technicianResponse = mapUserEntityToResponse(technicianEntity);
-            appointmentResponse.getTechnicianResponses().add(technicianResponse);
+            technicianEntities.add(technicianResponse);
         });
+        appointmentResponse.setTechnicianResponses(technicianEntities);
 
-        UserEntity assignee = appointmentEntity.getCustomer();
-        if(assignee != null) {
-            UserResponse assigneeResponse = mapUserEntityToResponse(assignee);
-            appointmentResponse.setCustomer(assigneeResponse);
+        UserEntity assignee = appointmentEntity.getAssignee();
+        appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
+
+        //Lấy những dịch vụ có trong cuộc hẹn
+        appointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(appointmentEntity));
+
+        VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+        if(appointmentEntity.getVehicleTypeEntity() != null) {
+            vehicleTypeResponse.setVehicleTypeId(appointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
+            vehicleTypeResponse.setVehicleTypeName(appointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
+            vehicleTypeResponse.setBatteryCapacity(appointmentEntity.getVehicleTypeEntity().getBatteryCapacity());
+            vehicleTypeResponse.setMaintenanceIntervalKm(appointmentEntity.getVehicleTypeEntity().getMaintenanceIntervalKm());
+            vehicleTypeResponse.setMaintenanceIntervalMonths(appointmentEntity.getVehicleTypeEntity().getMaintenanceIntervalMonths());
+            vehicleTypeResponse.setManufacturer(appointmentEntity.getVehicleTypeEntity().getManufacturer());
+            vehicleTypeResponse.setModelYear(appointmentEntity.getVehicleTypeEntity().getModelYear());
         }
+        appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
 
-        List<ServiceTypeResponse> serviceTypeResponses = appointmentEntity.getServiceTypeEntities().stream().map(serviceTypeEntity ->
-             serviceTypeService.getServiceTypeById(serviceTypeEntity.getServiceTypeId())
-        ).collect(Collectors.toList());
-        appointmentResponse.setServiceTypeResponses(serviceTypeResponses);
+        // Nếu dịch vụ đó không còn tồn tại, giá tạm tính phải mất
+        if(appointmentResponse.getServiceTypeResponses().isEmpty()) {
+            appointmentResponse.setQuotePrice(BigDecimal.ZERO);
+        } else {
+            appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
+        }
 
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT + id);
         return appointmentResponse;
     }
 
     @Override
-    public PageResponse<AppointmentResponse> getAppointmentsByUserId(UUID userId, Pageable pageable){
+    public PageResponse<AppointmentResponse> getAppointmentsByUserId(UUID userId, String keyword, Pageable pageable){
         UserEntity userEntity =  userRepository.findByUserIdAndIsDeletedFalse(userId);
         if(userEntity == null) {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND + userId);
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
 
-        //Kiểm tra role của User, từ đó show ra danh sách appointment của loại user đó
-        String userType = "";
-        if(isExistedUserRole(userEntity, RoleEnum.CUSTOMER)){
-            userType = AppointmentConstants.CUSTOMER_ROLE;
-        } else if(isExistedUserRole(userEntity, RoleEnum.TECHNICIAN)){
-            userType = AppointmentConstants.TECHNICIAN_ROLE;
-        } else if(isExistedUserRole(userEntity, RoleEnum.STAFF)){
-            userType = AppointmentConstants.ASSIGNEE_ROLE;
-        }
-
-        Page<AppointmentEntity> appointmentEntityPage = appointmentRepository.findByCustomerIdAndIsDeletedFalse(userId, pageable, userType);
+        Page<AppointmentEntity> appointmentEntityPage = appointmentRepository.findAppointmentsByCustomerAndKeyword(userId, keyword, pageable);
 
         if(appointmentEntityPage == null || appointmentEntityPage.getTotalElements() == 0) {
             log.warn(AppointmentConstants.LOG_ERR_USER_APPOINTMENT_NOT_FOUND + userId);
@@ -120,14 +132,34 @@ public class AppointmentServiceImpl implements AppointmentService {
             UserEntity customer = appointmentEntity.getCustomer();
             appointmentResponse.setCustomer(mapUserEntityToResponse(customer));
 
-
+            List<UserResponse> technicianEntities = new ArrayList<>();
             appointmentEntity.getTechnicianEntities().forEach(technicianEntity -> {
                 UserResponse technicianResponse = mapUserEntityToResponse(technicianEntity);
-                appointmentResponse.getTechnicianResponses().add(technicianResponse);
+                technicianEntities.add(technicianResponse);
             });
+            appointmentResponse.setTechnicianResponses(technicianEntities);
 
             UserEntity assignee = appointmentEntity.getAssignee();
             appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
+
+            //Lấy những dịch vụ có trong cuộc hẹn
+            appointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(appointmentEntity));
+
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            if(appointmentEntity.getVehicleTypeEntity() != null) {
+                vehicleTypeResponse.setVehicleTypeId(appointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
+                vehicleTypeResponse.setVehicleTypeName(appointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
+                vehicleTypeResponse.setManufacturer(appointmentEntity.getVehicleTypeEntity().getManufacturer());
+                vehicleTypeResponse.setModelYear(appointmentEntity.getVehicleTypeEntity().getModelYear());
+            }
+            appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
+
+            // Nếu dịch vụ đó không còn tồn tại, giá tạm tính phải mất
+            if(appointmentResponse.getServiceTypeResponses().isEmpty()) {
+                appointmentResponse.setQuotePrice(BigDecimal.ZERO);
+            } else {
+                appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
+            }
 
             return appointmentResponse;
         }).getContent();
@@ -162,21 +194,37 @@ public class AppointmentServiceImpl implements AppointmentService {
             UserEntity customer = appointmentEntity.getCustomer();
             appointmentResponse.setCustomer(mapUserEntityToResponse(customer));
 
+            List<UserResponse> technicianEntities = new ArrayList<>();
             appointmentEntity.getTechnicianEntities().forEach(technicianEntity -> {
                 UserResponse technicianResponse = mapUserEntityToResponse(technicianEntity);
-                appointmentResponse.getTechnicianResponses().add(technicianResponse);
+                technicianEntities.add(technicianResponse);
             });
+            appointmentResponse.setTechnicianResponses(technicianEntities);
 
             UserEntity assignee = appointmentEntity.getAssignee();
             appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
 
-            List<ServiceTypeResponse> serviceTypeResponses = appointmentEntity.getServiceTypeEntities().stream().map(serviceTypeEntity ->
-                            serviceTypeService.getServiceTypeById(serviceTypeEntity.getServiceTypeId())
-            ).collect(Collectors.toList());
-            appointmentResponse.setServiceTypeResponses(serviceTypeResponses);
+            //Lấy những dịch vụ có trong cuộc hẹn
+            appointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(appointmentEntity));
+
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            if(appointmentEntity.getVehicleTypeEntity() != null) {
+                vehicleTypeResponse.setVehicleTypeId(appointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
+                vehicleTypeResponse.setVehicleTypeName(appointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
+                vehicleTypeResponse.setManufacturer(appointmentEntity.getVehicleTypeEntity().getManufacturer());
+                vehicleTypeResponse.setModelYear(appointmentEntity.getVehicleTypeEntity().getModelYear());
+            }
+            appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
+
+            // Nếu dịch vụ đó không còn tồn tại, giá tạm tính phải mất
+            if(appointmentResponse.getServiceTypeResponses().isEmpty()) {
+                appointmentResponse.setQuotePrice(BigDecimal.ZERO);
+            } else {
+                appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
+            }
 
             return appointmentResponse;
-                }
+        }
         ).getContent();
 
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT_LIST);
@@ -205,15 +253,22 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Thêm thông tin của các kỹ thuật viên vào cuộc hẹn
-        List<UserEntity> technicians = creationAppointmentRequest.getTechnicianId().stream().map(technicianId -> {
+        //Kiểm tra trong cuộc hẹn đã có kỹ thuật viên đó chưa
+        Set<UUID> technicianIdList = new HashSet<>();
+        List<UserEntity> technicians = new ArrayList<>();
+        creationAppointmentRequest.getTechnicianId().forEach(technicianId -> {
             UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(technicianId);
-            if(technician != null) {
-                checkRoleUser(technician, RoleEnum.TECHNICIAN);
-            }
 
-            return technician;
-        }).collect(Collectors.toList());
-        appointmentEntity.setTechnicianEntities(technicians);
+            //Kiểm tra kỹ thuật viên đó có tồn tại hay không và có bị add trùng không
+            if(technician != null && !technicianIdList.contains(technicianId)) {
+                checkRoleUser(technician, RoleEnum.TECHNICIAN);
+                technicianIdList.add(technicianId);
+                technicians.add(technician);
+            }
+        });
+        if(!technicians.isEmpty()) {
+            appointmentEntity.setTechnicianEntities(technicians);
+        }
 
         UserEntity assignee = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getAssigneeId());
         if(assignee != null) {
@@ -221,27 +276,44 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointmentEntity.setAssignee(assignee);
         }
 
-        isValidServiceMode(creationAppointmentRequest.getServiceMode());
-        appointmentEntity.setServiceMode(creationAppointmentRequest.getServiceMode());
+        ServiceModeEnum serviceModeEnum = isValidServiceMode(creationAppointmentRequest.getServiceMode());
+        appointmentEntity.setServiceMode(serviceModeEnum);
 
-        isValidAppointmentStatus(creationAppointmentRequest.getStatus());
-        appointmentEntity.setStatus(creationAppointmentRequest.getStatus());
+        AppointmentStatusEnum status = isValidAppointmentStatus(creationAppointmentRequest.getStatus());
+        appointmentEntity.setStatus(status);
 
+        // Set loại dịch vụ được chọn trong bảng
         List<ServiceTypeEntity> serviceTypeEntityList = creationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
             ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
             if(serviceType == null) {
                 log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND + serviceTypeId);
                 throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
-            } else if(serviceType.getParent() == null){
+            } else if(serviceType.getParentId() == null){
                 log.warn(ServiceTypeConstants.LOG_ERR_MUST_CHOOSING_SPECIFIC_SERVICE_TYPE + serviceTypeId);
                 throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_MUST_CHOOSING_SPECIFIC_SERVICE_TYPE);
             }
             return serviceType;
-        }).toList();
+        }).collect(Collectors.toList());
         appointmentEntity.setServiceTypeEntities(serviceTypeEntityList);
 
+        // Set loại xe cho cuộc hẹn
+        VehicleTypeEntity vehicleType = vehicleTypeRepository.findByVehicleTypeIdAndIsDeletedFalse(creationAppointmentRequest.getVehicleTypeId());
+        if(vehicleType == null) {
+            log.warn(VehicleTypeConstants.LOG_ERR_VEHICLE_TYPE_NOT_FOUND + creationAppointmentRequest.getVehicleTypeId());
+            throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
+        }
+        if(!checkVehicleTypeInServiceType(serviceTypeEntityList, vehicleType)){
+            log.warn(AppointmentConstants.LOG_ERR_SERVICE_TYPE_IS_NOT_MATCH_WITH_VEHICLE_TYPE);
+            throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_SERVICE_TYPE_IS_NOT_MATCH_WITH_VEHICLE_TYPE);
+        }
+        appointmentEntity.setVehicleTypeEntity(vehicleType);
+
+        //Tính giá tạm tính cho những dịch vụ mà khách hàng chọn
+        BigDecimal quotePrice = calculateQuotePrice(serviceTypeEntityList);
+        appointmentEntity.setQuotePrice(quotePrice);
+
         // Lấy ra thông tin của cách kỹ thuật viên
-        String techniciansSearch = concatTechnicianSearchField(appointmentEntity);
+        String techniciansSearch = concatTechnicianSearchField(technicians);
 
         //Ghép các thông tin lại
         String search = UtilFunction.concatenateSearchField(appointmentEntity.getCustomerFullName(),
@@ -276,56 +348,75 @@ public class AppointmentServiceImpl implements AppointmentService {
         UserEntity customer = userRepository.findByUserIdAndIsDeletedFalse(updationAppointmentRequest.getCustomerId());
         if(customer != null) {
             checkRoleUser(customer, RoleEnum.CUSTOMER);
-            appointmentEntity.setCustomer(customer);
         }
+        appointmentEntity.setCustomer(customer);
 
         // Thêm thông tin của các kỹ thuật viên vào cuộc hẹn
-        List<UserEntity> technicians = updationAppointmentRequest.getTechnicianId().stream().map(technicianId -> {
+        //Kiểm tra trong cuộc hẹn đã có kỹ thuật viên đó chưa
+        Set<UUID> technicianIdList = new HashSet<>();
+        List<UserEntity> technicians = new ArrayList<>();
+        updationAppointmentRequest.getTechnicianId().forEach(technicianId -> {
             UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(technicianId);
-            if(technician != null) {
+
+            //Kiểm tra kỹ thuật viên đó có tồn tại hay không và có bị add trùng không
+            if(technician != null && !technicianIdList.contains(technicianId)) {
                 checkRoleUser(technician, RoleEnum.TECHNICIAN);
+                technicianIdList.add(technicianId);
+                technicians.add(technician);
             }
-
-            return technician;
-        }).collect(Collectors.toList());
+        });
         appointmentEntity.setTechnicianEntities(technicians);
-
 
         UserEntity assignee = userRepository.findByUserIdAndIsDeletedFalse(updationAppointmentRequest.getAssigneeId());
         if(assignee != null) {
             checkRoleUser(assignee, RoleEnum.STAFF);
-            appointmentEntity.setAssignee(assignee);
         }
+        appointmentEntity.setAssignee(assignee);
 
-        isValidServiceMode(updationAppointmentRequest.getServiceMode());
-        appointmentEntity.setServiceMode(updationAppointmentRequest.getServiceMode());
+        ServiceModeEnum serviceModeEnum = isValidServiceMode(updationAppointmentRequest.getServiceMode());
+        appointmentEntity.setServiceMode(serviceModeEnum);
 
-        isValidAppointmentStatus(updationAppointmentRequest.getStatus());
-        appointmentEntity.setStatus(updationAppointmentRequest.getStatus());
+        AppointmentStatusEnum status = isValidAppointmentStatus(updationAppointmentRequest.getStatus());
+        appointmentEntity.setStatus(status);
 
         List<ServiceTypeEntity> serviceTypeEntityList = updationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
             ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
             if(serviceType == null) {
                 log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND + serviceTypeId);
                 throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
-            } else if(serviceType.getParent() == null){
+            } else if(serviceType.getParentId() == null){
                 log.warn(ServiceTypeConstants.LOG_ERR_MUST_CHOOSING_SPECIFIC_SERVICE_TYPE + serviceTypeId);
                 throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_MUST_CHOOSING_SPECIFIC_SERVICE_TYPE);
             }
             return serviceType;
-        }).toList();
+        }).collect(Collectors.toList());
         appointmentEntity.setServiceTypeEntities(serviceTypeEntityList);
 
+        // Set loại xe cho cuộc hẹn
+        VehicleTypeEntity vehicleType = vehicleTypeRepository.findByVehicleTypeIdAndIsDeletedFalse(updationAppointmentRequest.getVehicleTypeId());
+        if(vehicleType == null) {
+            log.warn(VehicleTypeConstants.LOG_ERR_VEHICLE_TYPE_NOT_FOUND + updationAppointmentRequest.getVehicleTypeId());
+            throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
+        }
+        if(!checkVehicleTypeInServiceType(serviceTypeEntityList, vehicleType)){
+            log.warn(AppointmentConstants.LOG_ERR_SERVICE_TYPE_IS_NOT_MATCH_WITH_VEHICLE_TYPE);
+            throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_SERVICE_TYPE_IS_NOT_MATCH_WITH_VEHICLE_TYPE);
+        }
+        appointmentEntity.setVehicleTypeEntity(vehicleType);
+
+        //Tính giá tạm tính cho những dịch vụ mà khách hàng chọn
+        BigDecimal quotePrice = calculateQuotePrice(serviceTypeEntityList);
+        appointmentEntity.setQuotePrice(quotePrice);
 
         // Lấy ra thông tin của cách kỹ thuật viên
-        String techniciansSearch = concatTechnicianSearchField(appointmentEntity);
+        String techniciansSearch = concatTechnicianSearchField(technicians);
 
         //Ghép các thông tin lại
         String search = UtilFunction.concatenateSearchField(appointmentEntity.getCustomerFullName(),
                 appointmentEntity.getCustomerEmail(),
                 appointmentEntity.getCustomerPhoneNumber(),
                 customer != null ? customer.getSearch() : "",
-                techniciansSearch,
+                !technicians.isEmpty() ? techniciansSearch : "",
                 assignee != null ? assignee.getSearch() : "")
                 ;
         appointmentEntity.setSearch(search);
@@ -335,17 +426,33 @@ public class AppointmentServiceImpl implements AppointmentService {
         return true;
     }
 
+    // Lấy giá tạm tính cho cuộc hẹn
+    @Override
+    public BigDecimal calculateQuotePrice(List<ServiceTypeEntity> serviceTypeEntities) {
+        AtomicReference<BigDecimal> quotePrice = new AtomicReference<>(BigDecimal.ZERO);
+        log.info(AppointmentConstants.LOG_INFO_CALCULATING_QUOTE_PRICE);
+        serviceTypeEntities.forEach(serviceTypeEntity -> serviceTypeEntity.getServiceTypeVehiclePartList().forEach(serviceTypeVehiclePart -> {
+                    VehiclePartEntity vehiclePartEntity = serviceTypeVehiclePart.getVehiclePart();
+                    if (vehiclePartRepository.existsByVehiclePartIdAndIsDeletedFalse(vehiclePartEntity.getVehiclePartId()) && vehiclePartEntity.getUnitPrice() != null) {
+                        quotePrice.set(quotePrice.get().add(vehiclePartEntity.getUnitPrice()));
+                    }
+                })
+        );
+        log.info(AppointmentConstants.LOG_SUCCESS_CALCULATING_QUOTE_PRICE);
+        return quotePrice.get();
+    }
+
     @Override
     @Transactional
-    public boolean updateAppointmentStatus(UUID id, AppointmentStatusEnum statusEnum){
-        isValidAppointmentStatus(statusEnum);
+    public boolean updateAppointmentStatus(UUID id, String statusEnum){
+        AppointmentStatusEnum status = isValidAppointmentStatus(statusEnum);
 
         AppointmentEntity appointmentEntity = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(id);
         if(appointmentEntity == null) {
             log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_NOT_FOUND + id);
             throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_NOT_FOUND);
         }
-        appointmentEntity.setStatus(statusEnum);
+        appointmentEntity.setStatus(status);
 
         log.info(AppointmentConstants.LOG_INFO_UPDATING_APPOINTMENT, statusEnum);
         appointmentRepository.save(appointmentEntity);
@@ -401,20 +508,16 @@ public class AppointmentServiceImpl implements AppointmentService {
         return userResponse;
     }
 
-    private String concatTechnicianSearchField(AppointmentEntity appointmentEntity){
-        return appointmentEntity.getTechnicianEntities().stream()
-                .map(UserEntity::getSearch) // lấy thuộc tính search
-                .filter(Objects::nonNull) // loại null nếu có
-                .collect(Collectors.joining("-")
-                ); // ghép chuỗi bằng dấu "-"
-    }
-
-    private boolean isExistedUserRole(UserEntity userEntity, RoleEnum role) {
-        if (userEntity == null || userEntity.getRoles() == null) {
-            return false;
+    private String concatTechnicianSearchField(List<UserEntity> technicians) {
+        if (technicians == null || technicians.isEmpty()) {
+            return "";
         }
-        return userEntity.getRoles().stream()
-                .anyMatch(userRole -> userRole.getRoleName() != null && userRole.getRoleName().name().equals(role.name()));
+
+        return technicians.stream()
+                .filter(Objects::nonNull)
+                .map(UserEntity::getSearch)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("-"));
     }
 
     private void checkRoleUser(UserEntity userEntity, RoleEnum roleEnum) {
@@ -430,17 +533,105 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info(UserConstants.LOG_SUCCESS_VALIDATION_USER_ROLE, roleEnum.name());
     }
 
-    private void isValidServiceMode(ServiceModeEnum serviceModeEnum) {
-        if (serviceModeEnum == null || !List.of(ServiceModeEnum.values()).contains(serviceModeEnum)) {
+    private ServiceModeEnum isValidServiceMode(String serviceModeEnum) {
+        if (serviceModeEnum == null || serviceModeEnum.isBlank()) {
+            log.warn(AppointmentConstants.LOG_ERR_SERVICE_MODE_ENUM_NOT_MATCH + serviceModeEnum);
+            throw new AppointmentValidationException(AppointmentConstants.MESSAGE_ERR_SERVICE_MODE_ENUM_NOT_MATCH);
+        }
+
+        try {
+            return ServiceModeEnum.valueOf(serviceModeEnum.toUpperCase()); // Chuyển sang chữ hoa để tránh lỗi case-sensitive
+        } catch (IllegalArgumentException e) {
             log.warn(AppointmentConstants.LOG_ERR_SERVICE_MODE_ENUM_NOT_MATCH + serviceModeEnum);
             throw new AppointmentValidationException(AppointmentConstants.MESSAGE_ERR_SERVICE_MODE_ENUM_NOT_MATCH);
         }
     }
 
-    private void isValidAppointmentStatus(AppointmentStatusEnum statusEnum) {
-        if (statusEnum == null || !List.of(AppointmentStatusEnum.values()).contains(statusEnum)) {
+    private AppointmentStatusEnum isValidAppointmentStatus(String statusEnum) {
+        if (statusEnum == null || statusEnum.isBlank()) {
+            log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_STATUS_NOT_MATCH + statusEnum);
+            throw new AppointmentValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_STATUS_NOT_MATCH);
+        }
+
+        try {
+            return AppointmentStatusEnum.valueOf(statusEnum.toUpperCase());
+        } catch (IllegalArgumentException e) {
             log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_STATUS_NOT_MATCH + statusEnum);
             throw new AppointmentValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_STATUS_NOT_MATCH);
         }
     }
+
+    // Kiểm tra loại xe của dịch vụ có tương ứng không
+    private boolean checkVehicleTypeInServiceType(List<ServiceTypeEntity> serviceTypeEntities, VehicleTypeEntity vehicleTypeEntity) {
+        if (vehicleTypeEntity == null || serviceTypeEntities == null || serviceTypeEntities.isEmpty()) {
+            return false;
+        }
+
+        // Kiểm tra xem tất cả dịch vụ có cùng loại xe hay không
+        return serviceTypeEntities.stream()
+                .allMatch(serviceTypeEntity ->
+                        serviceTypeEntity != null &&
+                                serviceTypeEntity.getVehicleTypeEntity() != null &&
+                                serviceTypeEntity.getVehicleTypeEntity().getVehicleTypeId().equals(vehicleTypeEntity.getVehicleTypeId())
+                );
+    }
+
+    // Show các loại dịch vụ có trong cuộc hẹn
+    private List<ServiceTypeResponse> getServiceTypeResponsesForAppointment(AppointmentEntity appointmentEntity) {
+        // Nếu danh sách dịch vụ trống hoặc null thì trả về rỗng luôn
+        if (appointmentEntity.getServiceTypeEntities() == null || appointmentEntity.getServiceTypeEntities().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return appointmentEntity.getServiceTypeEntities().stream()
+                .filter(Objects::nonNull)
+                .filter(serviceTypeEntity -> Boolean.FALSE.equals(serviceTypeEntity.getIsDeleted())) // Chỉ lấy dịch vụ chưa bị xóa
+                .map(serviceTypeEntity -> {
+                    // Lấy thực thể cha (nếu có)
+                    ServiceTypeEntity rootEntity = serviceTypeEntity.getParent() != null
+                            ? serviceTypeEntity.getParent()
+                            : serviceTypeEntity;
+
+                    // Tạo đối tượng phản hồi cho dịch vụ cha
+                    ServiceTypeResponse rootResponse = new ServiceTypeResponse();
+                    rootResponse.setServiceTypeId(rootEntity.getServiceTypeId());
+                    rootResponse.setServiceName(rootEntity.getServiceName());
+                    rootResponse.setDescription(rootEntity.getDescription());
+
+                    // Lấy danh sách phụ tùng cho dịch vụ cha
+                    List<ServiceTypeVehiclePartResponse> parentParts =
+                            serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(rootEntity.getServiceTypeId());
+                    rootResponse.setServiceTypeVehiclePartResponses(parentParts.isEmpty() ? null : parentParts);
+
+                    // Lấy thông tin loại xe (nếu có)
+                    VehicleTypeEntity vehicleTypeEntity = serviceTypeEntity.getVehicleTypeEntity();
+                    if (vehicleTypeEntity != null) {
+                        VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+                        vehicleTypeResponse.setVehicleTypeId(vehicleTypeEntity.getVehicleTypeId());
+                        vehicleTypeResponse.setVehicleTypeName(vehicleTypeEntity.getVehicleTypeName());
+                        rootResponse.setVehicleTypeResponse(vehicleTypeResponse);
+                    }
+
+                    // Nếu có parentId → tạo response cho dịch vụ con
+                    if (serviceTypeEntity.getParentId() != null) {
+                        ServiceTypeResponse childResponse = new ServiceTypeResponse();
+                        childResponse.setServiceTypeId(serviceTypeEntity.getServiceTypeId());
+                        childResponse.setServiceName(serviceTypeEntity.getServiceName());
+                        childResponse.setDescription(serviceTypeEntity.getDescription());
+                        childResponse.setParentId(serviceTypeEntity.getParent().getServiceTypeId());
+
+                        // Lấy danh sách phụ tùng cho dịch vụ con
+                        List<ServiceTypeVehiclePartResponse> childParts =
+                                serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(serviceTypeEntity.getServiceTypeId());
+                        childResponse.setServiceTypeVehiclePartResponses(childParts.isEmpty() ? Collections.emptyList() : childParts);
+
+                        // Gắn con vào cha
+                        rootResponse.setChildren(List.of(childResponse));
+                    }
+
+                    return rootResponse;
+                })
+                .collect(Collectors.toList());
+    }
+
 }
