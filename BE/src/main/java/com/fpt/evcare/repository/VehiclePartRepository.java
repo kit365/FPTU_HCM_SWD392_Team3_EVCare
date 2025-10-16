@@ -17,6 +17,7 @@ public interface VehiclePartRepository extends JpaRepository<VehiclePartEntity, 
     Page<VehiclePartEntity> findAllByIsDeletedFalse(Pageable pageable);
     Page<VehiclePartEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String search, Pageable pageable);
     boolean existsByVehiclePartNameAndIsDeletedFalse(String name);
+    boolean existsByVehiclePartIdAndIsDeletedFalse(UUID uuid);
 
     //For data initializer
     Optional<VehiclePartEntity> findByVehiclePartNameAndVehicleType(String partName ,VehicleTypeEntity vehicleTypeEntity);

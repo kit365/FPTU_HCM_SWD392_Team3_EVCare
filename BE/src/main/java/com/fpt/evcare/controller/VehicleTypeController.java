@@ -30,6 +30,32 @@ public class VehicleTypeController {
 
     VehicleTypeService vehicleTypeService;
 
+    @Operation(summary = "Lấy danh sách tên loại xe", description = "Sử dụng để làm dropdown lấy loại xe")
+    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST)
+    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameList() {
+        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameList();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
+                .success(true)
+                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_LIST)
+                .data(vehicleTypeResponses)
+                .build()
+        );
+    }
+
+    @Operation(summary = "Lấy danh sách tên loại xe cho danh sách dịch vụ", description = "Sử dụng để dropdown cho danh sách dịch vụ của trang admin")
+    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST_FOR_SERVICE_TYPE)
+    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameListForServiceType() {
+        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameListForServiceType();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
+                .success(true)
+                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_FOR_SERVICE_TYPE_LIST)
+                .data(vehicleTypeResponses)
+                .build()
+        );
+    }
+
     @Operation(summary = "Lấy thông tin loại xe theo ID")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE)
     public ResponseEntity<ApiResponse<VehicleTypeResponse>> getVehicleType(@PathVariable UUID id) {
@@ -39,19 +65,6 @@ public class VehicleTypeController {
                 .success(true)
                 .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE)
                 .data(response)
-                .build()
-        );
-    }
-
-    @Operation(summary = "Lấy danh sách tên loại xe")
-    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST)
-    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameList() {
-        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameList();
-
-        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
-                .success(true)
-                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_LIST)
-                .data(vehicleTypeResponses)
                 .build()
         );
     }

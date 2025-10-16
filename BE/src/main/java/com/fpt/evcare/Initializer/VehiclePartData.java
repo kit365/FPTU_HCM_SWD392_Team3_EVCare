@@ -14,6 +14,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +23,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 @Order(2)
-@Transactional  // Thêm @Transactional để đảm bảo atomicity
+@Transactional
 public class VehiclePartData implements CommandLineRunner {
 
     private final VehicleTypeRepository vehicleTypeRepository;
@@ -48,27 +49,27 @@ public class VehiclePartData implements CommandLineRunner {
             // === 1. Danh mục: Động cơ ===
             createCategoryIfNotExists("Động cơ", "Các bộ phận thuộc hệ thống động cơ của xe.", vehicleType);
             List<VehiclePartEntity> engineParts = createPartsForCategory("Động cơ", vehicleType, List.of(
-                    new PartData("Lọc dầu động cơ", 50, 10, 350000f, VehiclePartStatusEnum.AVAILABLE, "Thay mỗi 10.000 km", 3),
-                    new PartData("Bugi đánh lửa", 80, 15, 120000f, VehiclePartStatusEnum.AVAILABLE, "Kiểm tra định kỳ", 2),
-                    new PartData("Dây curoa", 40, 5, 700000f, VehiclePartStatusEnum.LOW_STOCK, "Thay khi có tiếng rít", 5)
+                    new PartData("Lọc dầu động cơ", 50, 10, BigDecimal.valueOf(350000), VehiclePartStatusEnum.AVAILABLE, "Thay mỗi 10.000 km", 3),
+                    new PartData("Bugi đánh lửa", 80, 15, BigDecimal.valueOf(120000), VehiclePartStatusEnum.AVAILABLE, "Kiểm tra định kỳ", 2),
+                    new PartData("Dây curoa", 40, 5, BigDecimal.valueOf(700000), VehiclePartStatusEnum.LOW_STOCK, "Thay khi có tiếng rít", 5)
             ));
             vehiclePartRepository.saveAll(engineParts);
 
             // === 2. Danh mục: Phanh ===
             createCategoryIfNotExists("Phanh", "Các linh kiện liên quan đến hệ thống phanh của xe.", vehicleType);
             List<VehiclePartEntity> brakeParts = createPartsForCategory("Phanh", vehicleType, List.of(
-                    new PartData("Má phanh trước", 60, 10, 450000f, VehiclePartStatusEnum.AVAILABLE, "Thay khi mòn", 2),
-                    new PartData("Má phanh sau", 55, 10, 400000f, VehiclePartStatusEnum.AVAILABLE, "Thay sau 15.000 km", 2),
-                    new PartData("Dầu phanh DOT 4", 100, 20, 150000f, VehiclePartStatusEnum.AVAILABLE, "Thay mỗi 20.000 km", 3)
+                    new PartData("Má phanh trước", 60, 10, BigDecimal.valueOf(450000), VehiclePartStatusEnum.AVAILABLE, "Thay khi mòn", 2),
+                    new PartData("Má phanh sau", 55, 10, BigDecimal.valueOf(400000), VehiclePartStatusEnum.AVAILABLE, "Thay sau 15.000 km", 2),
+                    new PartData("Dầu phanh DOT 4", 100, 20, BigDecimal.valueOf(150000), VehiclePartStatusEnum.AVAILABLE, "Thay mỗi 20.000 km", 3)
             ));
             vehiclePartRepository.saveAll(brakeParts);
 
             // === 3. Danh mục: Điện & Ắc quy ===
             createCategoryIfNotExists("Điện & Ắc quy", "Các thiết bị điện và hệ thống ắc quy của xe.", vehicleType);
             List<VehiclePartEntity> electricalParts = createPartsForCategory("Điện & Ắc quy", vehicleType, List.of(
-                    new PartData("Ắc quy 12V", 25, 5, 1800000f, VehiclePartStatusEnum.LOW_STOCK, "Thay mỗi 3 năm", 3),
-                    new PartData("Cầu chì tổng", 70, 15, 50000f, VehiclePartStatusEnum.AVAILABLE, "Kiểm tra khi mất điện cục bộ", 5),
-                    new PartData("Bóng đèn pha LED", 90, 10, 600000f, VehiclePartStatusEnum.AVAILABLE, "Bóng LED tuổi thọ cao", 8)
+                    new PartData("Ắc quy 12V", 25, 5, BigDecimal.valueOf(1800000), VehiclePartStatusEnum.LOW_STOCK, "Thay mỗi 3 năm", 3),
+                    new PartData("Cầu chì tổng", 70, 15, BigDecimal.valueOf(50000), VehiclePartStatusEnum.AVAILABLE, "Kiểm tra khi mất điện cục bộ", 5),
+                    new PartData("Bóng đèn pha LED", 90, 10, BigDecimal.valueOf(600000), VehiclePartStatusEnum.AVAILABLE, "Bóng LED tuổi thọ cao", 8)
             ));
             vehiclePartRepository.saveAll(electricalParts);
 
@@ -97,7 +98,6 @@ public class VehiclePartData implements CommandLineRunner {
 
         List<VehiclePartEntity> parts = new ArrayList<>();
         for (PartData data : partDataList) {
-            // Kiểm tra part tồn tại
             Optional<VehiclePartEntity> existingPart = vehiclePartRepository.findByVehiclePartNameAndVehicleType(data.name, vehicleType);
             if (existingPart.isPresent()) {
                 log.info("Phụ tùng '{}' đã tồn tại, bỏ qua.", data.name);
@@ -122,6 +122,6 @@ public class VehiclePartData implements CommandLineRunner {
         return parts;
     }
 
-    // Record cho dữ liệu mẫu (Java 14+)
-    record PartData(String name, int currentQuantity, int minStock, float unitPrice, VehiclePartStatusEnum status, String note, int lifespan) {}
+    // Record cho dữ liệu mẫu
+    record PartData(String name, int currentQuantity, int minStock, BigDecimal unitPrice, VehiclePartStatusEnum status, String note, int lifespan) {}
 }

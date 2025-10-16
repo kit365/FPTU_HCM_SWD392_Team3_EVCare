@@ -1,9 +1,5 @@
 package com.fpt.evcare.dto.request.appointment;
 
-import com.fpt.evcare.enums.AppointmentStatusEnum;
-import com.fpt.evcare.enums.ServiceModeEnum;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -38,13 +34,20 @@ public class UpdationAppointmentRequest {
 
     UUID assigneeId;
 
+    @NotNull(message = "Loại xe không được để trống")
+    UUID vehicleTypeId;
+
+    @NotNull(message = "Biển số không được để trống")
+    String vehicleNumberPlate;
+
+    @NotNull(message = "Số Km không được để trống")
+    String vehicleKmDistances;
+
     String userAddress;
 
-    @Enumerated(EnumType.STRING)
-    ServiceModeEnum serviceMode;
+    String serviceMode;
 
-    @Enumerated(EnumType.STRING)
-    AppointmentStatusEnum status;
+    String status;
 
     LocalDateTime scheduledAt;
 

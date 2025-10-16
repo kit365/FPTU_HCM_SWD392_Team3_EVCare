@@ -58,6 +58,14 @@ public class AppointmentEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     ServiceModeEnum serviceMode;
 
+    @ManyToOne()
+    @JoinColumn(name = "vehicle_type_id")
+    VehicleTypeEntity vehicleTypeEntity;
+
+    String vehicleNumberPlate;
+
+    String vehicleKmDistances;
+
     @Column(name = "user_address")
     String userAddress;
 

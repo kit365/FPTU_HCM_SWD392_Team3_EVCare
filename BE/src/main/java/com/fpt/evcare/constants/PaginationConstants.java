@@ -7,4 +7,7 @@ public class PaginationConstants {
 
     // For Service type
     public static final String VEHICLE_TYPE_ID = "vehicle-type-id";
+
+    // For User's appointment
+    public static final String USER_ID = "user-id";
 }
