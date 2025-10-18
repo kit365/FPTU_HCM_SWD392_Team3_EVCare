@@ -170,10 +170,10 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(UserValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
+    @ExceptionHandler(EntityValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleEntityValidationException(EntityValidationException ex) {
         if (log.isErrorEnabled()) {
-            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
+            log.error("EntityValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity
@@ -185,10 +185,10 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(ServiceTypeValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleServiceTypeValidationException(ServiceTypeValidationException ex) {
+    @ExceptionHandler(UserValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
         if (log.isErrorEnabled()) {
-            log.error("ServiceTypeValidationException caught: {}", ex.getMessage(), ex);
+            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity
