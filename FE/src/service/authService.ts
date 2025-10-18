@@ -9,9 +9,9 @@ const API_BASE = `${API_BASE_URL}`;
 
 export const authService = {
     login: async (data: LoginRequest) => {
-    const response = await apiClient.post<ApiResponse<LoginResponse>>(`${API_BASE}/${LOGIN}`, data);
-    return response;
-},
+        const response = await apiClient.post<ApiResponse<LoginResponse>>(`${API_BASE}/${LOGIN}`, data);
+        return response;
+    },
     registerUser: async (data: RegisterUserRequest) => {
         const response = await apiClient.post<ApiResponse<RegisterUserResponse>>(`${API_BASE}/${REGISTER}`, data);
         return response;
