@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -41,13 +42,25 @@ public class ServiceTypeController {
         );
     }
 
+    @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST_FOR_APPOINTMENT)
+    @Operation(summary = "Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn", description = "Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn")
+    public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getListServiceTypeByVehicleTypeIdForAppointment(@PathVariable(name = "serviceTypeId") UUID id) {
+        List<ServiceTypeResponse> response = serviceTypeService.getAllServiceTypesByVehicleTypeForAppointment(id);
+        return ResponseEntity.ok(ApiResponse.< List<ServiceTypeResponse>>builder()
+                .success(true)
+                .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE)
+                .data(response)
+                .build()
+        );
+    }
+
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST)
-    @Operation(summary = "Lấy ra danh sách dịch vụ", description = "Lấy ra thông tin tất cả dịch vụ, có cấu trúc cây")
+    @Operation(summary = "Lấy ra danh sách dịch vụ theo id loại xe", description = "Lấy ra thông tin tất cả dịch vụ theo id loại xe, có cấu trúc cây")
     public ResponseEntity<ApiResponse<PageResponse<ServiceTypeResponse>>> getAllServiceTypes(
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_SIZE) int pageSize,
             @RequestParam(name = PaginationConstants.KEYWORD_KEY, defaultValue = "", required = false) String keyword,
-            @RequestParam(name = PaginationConstants.VEHICLE_TYPE_ID, required = true) UUID vehicleTypeId) {
+            @PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
         Pageable pageable = PageRequest.of(page, pageSize);
 
         PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, vehicleTypeId, pageable);

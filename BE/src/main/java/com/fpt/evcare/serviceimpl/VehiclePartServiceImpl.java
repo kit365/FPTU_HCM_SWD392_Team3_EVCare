@@ -49,8 +49,6 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     VehiclePartMapper vehiclePartMapper;
     VehiclePartCategoryRepository vehiclePartCategoryRepository;
     VehiclePartCategoryMapper vehiclePartCategoryMapper;
-    ServiceTypeVehiclePartService serviceTypeVehiclePartService;
-    AppointmentService appointmentService;
     ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
 
     @Override
