@@ -70,7 +70,7 @@ public class AppointmentConstants {
     public static final String APPOINTMENT_UPDATE = "/{id}";
     public static final String APPOINTMENT_STATUS_UPDATE = "/status/{id}";
     public static final String APPOINTMENT_STATUS = "/status/{id}";
-    public static final String SERVICE_MODE = "/service-mode/{id}";
+    public static final String SERVICE_MODE = "/service-mode/";
     public static final String APPOINTMENT_DELETE = "/{id}";
     public static final String APPOINTMENT_RESTORE = "/restore/{id}";
     public static final String APPOINTMENT_CREATION = "/";
