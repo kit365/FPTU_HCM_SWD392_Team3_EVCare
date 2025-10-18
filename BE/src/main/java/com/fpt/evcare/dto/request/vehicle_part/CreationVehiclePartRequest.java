@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
@@ -26,11 +27,17 @@ public class CreationVehiclePartRequest  {
     @Min(value = 1, message = "Số lượng tồn tối thiểu phải có ít nhất từ 1")
     Integer minStock;
 
-    @Min(value = 1, message = "Giá thành phải có ít nhất từ 1")
+    @DecimalMin(value = "1.0", message = "Giá thành phải lớn hơn hoặc bằng 1")
     @PositiveOrZero(message = "Giá thành phải là số không âm")
-    Float unitPrice;
+    BigDecimal unitPrice;
 
     VehiclePartStatusEnum status;
+
+    @NotNull(message = "Tuổi thọ trung bình không được để trống")
+    @Min(value = 0, message = "Tuổi thọ trung bình không được nhỏ hơn 0")
+    @Max(value = 100, message = "Tuổi thọ trung bình không được vượt quá 100 năm")
+    @PositiveOrZero(message = "Tuổi thọ trung bình phải là số không âm")
+    Integer averageLifespan;
 
     String note;
 

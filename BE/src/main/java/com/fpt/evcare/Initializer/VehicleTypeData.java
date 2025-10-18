@@ -4,10 +4,12 @@ import com.fpt.evcare.dto.request.vehicle_type.CreationVehicleTypeRequest;
 import com.fpt.evcare.service.VehicleTypeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Order(1)
 public class VehicleTypeData implements CommandLineRunner {
 
     private final VehicleTypeService vehicleTypeService;
@@ -54,6 +56,4 @@ public class VehicleTypeData implements CommandLineRunner {
         vf9.setDescription("SUV điện 7 chỗ hạng E của VinFast, pin 92kWh, tầm hoạt động 594 km.");
         vehicleTypeService.addVehicleType(vf9);
     }
-
-
 }

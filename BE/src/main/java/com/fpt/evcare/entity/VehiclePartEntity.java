@@ -7,6 +7,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.CreatedDate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "vehicle_part_inventories")
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -34,7 +36,7 @@ public class VehiclePartEntity extends BaseEntity {
     Integer minStock;
 
     @Column(name = "unit_price")
-    Float unitPrice;
+    BigDecimal unitPrice;
 
     @Column(name = "last_restock_date")
     @CreatedDate
@@ -43,6 +45,9 @@ public class VehiclePartEntity extends BaseEntity {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     VehiclePartStatusEnum status = VehiclePartStatusEnum.AVAILABLE;
+
+    @Column(name = "average_lifespan")
+    Integer averageLifespan;
 
     @Column(name = "note", length = 500)
     String note;

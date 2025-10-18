@@ -48,6 +48,10 @@ public class VehicleTypeEntity extends BaseEntity {
     @Column(name = "search")
     String search;
 
-    @OneToMany(mappedBy = "vehicleType")
+    @OneToMany(mappedBy = "vehicleTypeEntity",fetch = FetchType.LAZY)
+    List<ServiceTypeEntity> serviceTypes;
+
+    @OneToMany(mappedBy = "vehicleType",fetch = FetchType.LAZY)
     List<VehiclePartEntity> vehicleParts;
+
 }

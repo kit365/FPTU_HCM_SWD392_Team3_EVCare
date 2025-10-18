@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,10 +30,35 @@ public class VehicleTypeController {
 
     VehicleTypeService vehicleTypeService;
 
+    @Operation(summary = "Lấy danh sách tên loại xe", description = "Sử dụng để làm dropdown lấy loại xe")
+    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST)
+    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameList() {
+        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameList();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
+                .success(true)
+                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_LIST)
+                .data(vehicleTypeResponses)
+                .build()
+        );
+    }
+
+    @Operation(summary = "Lấy danh sách tên loại xe cho danh sách dịch vụ", description = "Sử dụng để dropdown cho danh sách dịch vụ của trang admin")
+    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST_FOR_SERVICE_TYPE)
+    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameListForServiceType() {
+        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameListForServiceType();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
+                .success(true)
+                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_FOR_SERVICE_TYPE_LIST)
+                .data(vehicleTypeResponses)
+                .build()
+        );
+    }
+
     @Operation(summary = "Lấy thông tin loại xe theo ID")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE)
     public ResponseEntity<ApiResponse<VehicleTypeResponse>> getVehicleType(@PathVariable UUID id) {
-        log.info(VehicleTypeConstants.LOG_SUCCESS_SHOWING_VEHICLE_TYPE, id);
         VehicleTypeResponse response = vehicleTypeService.getVehicleTypeById(id);
 
         return ResponseEntity.ok(ApiResponse.<VehicleTypeResponse>builder()
@@ -50,8 +76,6 @@ public class VehicleTypeController {
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
             @Nullable @RequestParam(name = "keyword") String keyword) {
 
-        log.info(VehicleTypeConstants.LOG_SUCCESS_SHOWING_VEHICLE_TYPE_LIST, keyword);
-
         Pageable pageable = PageRequest.of(page, pageSize);
         PageResponse<VehicleTypeResponse> response = vehicleTypeService.searchVehicleTypes(keyword, pageable);
 
@@ -67,7 +91,6 @@ public class VehicleTypeController {
     @PostMapping(VehicleTypeConstants.VEHICLE_TYPE_CREATION)
     public ResponseEntity<ApiResponse<String>> createVehicleType(@Valid @RequestBody CreationVehicleTypeRequest request) {
 
-        log.info(VehicleTypeConstants.LOG_SUCCESS_CREATING_VEHICLE_TYPE, request);
         boolean result = vehicleTypeService.addVehicleType(request);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -81,7 +104,6 @@ public class VehicleTypeController {
     @PatchMapping(VehicleTypeConstants.VEHICLE_TYPE_UPDATE)
     public ResponseEntity<ApiResponse<String>> updateVehicleType(@PathVariable UUID id, @Valid @RequestBody UpdationVehicleTypeRequest request) {
 
-        log.info(VehicleTypeConstants.LOG_SUCCESS_UPDATING_VEHICLE_TYPE, id);
         boolean result = vehicleTypeService.updateVehicleType(id, request);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -94,7 +116,6 @@ public class VehicleTypeController {
     @Operation(summary = "Xóa loại xe")
     @DeleteMapping(VehicleTypeConstants.VEHICLE_TYPE_DELETE)
     public ResponseEntity<ApiResponse<String>> deleteVehicleType(@PathVariable UUID id) {
-        log.info(VehicleTypeConstants.LOG_SUCCESS_DELETING_VEHICLE_TYPE, id);
         boolean result = vehicleTypeService.deleteVehicleType(id);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -107,7 +128,6 @@ public class VehicleTypeController {
     @Operation(summary = "Khôi phục loại xe đã xóa")
     @PatchMapping(VehicleTypeConstants.VEHICLE_TYPE_RESTORE)
     public ResponseEntity<ApiResponse<String>> restoreVehicleType(@PathVariable UUID id) {
-        log.info(VehicleTypeConstants.LOG_SUCCESS_RESTORING_VEHICLE_TYPE, id);
         boolean result = vehicleTypeService.restoreVehicleType(id);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()

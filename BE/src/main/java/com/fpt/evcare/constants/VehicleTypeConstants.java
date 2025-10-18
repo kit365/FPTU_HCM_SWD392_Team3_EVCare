@@ -2,8 +2,13 @@ package com.fpt.evcare.constants;
 
 public class VehicleTypeConstants {
 
+    //Enum for service name
+    public static final String PREFIX_SERVICE_NAME = "Dịch vụ cho xe ";
+
     // Success message
     public static final String MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE = "Lấy danh sách loại xe thành công";
+    public static final String MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_LIST = "Đang lấy danh sách tên loại xe";
+    public static final String MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_FOR_SERVICE_TYPE_LIST = "Đang lấy danh sách tên loại xe cho danh sách dịch vụ";
     public static final String MESSAGE_SUCCESS_CREATING_VEHICLE_TYPE = "Tạo loại xe thành công";
     public static final String MESSAGE_SUCCESS_UPDATING_VEHICLE_TYPE = "Cập nhật loại xe thành công";
     public static final String MESSAGE_SUCCESS_DELETING_VEHICLE_TYPE = "Xóa loại xe thành công";
@@ -26,13 +31,14 @@ public class VehicleTypeConstants {
     public static final String LOG_SUCCESS_SHOWING_VEHICLE_TYPE = "Đang lấy thông tin loại xe: {}";
     public static final String LOG_SUCCESS_SHOWING_VEHICLE_TYPE_LIST = "Đang lấy danh sách loại xe: {}";
     public static final String LOG_SUCCESS_CREATING_VEHICLE_TYPE = "Đang tạo loại xe: {}";
-    public static final String LOG_SUCCESS_UPDATING_VEHICLE_TYPE = "Đang cập nhật loại xe: {}";
     public static final String LOG_SUCCESS_DELETING_VEHICLE_TYPE = "Đang xóa loại xe: {}";
     public static final String LOG_SUCCESS_RESTORING_VEHICLE_TYPE = "Đang khôi phục loại xe: {}";
 
     // Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/vehicle-type";
     public static final String VEHICLE_TYPE_LIST = "/";
+    public static final String VEHICLE_TYPE_NAME_LIST = "/vehicle-type-name/";
+    public static final String VEHICLE_TYPE_NAME_LIST_FOR_SERVICE_TYPE = "/service-type/name/";
     public static final String VEHICLE_TYPE = "/{id}";
     public static final String VEHICLE_TYPE_UPDATE = "/{id}";
     public static final String VEHICLE_TYPE_DELETE = "/{id}";
