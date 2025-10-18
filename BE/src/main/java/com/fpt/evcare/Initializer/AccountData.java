@@ -1,4 +1,4 @@
-package com.fpt.evcare.Initializer;
+package com.fpt.evcare.initializer;
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.RoleEnum;
@@ -27,6 +27,17 @@ public class AccountData implements CommandLineRunner {
         RoleEntity role = new RoleEntity();
         role.setRoleName(RoleEnum.CUSTOMER);
         roleRepository.save(role);
+
+        RoleEntity role1 = new RoleEntity();
+        role1.setRoleName(RoleEnum.ADMIN);
+        roleRepository.save(role1);
+
+        RoleEntity role2 = new RoleEntity();
+        role2.setRoleName(RoleEnum.STAFF);
+        roleRepository.save(role2);
+
+        RoleEntity role3 = new RoleEntity();
+        role3.setRoleName(RoleEnum.TECHNICIAN);
     }
 
     private void createUser() {
@@ -44,7 +55,7 @@ public class AccountData implements CommandLineRunner {
                         .build()
         };
         for (UserEntity user : account) {
-            if (userRepository.findByEmail(user.getEmail()) == null) {
+            if (userRepository.findByEmailAndIsDeletedFalse(user.getEmail()) == null) {
                 userRepository.save(user);
             }
         }

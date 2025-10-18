@@ -5,12 +5,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "Vehicle_part_categories")
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -23,15 +23,15 @@ public class VehiclePartCategoryEntity extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID vehiclePartCategoryId;
 
-    @Column(name = "part_category_name", nullable = false, unique = true)
+    @Column(name = "part_category_name", nullable = false)
     String partCategoryName;
 
     @Column(name = "description", length = 500)
     String description;
 
-    @Column(name = "average_lifespan")
-    Integer averageLifespan;
-
     @Column(name = "search", length = 255)
     String search;
+
+    @OneToMany(mappedBy = "vehiclePartCategories")
+    List<VehiclePartEntity> vehicleParts;
 }

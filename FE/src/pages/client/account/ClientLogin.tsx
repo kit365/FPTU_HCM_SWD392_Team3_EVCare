@@ -1,78 +1,72 @@
-import { Button, Form, Input, Modal, notification } from 'antd';
+import { Button, Form, Input, Modal } from 'antd';
 import type { FormProps } from 'rc-field-form';
-import { useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useForgotPassword } from '../../../hooks/useForgotPassword';
 import { useState } from 'react';
-import type { RequestOtpRequest, VerifyOtpRequest } from '../../../type/forgot-password';
+import type { RequestOtpRequest, VerifyOtpRequest } from '../../../types/admin/forgot-password';
+import { useAuthClient } from '../../../hooks/useAuthClient';
+import type { LoginRequest } from '../../../type/auth';
 
 const ClientLogin = () => {
-    const navigate = useNavigate();
-    const onFinish: FormProps['onFinish'] = (values) => {
-        if (values.email! && values.password!) {
-            console.log('gia tri form login: ', values)
-            notification.success({
-                message: "Login thành công",
-                description: "JSON.stringify(res.message) o day"
-            })
-            navigate("/");
-        } else {
-            notification.error({
-                message: "Login thất bại",
-                description: "JSON.stringify(res.message) o day"
-            })
+    const { login, isLoading } = useAuthClient();
+
+    const onFinish: FormProps['onFinish'] = async (values) => {
+        const payload: LoginRequest = {
+            email: values.email,
+            password: values.password
         };
+        await login(payload);
     };
 
     const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
     const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'reset'>('email');
     const [emailForOtp, setEmailForOtp] = useState('');
     const [otpForReset, setOtpForReset] = useState('');
-    const { register,
+    const {
+        register,
         handleSubmit,
-        formState:
-        {errors},
+        formState: { errors },
         reset,
-        setError }
-        = useForm<{ email: string, otp: string, newPassword: string, confirmPassword: string }>();
-    const { requestOTP, isLoading, verifyOTP, resetPassword } = useForgotPassword();
+        setError
+    } = useForm<{ email: string; otp: string; newPassword: string; confirmPassword: string }>();
+    const { requestOTP, isLoading: isForgotLoading, verifyOTP, resetPassword } = useForgotPassword();
 
     const handleForgotPassword = async (data: RequestOtpRequest) => {
-            const res = await requestOTP(data);
-            if (res.success) {
-                setEmailForOtp(data.email);
-                setForgotStep('otp');
-            }
-    };
-
-    const handleVerifyOtp = async (data: VerifyOtpRequest) => {
-          const response = await verifyOTP(data);
-        if(response.data.isValid === true) {
-            setOtpForReset(data.otp);
-            setForgotStep('reset');
+        const res = await requestOTP(data);
+        if (res.success) {
+            setEmailForOtp(data.email);
+            setForgotStep('otp');
         }
     };
 
-    const handleResetPassword = async (data: { newPassword: string, confirmPassword: string }) => {
+    const handleVerifyOtp = async (data: VerifyOtpRequest) => {
+        const response = await verifyOTP(data);
+        if (response.data.isValid === true) {
+            setOtpForReset(data.otp);
+            setForgotStep('reset');
+        }
+    }
+
+    const handleResetPassword = async (data: { newPassword: string; confirmPassword: string }) => {
         if (data.newPassword !== data.confirmPassword) {
             setError('confirmPassword', { message: 'Mật khẩu xác nhận không khớp' });
             return;
         }
-        
+
         try {
-            const res = await resetPassword({ 
-                email: emailForOtp, 
+            const res = await resetPassword({
+                email: emailForOtp,
                 otp: otpForReset,
-                newPassword: data.newPassword 
+                newPassword: data.newPassword
             });
             if (res.success) {
                 setIsForgotModalOpen(false);
                 setForgotStep('email');
                 reset();
             }
-        } catch (error) {
-            // Hook đã xử lý notify
+        } catch {
+            // notify đã được hook xử lý
         }
     };
 
@@ -86,7 +80,6 @@ const ClientLogin = () => {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            {/* Content */}
             <div className="min-h-screen flex items-center justify-center p-6">
                 <div className="w-full max-w-2xl bg-white rounded-2xl shadow-md p-12">
                     <h2 className="text-center text-2xl font-bold mb-6">
@@ -124,12 +117,24 @@ const ClientLogin = () => {
                         </Form.Item>
 
                         <Form.Item>
-                            <Button type="primary" htmlType="submit" className="w-full" size="large">
-                                Đăng nhập
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                className="w-full"
+                                size="large"
+                                loading={isLoading}
+                            >
+                                {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                             </Button>
                         </Form.Item>
+
                         <Form.Item>
-                            <Button type="link" className="w-full text-left" style={{ padding: 0 }} onClick={() => setIsForgotModalOpen(true)}>
+                            <Button
+                                type="link"
+                                className="w-full text-left"
+                                style={{ padding: 0 }}
+                                onClick={() => setIsForgotModalOpen(true)}
+                            >
                                 Quên mật khẩu?
                             </Button>
                         </Form.Item>
@@ -155,14 +160,20 @@ const ClientLogin = () => {
                                 type="email"
                                 className="w-full border rounded px-3 py-2"
                                 placeholder="Nhập email của bạn"
-                                {...register('email', { required: 'Vui lòng nhập email', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Email không hợp lệ' } })}
+                                {...register('email', {
+                                    required: 'Vui lòng nhập email',
+                                    pattern: {
+                                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                        message: 'Email không hợp lệ'
+                                    }
+                                })}
                             />
                             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                         </div>
                         <div className="flex justify-end gap-2">
                             <button type="button" className="px-4 py-2" onClick={handleCloseForgotModal}>Đóng</button>
-                            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={isLoading}>
-                                {isLoading ? 'Đang gửi...' : 'Gửi mã OTP'}
+                            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={isForgotLoading}>
+                                {isForgotLoading ? 'Đang gửi...' : 'Gửi mã OTP'}
                             </button>
                         </div>
                     </form>
@@ -195,7 +206,7 @@ const ClientLogin = () => {
                                 type="password"
                                 className="w-full border rounded px-3 py-2"
                                 placeholder="Nhập mật khẩu mới"
-                                {...register('newPassword', { 
+                                {...register('newPassword', {
                                     required: 'Vui lòng nhập mật khẩu mới',
                                     minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
                                 })}
@@ -208,7 +219,7 @@ const ClientLogin = () => {
                                 type="password"
                                 className="w-full border rounded px-3 py-2"
                                 placeholder="Nhập lại mật khẩu mới"
-                                {...register('confirmPassword', { 
+                                {...register('confirmPassword', {
                                     required: 'Vui lòng xác nhận mật khẩu'
                                 })}
                             />
@@ -216,8 +227,8 @@ const ClientLogin = () => {
                         </div>
                         <div className="flex justify-between gap-2">
                             <button type="button" className="px-4 py-2" onClick={() => { setForgotStep('otp'); reset(); }}>Quay lại</button>
-                            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={isLoading}>
-                                {isLoading ? 'Đang đổi...' : 'Đổi mật khẩu'}
+                            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={isForgotLoading}>
+                                {isForgotLoading ? 'Đang đổi...' : 'Đổi mật khẩu'}
                             </button>
                         </div>
                     </form>

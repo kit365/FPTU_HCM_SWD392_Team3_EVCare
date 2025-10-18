@@ -1,15 +1,19 @@
 package com.fpt.evcare.repository;
 
 import com.fpt.evcare.entity.VehiclePartCategoryEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface VehiclePartCategoryRepository extends JpaRepository <VehiclePartCategoryEntity, UUID> {
     VehiclePartCategoryEntity findByVehiclePartCategoryIdAndIsDeletedFalse(UUID id);
-    List<VehiclePartCategoryEntity> findAllByIsDeletedFalse();
-    List<VehiclePartCategoryEntity> findBySearchContainingIgnoreCase(String keyword);
-    boolean existsByPartCategoryName(String partCategoryName);
+    Page<VehiclePartCategoryEntity> findAllByIsDeletedFalse(Pageable pageable);
+    Page<VehiclePartCategoryEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
     boolean existsByPartCategoryNameAndIsDeletedFalse(String partCategoryName);
+
+    //For data initializer
+    Optional<VehiclePartCategoryEntity> findByPartCategoryName(String partCategoryName);
 }

@@ -24,11 +24,11 @@ export const StaffPage = () => {
 
     // Fake data
     const staffList: StaffProps[] = [
-        { id: "1", name: "Nguyễn Văn A", email: "a.nguyen@example.com", status: "active", lastLogin: "2025-09-18 10:23" },
-        { id: "2", name: "Trần Thị B", email: "b.tran@example.com", status: "inactive", lastLogin: "2025-09-17 15:42" },
-        { id: "3", name: "Lê Văn C", email: "c.le@example.com", status: "active", lastLogin: "2025-09-18 08:11" },
-        { id: "4", name: "Phạm Thị D", email: "d.pham@example.com", status: "inactive", lastLogin: "2025-09-16 14:05" },
-        { id: "5", name: "Hoàng Văn E", email: "e.hoang@example.com", status: "active", lastLogin: "2025-09-15 09:12" },
+        { userId: "1", name: "Nguyễn Văn A", email: "a.nguyen@example.com", status: "active", lastLogin: "2025-09-18 10:23" },
+        { userId: "2", name: "Trần Thị B", email: "b.tran@example.com", status: "inactive", lastLogin: "2025-09-17 15:42" },
+        { userId: "3", name: "Lê Văn C", email: "c.le@example.com", status: "active", lastLogin: "2025-09-18 08:11" },
+        { userId: "4", name: "Phạm Thị D", email: "d.pham@example.com", status: "inactive", lastLogin: "2025-09-16 14:05" },
+        { userId: "5", name: "Hoàng Văn E", email: "e.hoang@example.com", status: "active", lastLogin: "2025-09-15 09:12" },
         { id: "6", name: "Đặng Thị F", email: "f.dang@example.com", status: "inactive", lastLogin: "2025-09-14 18:27" },
         { id: "7", name: "Bùi Văn G", email: "g.bui@example.com", status: "active", lastLogin: "2025-09-13 11:34" },
         { id: "8", name: "Ngô Thị H", email: "h.ngo@example.com", status: "active", lastLogin: "2025-09-12 16:50" },

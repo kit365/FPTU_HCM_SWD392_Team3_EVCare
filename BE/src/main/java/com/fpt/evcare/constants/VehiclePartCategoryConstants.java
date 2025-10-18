@@ -1,6 +1,6 @@
 package com.fpt.evcare.constants;
 
-public class VehiclePartCategoryConstant {
+public class VehiclePartCategoryConstants {
 
     //Sucess message
     public static final String MESSAGE_SUCCESS_SHOWING_VEHICLE_PART_CATEGORY = "Lấy danh mục phụ tùng dùng thành công";
@@ -8,6 +8,7 @@ public class VehiclePartCategoryConstant {
     public static final String MESSAGE_SUCCESS_CREATING_VEHICLE_PART_CATEGORY = "Tạo danh mục phụ tùng thành công";
     public static final String MESSAGE_SUCCESS_UPDATING_VEHICLE_PART_CATEGORY = "Cập nhật danh mục phụ tùng thành công";
     public static final String MESSAGE_SUCCESS_DELETING_VEHICLE_PART_CATEGORY = "Xóa danh mục phụ tùng thành công";
+    public static final String MESSAGE_SUCCESS_RESTORING_VEHICLE_PART_CATEGORY = "Khôi phục danh mục phụ tùng thành công";
 
     //Failed message
     public static final String MESSAGE_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND = "Không tìm thấy danh mục phụ tùng";
@@ -26,12 +27,17 @@ public class VehiclePartCategoryConstant {
     public static final String LOG_INFO_UPDATING_VEHICLE_PART_CATEGORY = "Đang cập nhật danh mục phụ tùng: {}";
     public static final String LOG_INFO_DELETING_VEHICLE_PART_CATEGORY = "Đang xóa danh mục phụ tùng: {}";
     public static final String LOG_INFO_RESTORING_VEHICLE_PART_CATEGORY = "Đang khôi phục danh mục phụ tùng với từ khóa: {}";
+    public  static final String LOG_SUCCESS_SHOWING_VEHICLE_PART_CATEGORY = "Lấy danh mục phụ tùng dùng thành công";
+    public  static final String LOG_SUCCESS_SHOWING_VEHICLE_PART_CATEGORY_LIST = "Lấy danh sách danh mục phụ tùng dùng thành công";
+    public static final String LOG_SUCCESS_CREATING_VEHICLE_PART_CATEGORY = "Tạo danh mục phụ tùng thành công";
+    public static final String LOG_SUCCESS_UPDATING_VEHICLE_PART_CATEGORY = "Cập nhật danh mục phụ tùng thành công";
+    public static final String LOG_SUCCESS_DELETING_VEHICLE_PART_CATEGORY = "Xóa danh mục phụ tùng thành công";
+    public static final String LOG_SUCCESS_RESTORING_VEHICLE_PART_CATEGORY = "Khôi phục danh mục phụ tùng thành công";
 
     // Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/part-category";
     public static final String VEHICLE_PART_CATEGORY_LIST= "/";
     public static final String VEHICLE_PART_CATEGORY = "/{id}";
-    public static final String VEHICLE_PART_CATEGORY_SEARCH = "/search";
     public static final String VEHICLE_PART_CATEGORY_UPDATE = "/{id}";
     public static final String VEHICLE_PART_CATEGORY_DELETE = "/{id}";
     public static final String VEHICLE_PART_CATEGORY_RESTORING = "/restore/{id}";

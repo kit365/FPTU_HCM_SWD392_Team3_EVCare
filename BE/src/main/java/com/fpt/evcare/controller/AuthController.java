@@ -5,23 +5,30 @@ import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.dto.request.LoginRequest;
 import com.fpt.evcare.dto.request.LogoutRequest;
 import com.fpt.evcare.dto.request.TokenRequest;
-import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.RegisterUserRequest;
 import com.fpt.evcare.dto.response.LoginResponse;
 import com.fpt.evcare.dto.response.RegisterUserResponse;
 import com.fpt.evcare.dto.response.TokenResponse;
+import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.AuthService;
-import com.fpt.evcare.service.UserService;
 import com.nimbusds.jose.JOSEException;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -30,8 +37,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(AuthConstants.BASE_URL)
 public class AuthController {
     AuthService authService;
-    UserService userService;
-
 
     @PostMapping(AuthConstants.LOGIN)
     @Operation(summary = "Đăng nhập tài khoản", description = "Người dùng đăng nhập bằng email và mật khẩu, trả về JWT token")
@@ -73,9 +78,19 @@ public class AuthController {
     }
 
     @PostMapping(AuthConstants.VALID)
-    public ResponseEntity<ApiResponse<TokenResponse>> validateToken(@RequestBody TokenRequest request) throws JOSEException {
+    public ResponseEntity<ApiResponse<TokenResponse>> validateToken(@RequestBody TokenRequest request) {
         TokenResponse tokenResponse = authService.validateToken(request);
         return ResponseEntity.ok(ApiResponse.<TokenResponse>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_VALIDATE_TOKEN)
+                .data(tokenResponse)
+                .build());
+    }
+
+    @PostMapping(AuthConstants.USER_TOKEN)
+    public ResponseEntity<ApiResponse<UserResponse>> getUserByToken(@RequestBody TokenRequest request) {
+        UserResponse tokenResponse = authService.getUserByToken(request);
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message(AuthConstants.MESSAGE_SUCCESS_VALIDATE_TOKEN)
                 .data(tokenResponse)
@@ -85,9 +100,35 @@ public class AuthController {
 
 
 
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody LogoutRequest request) {
-        authService.logout(request);
-        return ResponseEntity.ok("Logout successful");
+    @PostMapping(AuthConstants.LOGOUT)
+    public ResponseEntity<ApiResponse<String>> logout(@RequestBody LogoutRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGOUT)
+                .data(authService.logout(request))
+                .build());
     }
+
+
+    @GetMapping()
+    public Principal getCurrentUser(Principal principal) {
+        return principal;
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> user(
+            @AuthenticationPrincipal OAuth2User principal,
+            @RegisteredOAuth2AuthorizedClient("google") OAuth2AuthorizedClient authorizedClient) {
+
+        Map<String, Object> request = authService.getUserInfo(principal, authorizedClient);
+
+        return ResponseEntity.ok(ApiResponse.<Map<String, Object>>builder()
+                .success(true)
+                .message(AuthConstants.MESSAGE_SUCCESS_GOOGLE_LOGIN)
+                .data(request)
+                .build());
+    }
+
+
 }

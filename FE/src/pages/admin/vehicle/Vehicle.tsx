@@ -1,42 +1,53 @@
-import React from 'react'
 import { Card } from "@mui/material";
 import { TrashSolid, Plus } from 'iconoir-react';
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { pathAdmin } from "../../../constants/paths.constant";
 import type { ButtonItemProps } from "../../../types/admin/button-item.types";
 import { TableAdmin } from "../../../components/admin/ui/Table";
-import type { StaffProps } from "../../../types/admin/staff.types";
+import { useEffect, useState } from "react";
+import { useCarModel } from "../../../hooks/useCarModel";
 
 export const Vehicle = () => {
-    
+
+    const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null); // Dữ liệu mẫu xe được chọn
+    const [mode, setMode] = useState<"edit" | "view" | null>(null); // Chế độ hiện tại (edit/view)
+
+
+    const handleEdit = (vehicle: any) => {
+        setSelectedVehicle(vehicle);
+        setMode("edit");
+    };
+
+    const handleView = (vehicle: any) => {
+        setSelectedVehicle(vehicle);
+        setMode("view");
+    };
+
+
+    const {
+        vehicleList, fetchVehicleTypeList } = useCarModel();
+
+    useEffect(() => {
+        fetchVehicleTypeList({ page: 0, pageSize: 10, keyword: "" });
+    }, []);
+
+
     const buttonsList: ButtonItemProps[] = [
-        {
-            icon: TrashSolid,
-            href: `/${pathAdmin}/vehicle/trash`,
-            text: "Thùng rác",
-            className: "bg-[#ef4d56] border-[#ef4d56] shadow-[0_1px_2px_0_rgba(239,77,86,0.35)] mr-[0.6rem]",
-        },
+        // {
+        //     icon: TrashSolid,
+        //     href: `/${pathAdmin}/vehicle/trash`,
+        //     text: "Thùng rác",
+        //     className: "bg-[#ef4d56] border-[#ef4d56] shadow-[0_1px_2px_0_rgba(239,77,86,0.35)] mr-[0.6rem]",
+        // },
         {
             icon: Plus,
             href: `/${pathAdmin}/vehicle/create`,
             text: "Tạo mẫu xe",
             className: "bg-[#22c55e] border-[#22c55e] shadow-[0_1px_2px_0_rgba(34,197,94,0.35)]",
         },
+
     ]
 
-    // Fake data
-const staffList: StaffProps[] = [
-  { id: "1", name: "VinFast Lux A2.0", email: "", status: "active", lastLogin: "" },
-  { id: "2", name: "VinFast Lux SA2.0", email: "", status: "inactive", lastLogin: "" },
-  { id: "3", name: "VinFast Fadil", email: "", status: "active", lastLogin: "" },
-  { id: "4", name: "VinFast VF e34", email: "", status: "inactive", lastLogin: "" },
-  { id: "5", name: "VinFast VF 8", email: "", status: "active", lastLogin: "" },
-  { id: "6", name: "VinFast VF 9", email: "", status: "inactive", lastLogin: "" },
-  { id: "7", name: "McLaren 570S", email: "", status: "active", lastLogin: "" },
-  { id: "8", name: "McLaren 720S", email: "", status: "inactive", lastLogin: "" },
-  { id: "9", name: "McLaren GT", email: "", status: "active", lastLogin: "" },
-  { id: "10", name: "McLaren Artura", email: "", status: "inactive", lastLogin: "" },
-];
 
     interface TableColumn {
         title: string;
@@ -47,11 +58,15 @@ const staffList: StaffProps[] = [
 
     const columns: TableColumn[] = [
         { title: "", width: 5, align: "center", key: "checkbox" },
-        { title: "STT", width: 10, align: "left", key: "stt" },
-        { title: "Tên mẫu xe", width: 15, key: "name" },
-        { title: "Trạng thái", width: 15, align: "left", key: "status" },
-        // { title: "Lần đăng nhập cuối", width: 15, align: "left", key: "lastLogin" },
-        { title: "Hành động", width: 20, align: "center", key: "actions" },
+        { title: "STT", width: 8, align: "center", key: "stt" },
+        { title: "Tên mẫu xe", width: 20, align: "left", key: "vehicleTypeName" },
+        { title: "Hãng sản xuất", width: 15, align: "left", key: "manufacturer" },
+        { title: "Năm sản xuất", width: 10, align: "center", key: "modelYear" },
+        { title: "Dung lượng pin (kWh)", width: 15, align: "center", key: "batteryCapacity" },
+        { title: "Bảo dưỡng (km)", width: 15, align: "center", key: "maintenanceIntervalKm" },
+        { title: "Bảo dưỡng (tháng)", width: 15, align: "center", key: "maintenanceIntervalMonths" },
+        // { title: "Mô tả", width: 30, align: "left", key: "description" },
+        { title: "Hành động", width: 15, align: "center", key: "actions" },
     ];
 
     return (
@@ -64,11 +79,15 @@ const staffList: StaffProps[] = [
                         buttons={buttonsList}
                     />
                     {/* Content */}
-                    <TableAdmin dataList={staffList} columns={columns} />
+                    <TableAdmin
+                        dataList={vehicleList}
+                        columns={columns}
+                        getEditUrl={(item) => `/admin/vehicle/edit/${item.vehicleTypeId || item.id}`}
+                        getViewUrl={(item) => `/admin/vehicle/view/${item.vehicleTypeId || item.id}`}
+                    />
                 </Card >
             </div >
         </>
     )
 }
 
- 
