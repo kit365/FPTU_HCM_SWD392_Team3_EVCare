@@ -17,6 +17,7 @@ public class ServiceTypeConstants {
     //Failed message
     public static final String MESSAGE_ERR_PARENT_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy dịch vụ cha";
     public static final String MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy dịch vụ";
+    public static final String MESSAGE_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ cho id loại xe";
     public static final String MESSAGE_ERR_PARENT_SERVICE_TYPE_DELETED = "dịch vụ cha đã bị xóa";
     public static final String MESSAGE_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY = "Phát hiện vòng lặp trong cấu trúc dịch vụ";
     public static final String MESSAGE_ERR_DUPLICATED_SERVICE_TYPE = "Loại dịch vụ này đã tồn tại";
@@ -32,6 +33,7 @@ public class ServiceTypeConstants {
     public static final String LOG_ERR_SERVICE_TYPE_IS_USED_ON_APPOINTMENT = "Loại dịch vụ này được sử dụng trong cuộc hẹn: {}";
 
     public static final String LOG_ERR_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ: {}";
+    public static final String LOG_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ cho id loại xe: {}";
     public static final String LOG_ERR_PARENT_SERVICE_TYPE_IS_DELETED = "Loại dịch vụ cha đã bị xóa: {}";
     public static final String LOG_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY = "Phát hiện vòng lặp trong cấu trúc dịch vụ: {}";
     public static final String LOG_ERR_DUPLICATED_SERVICE_TYPE  = "Loại dịch vụ này đã tồn tại: {}";
@@ -40,7 +42,7 @@ public class ServiceTypeConstants {
 
     //Success Logs
     public static final String LOG_INFO_SHOWING_SERVICE_TYPE = "Đang lấy loại dịch vụ với id: {}";
-    public static final String LOG_INFO_SHOWING_SERVICE_TYPE_LIST = "Đang lấy danh sách loại dịch vụ: {}";
+    public static final String LOG_INFO_SHOWING_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE_FOR_APPOINTMENT = "Đang lấy danh sách loại dịch vụ trong cuộc hẹn theo id loại xe: {}";
     public static final String LOG_INFO_SHOWING_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE = "Đang lấy danh sách loại dịch vụ theo id loại xe: {}";
     public static final String LOG_INFO_CREATING_SERVICE_TYPE = "Đang tạo loại dịch vụ: {}";
     public static final String LOG_INFO_UPDATING_SERVICE_TYPE = "Đang cập nhật loại dịch vụ: {}";
@@ -51,10 +53,10 @@ public class ServiceTypeConstants {
 
     //Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/service-type";
-    public static final String SERVICE_TYPE_LIST= "/";
+    public static final String SERVICE_TYPE_LIST= "/vehicle_type/{vehicleTypeId}";
+    public static final String SERVICE_TYPE_LIST_FOR_APPOINTMENT= "/appointment/service-type/{serviceTypeId}";
     public static final String SERVICE_TYPE = "/{id}";
     public static final String SERVICE_TYPE_UPDATE = "/{id}";
-
 
     public static final String SERVICE_TYPE_DELETE = "/{id}";
     public static final String RESTORING_SERVICE_TYPE = "/restore/{id}";

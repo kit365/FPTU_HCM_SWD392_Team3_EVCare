@@ -45,8 +45,42 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
 
     @Override
-    public List<ServiceTypeEntity> getAllServiceTypes(){
-        return serviceTypeRepository.findAll().isEmpty() ? new ArrayList<>() : serviceTypeRepository.findAll();
+    public List<ServiceTypeResponse> getAllServiceTypesByVehicleTypeForAppointment(UUID vehicleTypeId) {
+        List<ServiceTypeEntity> serviceTypeEntities = serviceTypeRepository.findByVehicleTypeEntityVehicleTypeIdAndIsDeletedFalse(vehicleTypeId);
+
+        if (serviceTypeEntities.isEmpty()) {
+            log.warn(VehicleTypeConstants.LOG_ERR_VEHICLE_TYPE_NOT_FOUND + vehicleTypeId);
+            throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
+        }
+
+        // Bước 2: Tạo Map<id, Response> để lưu tất cả node
+        Map<UUID, ServiceTypeResponse> nodeMap = new HashMap<>();
+        for (ServiceTypeEntity entity : serviceTypeEntities) {
+            ServiceTypeResponse response = new ServiceTypeResponse();
+            response.setServiceTypeId(entity.getServiceTypeId());
+            response.setServiceName(entity.getServiceName());
+            response.setParentId(entity.getParentId());
+            nodeMap.put(response.getServiceTypeId(), response);
+        }
+
+        // Bước 3: Xây cây lồng nhau
+        List<ServiceTypeResponse> rootNodes = new ArrayList<>();
+        for (ServiceTypeResponse node : nodeMap.values()) {
+            if (node.getParentId() == null) {
+                rootNodes.add(node);
+            } else {
+                ServiceTypeResponse parent = nodeMap.get(node.getParentId());
+                if (parent != null) {
+                    if (parent.getChildren() == null) {
+                        parent.setChildren(new ArrayList<>());
+                    }
+                    parent.getChildren().add(node);
+                }
+            }
+        }
+
+        log.info(ServiceTypeConstants.LOG_INFO_SHOWING_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE_FOR_APPOINTMENT + vehicleTypeId);
+        return rootNodes;
     }
 
     @Override
@@ -102,8 +136,8 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
         }
 
         if (entities.isEmpty()) {
-            log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_NOT_FOUND);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_NOT_FOUND);
+            log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND + vehicleTypeId);
+            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND);
         }
 
         // Bước 2: Tạo Map<id, Response> để lưu tất cả node
@@ -134,7 +168,7 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
             }
         }
 
-        log.info(ServiceTypeConstants.LOG_INFO_SHOWING_SERVICE_TYPE_LIST);
+        log.info(ServiceTypeConstants.LOG_INFO_SHOWING_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE + vehicleTypeId);
         return PageResponse.<ServiceTypeResponse>builder()
                 .data(rootNodes)
                 .page(entities.getNumber())

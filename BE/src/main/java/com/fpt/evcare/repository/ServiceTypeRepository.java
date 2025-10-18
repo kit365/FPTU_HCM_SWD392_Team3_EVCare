@@ -16,6 +16,7 @@ public interface ServiceTypeRepository extends JpaRepository<ServiceTypeEntity, 
     ServiceTypeEntity findByServiceTypeIdAndIsDeletedTrue(UUID id);
     List<ServiceTypeEntity> findByParentServiceTypeIdAndIsDeletedFalse(UUID id);
     List<ServiceTypeEntity> findByParentServiceTypeIdAndIsDeletedTrue(UUID id);
+    List<ServiceTypeEntity> findByVehicleTypeEntityVehicleTypeIdAndIsDeletedFalse(UUID id);
     Page<ServiceTypeEntity> findByVehicleTypeEntityVehicleTypeIdAndIsDeletedFalse(UUID vehicleTypeId, Pageable pageable);
     Page<ServiceTypeEntity> findByVehicleTypeEntityVehicleTypeIdAndServiceNameContainingIgnoreCaseAndIsDeletedFalse(UUID vehicleTypeId, String search, Pageable pageable);
 
