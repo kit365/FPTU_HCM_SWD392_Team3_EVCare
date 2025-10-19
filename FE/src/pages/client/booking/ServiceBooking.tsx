@@ -114,10 +114,10 @@ export const ServiceBookingPage: React.FC = () => {
       key: service.serviceTypeId,
       children: service.children && service.children.length > 0
         ? service.children.map((child) => ({
-            title: child.serviceName,
-            value: child.serviceTypeId,
-            key: child.serviceTypeId,
-          }))
+          title: child.serviceName,
+          value: child.serviceTypeId,
+          key: child.serviceTypeId,
+        }))
         : undefined,
     }));
   };
@@ -134,7 +134,7 @@ export const ServiceBookingPage: React.FC = () => {
       // Map form values to API request
       const appointmentData = {
         customerFullName: values.customerName,
-        customerPhoneNumber: values.phone,
+        customerPhoneNumber: values.phone || "", // Có thể rỗng
         customerEmail: values.email,
         vehicleTypeId: values.vehicleType,
         vehicleNumberPlate: values.licensePlate,
@@ -232,8 +232,8 @@ export const ServiceBookingPage: React.FC = () => {
                   name="vehicleType"
                   rules={[{ required: true, message: "Vui lòng chọn mẫu xe" }]}
                 >
-                  <Select 
-                    placeholder="Lựa chọn" 
+                  <Select
+                    placeholder="Lựa chọn"
                     options={vehicleOptions}
                     loading={loadingVehicles}
                     onChange={handleVehicleTypeChange}
@@ -303,7 +303,7 @@ export const ServiceBookingPage: React.FC = () => {
                 {/* Nếu STATIONARY → hiện địa điểm, MOBILE → hiện input */}
                 {serviceType === "STATIONARY" && (
                   <Form.Item label="Địa điểm" name="location">
-                    <Input value="Vũng Tàu" disabled placeholder="Vũng Tàu"/>
+                    <Input value="Vũng Tàu" disabled placeholder="Vũng Tàu" />
                   </Form.Item>
                 )}
 
