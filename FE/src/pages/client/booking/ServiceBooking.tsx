@@ -124,6 +124,53 @@ export const ServiceBookingPage: React.FC = () => {
 
   const serviceTreeData = buildServiceTree(serviceTypes);
 
+  // Hàm xử lý service selection logic
+  const processServiceSelection = (selectedServices: string[], serviceTreeData: any[]): string[] => {
+    if (!selectedServices || selectedServices.length === 0) return [];
+    
+    const result: string[] = [];
+    
+    selectedServices.forEach(serviceId => {
+      const selectedService = findServiceInTree(serviceTreeData, serviceId);
+      
+      if (selectedService) {
+        if (selectedService.children && selectedService.children.length > 0) {          
+          // Kiểm tra xem có children nào được chọn không
+          const selectedChildren = selectedServices.filter(id => 
+            selectedService.children?.some((child: any) => child.value === id)
+          );
+          
+          if (selectedChildren.length === 0) {
+            // Chỉ chọn parent → gửi tất cả children IDs (không gửi parent ID)
+            selectedService.children?.forEach((child: any) => {
+              result.push(child.value);
+            });
+          } else {
+            // Có chọn children cụ thể → chỉ gửi những children được chọn
+            result.push(...selectedChildren);
+          }
+        } else {
+          // Đây là leaf node → gửi trực tiếp
+          result.push(serviceId);
+        }
+      }
+    });
+    
+    return [...new Set(result)];
+  };
+
+  // Hàm helper để tìm service trong tree
+  const findServiceInTree = (treeData: any[], serviceId: string): any => {
+    for (const service of treeData) {
+      if (service.value === serviceId) return service;
+      if (service.children) {
+        const found = findServiceInTree(service.children, serviceId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   const onFinish: FormProps["onFinish"] = async (values) => {
     try {
       const dateValue = values["dateTime"];
@@ -131,10 +178,13 @@ export const ServiceBookingPage: React.FC = () => {
         ? (dateValue as Dayjs).format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
         : new Date().toISOString();
 
+      // Xử lý service selection theo logic mới
+      const processedServiceIds = processServiceSelection(values.services || [], serviceTreeData);
+
       // Map form values to API request
       const appointmentData = {
         customerFullName: values.customerName,
-        customerPhoneNumber: values.phone || "", // Có thể rỗng
+        customerPhoneNumber: values.phone || "",
         customerEmail: values.email,
         vehicleTypeId: values.vehicleType,
         vehicleNumberPlate: values.licensePlate,
@@ -143,11 +193,9 @@ export const ServiceBookingPage: React.FC = () => {
         serviceMode: values.serviceType,
         scheduledAt: formattedDate,
         notes: values.notes || "",
-        serviceTypeIds: values.services || [],
+        serviceTypeIds: processedServiceIds,
       };
-
-      console.log("Submitting appointment:", appointmentData);
-
+      
       const response = await bookingService.createAppointment(appointmentData);
 
       if (response.data.success) {
