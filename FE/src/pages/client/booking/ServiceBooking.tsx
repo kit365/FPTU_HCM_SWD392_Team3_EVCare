@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   DatePicker,
@@ -6,53 +6,108 @@ import {
   Input,
   Select,
   TreeSelect,
+  message,
 } from "antd";
 import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
 import vinImage from "../../../assets/vin.jpg";
+import { bookingService } from "../../../service/bookingService";
+import type { VehicleType, ServiceType } from "../../../types/booking.types";
 
 const { TextArea } = Input;
 const { SHOW_PARENT } = TreeSelect;
 
 export const ServiceBookingPage: React.FC = () => {
   const [form] = Form.useForm();
+  const [serviceType, setServiceType] = useState<string>("");
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string>("");
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [loadingVehicles, setLoadingVehicles] = useState<boolean>(false);
+  const [loadingServices, setLoadingServices] = useState<boolean>(false);
 
-  const vehicleOptions = [
-    { value: "xe_tang", label: "Xe tăng" },
-    { value: "xe_dap", label: "Xe đạp" },
-    { value: "xe_may", label: "Xe máy" },
-    { value: "oto", label: "Ô tô" },
-  ];
+  // Fetch vehicle types on mount
+  useEffect(() => {
+    fetchVehicleTypes();
+  }, []);
 
-  const districtOptions = [
-    { value: "quan1", label: "Quận 1" },
-    { value: "quan2", label: "Quận 2" },
-    { value: "quan3", label: "Quận 3" },
-  ];
+  // Fetch services when vehicle type changes
+  useEffect(() => {
+    if (selectedVehicleTypeId) {
+      fetchServiceTypes(selectedVehicleTypeId);
+    } else {
+      setServiceTypes([]);
+      form.setFieldValue("services", undefined);
+    }
+  }, [selectedVehicleTypeId]);
 
-  const serviceTreeData = [
-    {
-      title: 'Bảo dưỡng',
-      value: 'maintenance',
-      key: 'maintenance',
-      children: [
-        { title: 'Thay dầu', value: 'maintenance-oil', key: 'maintenance-oil' },
-        { title: 'Kiểm tra định kỳ', value: 'maintenance-routine', key: 'maintenance-routine' },
-      ],
-    },
-    {
-      title: 'Sửa chữa',
-      value: 'repair',
-      key: 'repair',
-      children: [
-        { title: 'Thay phụ tùng', value: 'repair-parts', key: 'repair-parts' },
-        { title: 'Đồng sơn', value: 'repair-paint', key: 'repair-paint' },
-      ],
-    },
-  ];
+  const fetchVehicleTypes = async () => {
+    setLoadingVehicles(true);
+    try {
+      const response = await bookingService.getVehicleTypes({
+        page: 0,
+        pageSize: 100,
+      });
+      if (response.data.success && response.data.data.data) {
+        setVehicleTypes(response.data.data.data);
+      }
+    } catch (error) {
+      message.error("Không thể tải danh sách mẫu xe");
+      console.error("Error fetching vehicle types:", error);
+    } finally {
+      setLoadingVehicles(false);
+    }
+  };
+
+  const fetchServiceTypes = async (vehicleTypeId: string) => {
+    setLoadingServices(true);
+    try {
+      const response = await bookingService.getServiceTypes({
+        page: 0,
+        pageSize: 100,
+        "vehicle-type-id": vehicleTypeId,
+      });
+      if (response.data.success && response.data.data.data) {
+        setServiceTypes(response.data.data.data);
+      }
+    } catch (error) {
+      message.error("Không thể tải danh sách dịch vụ");
+      console.error("Error fetching service types:", error);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const handleVehicleTypeChange = (value: string) => {
+    setSelectedVehicleTypeId(value);
+    form.setFieldValue("services", undefined);
+  };
+
+  // Convert vehicle types to options
+  const vehicleOptions = vehicleTypes.map((vt) => ({
+    value: vt.vehicleTypeId,
+    label: `${vt.vehicleTypeName} - ${vt.manufacturer} (${vt.modelYear})`,
+  }));
+
+  // Convert API response to TreeSelect format
+  const buildServiceTree = (services: ServiceType[]) => {
+    return services.map((service) => ({
+      title: service.serviceName,
+      value: service.serviceTypeId,
+      key: service.serviceTypeId,
+      children: service.children && service.children.length > 0
+        ? service.children.map((child) => ({
+            title: child.serviceName,
+            value: child.serviceTypeId,
+            key: child.serviceTypeId,
+          }))
+        : undefined,
+    }));
+  };
+
+  const serviceTreeData = buildServiceTree(serviceTypes);
 
   const onFinish: FormProps["onFinish"] = (values) => {
-    console.log("gia cua object value", values)
     const dateValue = values["dateTime"];
     const formattedDate = isDayjs(dateValue)
       ? (dateValue as Dayjs).format("YYYY-MM-DD HH:mm:ss")
@@ -68,7 +123,7 @@ export const ServiceBookingPage: React.FC = () => {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
         style={{
           backgroundImage: `url(${vinImage})`,
-          filter: 'blur(2px)'
+          filter: "blur(2px)",
         }}
       />
 
@@ -128,7 +183,12 @@ export const ServiceBookingPage: React.FC = () => {
                   name="vehicleType"
                   rules={[{ required: true, message: "Vui lòng chọn mẫu xe" }]}
                 >
-                  <Select placeholder="Lựa chọn" options={vehicleOptions} />
+                  <Select 
+                    placeholder="Lựa chọn" 
+                    options={vehicleOptions}
+                    loading={loadingVehicles}
+                    onChange={handleVehicleTypeChange}
+                  />
                 </Form.Item>
                 <Form.Item label="Số Km" name="mileage">
                   <Input placeholder="Nhập số km trên phương tiện" />
@@ -142,10 +202,9 @@ export const ServiceBookingPage: React.FC = () => {
                     { max: 8, message: "Biển số xe không được vượt quá 8 ký tự" },
                     {
                       pattern: /^(0[1-9]|[1-9][0-9])[A-Z]-\d{5}$/,
-                      message: "Biển số xe không đúng định dạng. Ví dụ: 30A-12345"
-                    }
+                      message: "Biển số xe không đúng định dạng. Ví dụ: 30A-12345",
+                    },
                   ]}
-
                 >
                   <Input placeholder="Ví dụ: 30A-12345" />
                 </Form.Item>
@@ -158,46 +217,62 @@ export const ServiceBookingPage: React.FC = () => {
               <Form.Item
                 name="services"
                 label="Chọn dịch vụ"
-                rules={[
-                  { required: true, message: "Vui lòng chọn dịch vụ" },
-                ]}
+                rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
               >
                 <TreeSelect
                   treeData={serviceTreeData}
                   treeCheckable
                   showCheckedStrategy={SHOW_PARENT}
-                  placeholder="Vui lòng chọn"
-                  style={{ width: '100%' }}
+                  placeholder={selectedVehicleTypeId ? "Vui lòng chọn" : "Vui lòng chọn mẫu xe trước"}
+                  style={{ width: "100%" }}
                   allowClear
+                  disabled={!selectedVehicleTypeId}
+                  loading={loadingServices}
                 />
               </Form.Item>
             </div>
 
-            {/* Địa điểm & Thời gian */}
+            {/* Loại dịch vụ & Thông tin liên hệ */}
             <div>
-              <h3 className="font-semibold mb-4">4. Địa điểm và Thời gian</h3>
+              <h3 className="font-semibold mb-4">4. Loại hình dịch vụ</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Form.Item
-                  label="Chọn quận"
-                  name="district"
-                  rules={[{ required: true, message: "Vui lòng chọn quận" }]}
-                >
-                  <Select placeholder="Chọn quận" options={districtOptions} />
-                </Form.Item>
-                <Form.Item
-                  label="Chọn huyện"
-                  name="ward"
-                  rules={[{ required: true, message: "Vui lòng chọn huyện" }]}
+                  label="Chọn thể loại dịch vụ"
+                  name="serviceType"
+                  rules={[{ required: true, message: "Vui lòng chọn thể loại" }]}
                 >
                   <Select
-                    placeholder="Chọn huyện"
+                    placeholder="Chọn loại dịch vụ"
                     options={[
-                      { value: "huyen1", label: "Huyện 1" },
-                      { value: "huyen2", label: "Huyện 2" },
+                      { value: "STATIONARY", label: "STATIONARY" },
+                      { value: "MOBILE", label: "MOBILE" },
                     ]}
+                    onChange={(value) => setServiceType(value)}
                   />
                 </Form.Item>
+
+                {/* Nếu STATIONARY → hiện địa điểm, MOBILE → hiện input */}
+                {serviceType === "STATIONARY" && (
+                  <Form.Item label="Địa điểm" name="location">
+                    <Input value="Vũng Tàu" disabled placeholder="Vũng Tàu"/>
+                  </Form.Item>
+                )}
+
+                {serviceType === "MOBILE" && (
+                  <Form.Item
+                    label="Số điện thoại liên hệ"
+                    name="mobilePhone"
+                    rules={[
+                      { required: true, message: "Vui lòng nhập số điện thoại" },
+                      { pattern: new RegExp(/\d+/g), message: "Cần nhập số!" },
+                      { min: 10, message: "Số điện thoại phải tối thiểu 10 số" },
+                    ]}
+                  >
+                    <Input placeholder="Nhập số điện thoại liên hệ" />
+                  </Form.Item>
+                )}
               </div>
+
               <Form.Item
                 label="Thời gian hẹn"
                 name="dateTime"
