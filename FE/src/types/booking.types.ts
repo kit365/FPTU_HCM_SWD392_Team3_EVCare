@@ -126,5 +126,38 @@ export interface GetServiceTypeParams {
   page?: number;
   pageSize?: number;
   keyword?: string;
-  "vehicle-type-id": string;
+}
+
+// Service Mode Response
+export interface ServiceModeResponse {
+  success: boolean;
+  message: string;
+  data: string[];
+  timestamp: string;
+  errorCode?: string;
+}
+
+// Create Appointment Request
+export interface CreateAppointmentRequest {
+  customerId?: string;
+  customerFullName: string;
+  customerPhoneNumber?: string; // Đổi từ bắt buộc thành optional
+  customerEmail: string;
+  vehicleTypeId: string;
+  vehicleNumberPlate: string;
+  vehicleKmDistances?: string;
+  userAddress?: string;
+  serviceMode: string;
+  scheduledAt: string;
+  notes?: string;
+  serviceTypeIds: string[];
+}
+
+// Create Appointment Response
+export interface CreateAppointmentResponse {
+  success: boolean;
+  message: string;
+  data?: string;
+  timestamp: string;
+  errorCode?: string;
 }
