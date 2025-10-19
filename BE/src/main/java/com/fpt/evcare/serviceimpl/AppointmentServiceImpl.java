@@ -252,35 +252,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointmentEntity.setCustomer(customer);
         }
 
-        // Thêm thông tin của các kỹ thuật viên vào cuộc hẹn
-        //Kiểm tra trong cuộc hẹn đã có kỹ thuật viên đó chưa
-        Set<UUID> technicianIdList = new HashSet<>();
-        List<UserEntity> technicians = new ArrayList<>();
-        creationAppointmentRequest.getTechnicianId().forEach(technicianId -> {
-            UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(technicianId);
-
-            //Kiểm tra kỹ thuật viên đó có tồn tại hay không và có bị add trùng không
-            if(technician != null && !technicianIdList.contains(technicianId)) {
-                checkRoleUser(technician, RoleEnum.TECHNICIAN);
-                technicianIdList.add(technicianId);
-                technicians.add(technician);
-            }
-        });
-        if(!technicians.isEmpty()) {
-            appointmentEntity.setTechnicianEntities(technicians);
-        }
-
-        UserEntity assignee = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getAssigneeId());
-        if(assignee != null) {
-            checkRoleUser(assignee, RoleEnum.STAFF);
-            appointmentEntity.setAssignee(assignee);
-        }
-
         ServiceModeEnum serviceModeEnum = isValidServiceMode(creationAppointmentRequest.getServiceMode());
         appointmentEntity.setServiceMode(serviceModeEnum);
 
-        AppointmentStatusEnum status = isValidAppointmentStatus(creationAppointmentRequest.getStatus());
-        appointmentEntity.setStatus(status);
+        appointmentEntity.setStatus(AppointmentStatusEnum.PENDING);
 
         // Set loại dịch vụ được chọn trong bảng
         List<ServiceTypeEntity> serviceTypeEntityList = creationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
@@ -312,17 +287,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         BigDecimal quotePrice = calculateQuotePrice(serviceTypeEntityList);
         appointmentEntity.setQuotePrice(quotePrice);
 
-        // Lấy ra thông tin của cách kỹ thuật viên
-        String techniciansSearch = concatTechnicianSearchField(technicians);
-
         //Ghép các thông tin lại
         String search = UtilFunction.concatenateSearchField(appointmentEntity.getCustomerFullName(),
                 appointmentEntity.getCustomerEmail(),
                 appointmentEntity.getCustomerPhoneNumber(),
-                customer != null ? customer.getSearch() : "",
-                techniciansSearch,
-                assignee != null ? assignee.getSearch() : "")
-                ;
+                customer != null ? customer.getSearch() : ""
+        );
         appointmentEntity.setSearch(search);
 
         log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT);
