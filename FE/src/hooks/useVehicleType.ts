@@ -11,6 +11,7 @@ export function useVehicleType() {
     setIsLoading(true);
     try {
       const response = await carModelService.createVehicleType(data);
+
       if (response?.data.success === true) {
         notify.success(response?.data.message || "Tạo mới mẫu xe thành công");
       } else {
@@ -23,8 +24,6 @@ export function useVehicleType() {
     } finally {
       setIsLoading(false);
     }
-
-    
   };
 
    const getVehicleType = async (id: string): Promise<VehicleDetailResponse | null> => {

@@ -12,7 +12,6 @@ import { useVehicleType } from "../../../hooks/useVehicleType";
 import { pathAdmin } from "../../../constants/paths.constant";
 import { SelectAdmin } from "../../../components/admin/ui/form/Select";
 import { manufacturers } from "../../../constants/manufacturer.constant";
-import type { UpdateVehicleTypeRequest, VehicleTypeModel} from "../../../type/carModel";
 
 
 // Định nghĩa schema validation
@@ -55,9 +54,12 @@ const schema = yup.object().shape({
         .string()
         .trim()
         .required("Vui lòng nhập mô tả"),
-    isActive: yup.boolean().optional(),
-    isActive: yup.boolean().required()
-}) satisfies yup.ObjectSchema<UpdateVehicleTypeRequest>;
+    isActive: yup.boolean().required(),
+    createdAt: yup.string().optional(),
+    updatedAt: yup.string().optional(),
+    createdBy: yup.string().optional(),
+    updatedBy: yup.string().optional()
+});
 
 
 
@@ -151,7 +153,7 @@ export const VehicleDetail = () => {
         });
     };
     // Khởi tạo react-hook-form
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<UpdateVehicleTypeRequest>({
+    const { register, handleSubmit, formState: { errors }, reset } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
     vehicleTypeName: "",
@@ -186,7 +188,7 @@ export const VehicleDetail = () => {
         fetchVehicle();
     }, [id]);
 
-    const onSubmit = async (data: UpdateVehicleTypeRequest) => {
+    const onSubmit = async (data: any) => {
         if (isEdit && id) {
             const success = await updateVehicleType(id, data);
             if (success) {

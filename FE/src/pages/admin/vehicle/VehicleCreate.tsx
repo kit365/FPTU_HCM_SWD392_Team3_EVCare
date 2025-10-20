@@ -1,4 +1,3 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -76,7 +75,7 @@ const fields = [
     { 
         name: "manufacturer" as const, 
         label: "Hãng sản xuất", 
-        placeholder: "Chọn hãng sản xuất...", 
+        placeholder: "-- Chọn hãng sản xuất --", 
         type: "select",
         component: "select",
         options: manufacturers
@@ -123,7 +122,7 @@ const fields = [
 export const VehicleCreate = () => {
     const { isLoading: loading, createVehicleType } = useVehicleType();
     const navigate = useNavigate();
-    
+
     const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
         resolver: yupResolver(schema),
         defaultValues: {
@@ -138,10 +137,16 @@ export const VehicleCreate = () => {
     });
 
     const onSubmit = async (data: FormData) => {
-        const response = await createVehicleType(data);
-        if (response?.success) {
-            reset();
-            navigate(`/${pathAdmin}/vehicle`);
+        try {
+            const response = await createVehicleType(data);
+
+            if (response?.success) {
+                reset();
+                navigate(`/${pathAdmin}/vehicle`);
+            }
+        } catch (error) {
+            // Error handled by toast in hook
+            console.log(error)
         }
     };
 
