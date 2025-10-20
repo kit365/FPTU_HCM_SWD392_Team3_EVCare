@@ -1,35 +1,46 @@
 import { Card } from "@mui/material";
-import { TrashSolid, Plus } from 'iconoir-react';
+import {  Plus } from 'iconoir-react';
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { pathAdmin } from "../../../constants/paths.constant";
 import type { ButtonItemProps } from "../../../types/admin/button-item.types";
 import { TableAdmin } from "../../../components/admin/ui/Table";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useCarModel } from "../../../hooks/useCarModel";
 
 export const Vehicle = () => {
 
-    const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null); // Dữ liệu mẫu xe được chọn
-    const [mode, setMode] = useState<"edit" | "view" | null>(null); // Chế độ hiện tại (edit/view)
+    // const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null); // Dữ liệu mẫu xe được chọn
+    // const [mode, setMode] = useState<"edit" | "view" | null>(null); // Chế độ hiện tại (edit/view)
 
 
-    const handleEdit = (vehicle: any) => {
-        setSelectedVehicle(vehicle);
-        setMode("edit");
-    };
+    // const handleEdit = (vehicle: any) => {
+    //     setSelectedVehicle(vehicle);
+    //     setMode("edit");
+    // };
 
-    const handleView = (vehicle: any) => {
-        setSelectedVehicle(vehicle);
-        setMode("view");
-    };
+    // const handleView = (vehicle: any) => {
+    //     setSelectedVehicle(vehicle);
+    //     setMode("view");
+    // };
 
 
     const {
-        vehicleList, fetchVehicleTypeList } = useCarModel();
+        vehicleList, 
+        fetchVehicleTypeList,
+        deleteVehicleType
+    } = useCarModel();
 
     useEffect(() => {
         fetchVehicleTypeList({ page: 0, pageSize: 10, keyword: "" });
     }, []);
+
+    const handleDelete = async (id: string) => {
+        const success = await deleteVehicleType(id);
+        if (success) {
+            // Refresh danh sách sau khi xóa thành công
+            fetchVehicleTypeList({ page: 0, pageSize: 10, keyword: "" });
+        }
+    };
 
 
     const buttonsList: ButtonItemProps[] = [
@@ -84,6 +95,7 @@ export const Vehicle = () => {
                         columns={columns}
                         getEditUrl={(item) => `/admin/vehicle/edit/${item.vehicleTypeId || item.id}`}
                         getViewUrl={(item) => `/admin/vehicle/view/${item.vehicleTypeId || item.id}`}
+                        onDelete={handleDelete}
                     />
                 </Card >
             </div >
