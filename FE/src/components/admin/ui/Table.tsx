@@ -133,12 +133,11 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl, o
                             {columns.map((col, index) => (
                                 <th
                                     key={col.key}
-                                    className={`p-[1.2rem] font-[500] 
+                                    className={`p-[1.2rem] font-[500] text-center
                                         ${index === 0 ? "rounded-l-[8px]" : ""}
                                         ${index === columns.length - 1 ? "rounded-r-[8px]" : ""}`}
                                     style={{
                                         width: `${col.width}%`,
-                                        textAlign: col.align || "left",
                                     }}
                                     onClick={() => handleHeaderClick(col)}
                                 >
@@ -169,7 +168,7 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl, o
                             currentPageData.map((item: any, index: number) => (
                                 <tr
                                     key={item.id}
-                                    className={`border-b border-gray-200 ${index !== dataList.length - 1 ? "border-dashed" : "border-none"
+                                    className={`border-b border-gray-200 text-center ${index !== dataList.length - 1 ? "border-dashed" : "border-none"
                                         } ${index % 2 !== 0 ? "bg-transparent" : "bg-[#FBFBFD]"}`}
                                 >
                                     {columns.map((col) => {
