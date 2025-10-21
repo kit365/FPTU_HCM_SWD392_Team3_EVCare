@@ -1,21 +1,26 @@
 import { useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { Card } from "@mui/material";
-import moment from "moment";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { LabelAdmin } from "../../../components/admin/ui/form/Label";
 import { InputAdmin } from "../../../components/admin/ui/form/Input";
-import { SelectAdmin } from "../../../components/admin/ui/form/Select";
 import { useVehicleType } from "../../../hooks/useVehicleType";
-import { manufacturers } from "../../../constants/manufacturer.constant";
 import { pathAdmin } from "../../../constants/paths.constant";
+import { SelectAdmin } from "../../../components/admin/ui/form/Select";
+import { manufacturers } from "../../../constants/manufacturer.constant";
+import { Link } from "react-router-dom";
+import { vehicleTypeSchema } from "../../../validations/vehicleType.validation";
 
-export const VehicleDetail = () => {
+export const VehicleEdit = () => {
     const { id } = useParams();
-    const { getVehicleType } = useVehicleType();
 
-    const { register, reset } = useForm();
+    const { loading, getVehicleType, updateVehicleType } = useVehicleType();
+
+    const { register, handleSubmit, formState: { errors }, reset } = useForm({
+        resolver: yupResolver(vehicleTypeSchema),
+    });
 
     useEffect(() => {
         const fetchVehicle = async () => {
@@ -24,28 +29,41 @@ export const VehicleDetail = () => {
                 if (response) {
                     reset({
                         ...response,
-                        createdAt: moment(response.createdAt).format("HH:mm - DD/MM/YYYY"),
-                        updatedAt: moment(response.updatedAt).format("HH:mm - DD/MM/YYYY"),
                     });
                 }
             }
         };
         fetchVehicle();
-    }, []);
+    }, [id]);
+
+    const onSubmit = async (data: any) => {
+        if (!id) return;
+
+        if (await updateVehicleType(id, data)) {
+            const updatedData = await getVehicleType(id);
+            if (updatedData) {
+                reset({
+                    ...updatedData,
+                });
+            }
+        }
+    };
 
     return (
         <div className="max-w-[1320px] px-[12px] mx-auto">
             <Card elevation={0} className="shadow-[0_3px_16px_rgba(142,134,171,0.05)]">
-                <CardHeaderAdmin title="Chi tiết mẫu xe" />
+                <CardHeaderAdmin title="Chỉnh sửa mẫu xe" />
                 <form
+                    onSubmit={handleSubmit(onSubmit)}
                     className="px-[2.4rem] pb-[2.4rem] grid grid-cols-2 gap-x-[24px] gap-y-[24px]"
                 >
                     <div>
                         <LabelAdmin htmlFor="vehicleTypeName" content="Tên mẫu xe" />
                         <InputAdmin
                             id="vehicleTypeName"
+                            placeholder="Nhập tên mẫu xe..."
                             {...register("vehicleTypeName")}
-                            disabled
+                            error={errors.vehicleTypeName?.message}
                         />
                     </div>
 
@@ -54,9 +72,10 @@ export const VehicleDetail = () => {
                         <SelectAdmin
                             id="manufacturer"
                             name="manufacturer"
+                            placeholder="-- Chọn hãng sản xuất --"
                             options={manufacturers}
                             register={register("manufacturer")}
-                            disabled
+                            error={errors.manufacturer?.message}
                         />
                     </div>
 
@@ -65,8 +84,9 @@ export const VehicleDetail = () => {
                         <InputAdmin
                             id="modelYear"
                             type="number"
+                            placeholder="Nhập năm sản xuất..."
                             {...register("modelYear")}
-                            disabled
+                            error={errors.modelYear?.message}
                         />
                     </div>
 
@@ -75,8 +95,9 @@ export const VehicleDetail = () => {
                         <InputAdmin
                             id="batteryCapacity"
                             type="number"
+                            placeholder="Nhập dung lượng pin..."
                             {...register("batteryCapacity")}
-                            disabled
+                            error={errors.batteryCapacity?.message}
                         />
                     </div>
 
@@ -85,8 +106,9 @@ export const VehicleDetail = () => {
                         <InputAdmin
                             id="maintenanceIntervalKm"
                             type="number"
+                            placeholder="Nhập số km bảo dưỡng..."
                             {...register("maintenanceIntervalKm")}
-                            disabled
+                            error={errors.maintenanceIntervalKm?.message}
                         />
                     </div>
 
@@ -95,26 +117,9 @@ export const VehicleDetail = () => {
                         <InputAdmin
                             id="maintenanceIntervalMonths"
                             type="number"
+                            placeholder="Nhập số tháng bảo dưỡng..."
                             {...register("maintenanceIntervalMonths")}
-                            disabled
-                        />
-                    </div>
-
-                    <div>
-                        <LabelAdmin htmlFor="createdAt" content="Ngày tạo" />
-                        <InputAdmin
-                            id="createdAt"
-                            {...register("createdAt")}
-                            disabled
-                        />
-                    </div>
-
-                    <div>
-                        <LabelAdmin htmlFor="updatedAt" content="Ngày cập nhật" />
-                        <InputAdmin
-                            id="updatedAt"
-                            {...register("updatedAt")}
-                            disabled
+                            error={errors.maintenanceIntervalMonths?.message}
                         />
                     </div>
 
@@ -122,18 +127,26 @@ export const VehicleDetail = () => {
                         <LabelAdmin htmlFor="description" content="Mô tả" />
                         <InputAdmin
                             id="description"
+                            placeholder="Nhập mô tả..."
                             {...register("description")}
-                            disabled
+                            error={errors.description?.message}
                         />
                     </div>
 
                     {/* ====== Buttons ====== */}
                     <div className="col-span-2 flex items-center gap-[6px] justify-end">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="flex items-center cursor-pointer text-white text-[1.3rem] font-[500] py-[0.82rem] px-[1.52rem] leading-[1.5] border rounded-[0.64rem] hover:opacity-90 transition-opacity duration-150 ease-in-out bg-[#22c55e] border-[#22c55e] shadow-[0_1px_2px_0_rgba(34,197,94,0.35)]"
+                        >
+                            {loading ? "Đang cập nhật..." : "Cập nhật"}
+                        </button>
                         <Link
                             to={`/${pathAdmin}/vehicle`}
-                            className="flex items-center cursor-pointer text-white text-[1.3rem] font-[500] py-[0.82rem] px-[1.52rem] leading-[1.5] border rounded-[0.64rem] hover:opacity-90 transition-opacity duration-150 ease-in-out bg-[#7c3aed] border-[#7c3aed] shadow-[0_1px_2px_0_rgba(124,58,237,0.35)]"
+                            className="flex items-center cursor-pointer text-white text-[1.3rem] font-[500] py-[0.82rem] px-[1.52rem] leading-[1.5] border rounded-[0.64rem] hover:opacity-90 transition-opacity duration-150 ease-in-out bg-[#ef4d56] border-[#ef4d56] shadow-[0_1px_2px_0_rgba(239,77,86,0.35)]"
                         >
-                            Quay lại
+                            Hủy
                         </Link>
                     </div>
                 </form>

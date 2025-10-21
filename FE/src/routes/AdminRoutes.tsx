@@ -6,26 +6,25 @@ import { StaffPage } from "../pages/admin/staff/Staff";
 import { StaffCreatePage } from "../pages/admin/staff/StaffCreate";
 import { Vehicle } from "../pages/admin/vehicle/Vehicle";
 import { VehicleCreate } from "../pages/admin/vehicle/VehicleCreate";
-import { VehicleDetail } from "../pages/admin/vehicle/VehicleDetail";
+import { VehicleEdit } from "../pages/admin/vehicle/VehicleEdit";
 import CarFileManagement from "../pages/admin/car file/CarFileManagement";
 import CarFileCreate from "../pages/admin/car file/CarFileCreate";
 import CarFileEdit from "../pages/admin/car file/CarFileEdit";
-import ServiceTypeManagement from "../pages/admin/service type/ServiceTypeManagement";
+import { VehicleDetail } from "../pages/admin/vehicle/VehicleDetail";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "setting", element: <SettingPage /> },
     { path: "staff", element: <StaffPage /> },
     { path: "staff/create", element: <StaffCreatePage /> },
-    { path: "vehicle", element: <Vehicle/> },    
-    { path: "vehicle/create", element: <VehicleCreate/> },
-    { path: "vehicle/edit/:id", element: <VehicleDetail/> },
-    { path: "vehicle/view/:id", element: <VehicleDetail/> },
-    { path: "car-file-management", element: <CarFileManagement/> },
-    { path: "car-file-create", element: <CarFileCreate/> },
-    { path: "car-file-edit/:id", element: <CarFileEdit/> },
-    { path: "car-file-view/:id", element: <CarFileEdit/> },
-    { path: "service-types", element: <ServiceTypeManagement/> },
+    { path: "vehicle", element: <Vehicle /> },
+    { path: "vehicle/create", element: <VehicleCreate /> },
+    { path: "vehicle/edit/:id", element: <VehicleEdit /> },
+    { path: "vehicle/view/:id", element: <VehicleDetail /> },
+    { path: "car-file-management", element: <CarFileManagement /> },
+    { path: "car-file-create", element: <CarFileCreate /> },
+    { path: "car-file-edit/:id", element: <CarFileEdit /> },
+    { path: "car-file-view/:id", element: <CarFileEdit /> },
 ];
 
 export const AuthAdminRoutes = [
