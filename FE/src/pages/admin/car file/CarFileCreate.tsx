@@ -1,4 +1,3 @@
-import React from "react";
 import { Card } from "@mui/material";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { LabelAdmin } from "../../../components/admin/ui/form/Label";
@@ -9,8 +8,8 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { InputAdmin } from "../../../components/admin/ui/form/Input";
-import { DatePicker, notification } from "antd"; 
-import dayjs from "dayjs"; 
+import { DatePicker, notification } from "antd";
+import dayjs from "dayjs";
 
 interface CarFileForm {
   username: string;
@@ -40,14 +39,14 @@ const CarFileCreate = () => {
   const onSubmit = (data: CarFileForm) => {
     setLoading(true);
     console.log("Hồ sơ xe mới:", data);
-    
+
     setTimeout(() => {
       setLoading(false);
       navigate(`/${pathAdmin}/car-file-management`);
       notification.success({
-            message: "Create Car file",
-            description: "Tạo hồ sơ xe thành công"
-        })
+        message: "Create Car file",
+        description: "Tạo hồ sơ xe thành công"
+      })
     }, 1000);
   };
 

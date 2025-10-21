@@ -1,5 +1,5 @@
 export interface VehicleProps {
-  id: string;
+  vehicleTypeId: string;
   vehicleTypeName: string;
   manufacturer: string;
   modelYear: number;
@@ -7,6 +7,12 @@ export interface VehicleProps {
   maintenanceIntervalKm: number;
   maintenanceIntervalMonths: number;
   description: string;
+  isDeleted?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface VehicleListData {

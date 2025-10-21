@@ -20,9 +20,10 @@ interface TableAdminProps {
     columns: any[];
     getEditUrl?: (item: any) => string;
     getViewUrl?: (item: any) => string;
+    onDelete?: (id: string) => Promise<void>;
 }
 
-export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }: TableAdminProps) => {
+export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl, onDelete }: TableAdminProps) => {
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [statusFilter, setStatusFilter] = useState<string>("");
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -102,14 +103,18 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }:
     }, []);
     // Hết Lọc theo trạng thái
 
-    //xóa hồ sơ xe
-    const handleDeleteCar = () => {
-        notification.success({
-            message: "Delete Car file",
-            description: "Xóa hồ sơ xe thành công"
-        })
+    //xóa mẫu xe
+    const handleDelete = async (id: string) => {
+        if (onDelete) {
+            await onDelete(id);
+        } else {
+            notification.success({
+                message: "Xóa thành công",
+                description: "Xóa mẫu xe thành công"
+            });
+        }
     }
-    //hết xóa hồ sơ xe
+    //hết xóa mẫu xe
     return (
         <>
             <div className="px-[2.4rem] pb-[2.4rem] h-full">
@@ -128,12 +133,11 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }:
                             {columns.map((col, index) => (
                                 <th
                                     key={col.key}
-                                    className={`p-[1.2rem] font-[500] 
+                                    className={`p-[1.2rem] font-[500] text-center
                                         ${index === 0 ? "rounded-l-[8px]" : ""}
                                         ${index === columns.length - 1 ? "rounded-r-[8px]" : ""}`}
                                     style={{
                                         width: `${col.width}%`,
-                                        textAlign: col.align || "left",
                                     }}
                                     onClick={() => handleHeaderClick(col)}
                                 >
@@ -164,7 +168,7 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }:
                             currentPageData.map((item: any, index: number) => (
                                 <tr
                                     key={item.id}
-                                    className={`border-b border-gray-200 ${index !== dataList.length - 1 ? "border-dashed" : "border-none"
+                                    className={`border-b border-gray-200 text-center ${index !== dataList.length - 1 ? "border-dashed" : "border-none"
                                         } ${index % 2 !== 0 ? "bg-transparent" : "bg-[#FBFBFD]"}`}
                                 >
                                     {columns.map((col) => {
@@ -228,9 +232,9 @@ export const TableAdmin = ({ dataList, limit, columns, getEditUrl, getViewUrl }:
                                                         </Link>
                                                     )}
                                                     <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
-                                                        <Popconfirm title="Xóa hồ sơ xe"
-                                                            description="Bạn chắc chắn xóa hồ sơ xe này ?"
-                                                            onConfirm={() => handleDeleteCar()}
+                                                        <Popconfirm title="Xóa mẫu xe"
+                                                            description="Bạn chắc chắn xóa mẫu xe này?"
+                                                            onConfirm={() => handleDelete(item.vehicleTypeId || item.id)}
                                                             okText="Yes"
                                                             cancelText="No"
                                                             placement="left">

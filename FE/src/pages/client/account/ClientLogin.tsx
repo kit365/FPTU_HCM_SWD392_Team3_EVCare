@@ -6,7 +6,7 @@ import { useForgotPassword } from '../../../hooks/useForgotPassword';
 import { useState } from 'react';
 import type { RequestOtpRequest, VerifyOtpRequest } from '../../../types/admin/forgot-password';
 import { useAuthClient } from '../../../hooks/useAuthClient';
-import type { LoginRequest } from '../../../type/auth';
+import type { LoginRequest } from '../../../types/admin/auth';
 
 const ClientLogin = () => {
     const { login, isLoading } = useAuthClient();
