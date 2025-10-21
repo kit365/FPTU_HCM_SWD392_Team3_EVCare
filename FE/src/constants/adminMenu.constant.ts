@@ -1,11 +1,14 @@
+
 import { pathAdmin } from "./paths.constant";
 import { HomeSimple, JournalPage, Group } from "iconoir-react";
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import BadgeIcon from '@mui/icons-material/Badge';
+
 export interface AdminMenuItem {
-    href: string
+    href?: string
     label: string
     icon: React.ElementType
+    children?: AdminMenuItem[]
 }
 
 export const adminMenuItems: AdminMenuItem[] = [
@@ -33,5 +36,21 @@ export const adminMenuItems: AdminMenuItem[] = [
         href: `/${pathAdmin}/car-file-management`,
         label: "Quản lý hồ sơ xe",
         icon: BadgeIcon,
+    },
+    {
+        label: "Quản lý loại dịch vụ",
+        icon: JournalPage,
+        children: [
+            {
+                href: `/${pathAdmin}/service-types`,
+                label: "Danh sách loại dịch vụ",
+                icon: JournalPage,
+            },
+            {
+                href: `/${pathAdmin}/service-categories`,
+                label: "Danh mục dịch vụ",
+                icon: Group,
+            },
+        ],
     },
 ]

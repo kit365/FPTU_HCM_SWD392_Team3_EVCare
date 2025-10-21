@@ -17,8 +17,6 @@ type AuthContextType = {
     setUser: (user: User) => void;
     isLoading: boolean;
     refreshUser: () => Promise<void>;
-
-    //   logout: () => void;
 };
 
 // Tạo context

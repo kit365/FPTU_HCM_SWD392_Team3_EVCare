@@ -42,12 +42,19 @@ export const carModelService = {
   },
 
   updateVehicleType: async (id: string, data: UpdateVehicleTypeRequest) => {
-    const response = await apiClient.patch<ApiResponse<UpdateVehicleTypeRequest>>(
+    const response = await apiClient.patch<ApiResponse<string>>(
       `${API_BASE}/${VEHICLE_TYPE_BY_ID(id)}`,
       data
     );
+    console.log("CẬP NHẬT VEHICLE TYPE RESPONSE:", response);
+    return response;
+  },
+
+  deleteVehicleType: async (id: string) => {
+    const response = await apiClient.delete<ApiResponse<string>>(
+      `${API_BASE}/${VEHICLE_TYPE_BY_ID(id)}`
+    );
+    console.log("XÓA VEHICLE TYPE RESPONSE:", response);
     return response;
   }
-
-
 };

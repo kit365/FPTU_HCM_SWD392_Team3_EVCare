@@ -1,4 +1,3 @@
-import React from "react";
 import { Card } from "@mui/material";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { LabelAdmin } from "../../../components/admin/ui/form/Label";

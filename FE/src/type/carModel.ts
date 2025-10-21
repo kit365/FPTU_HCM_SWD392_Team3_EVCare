@@ -65,6 +65,15 @@ export interface UpdateVehicleTypeRequest {
   maintenanceIntervalMonths: number;
   description: string;
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface VehicleTypeModel extends UpdateVehicleTypeRequest {
+  vehicleTypeId: string;
+  isDeleted: boolean;
 }
 
 
