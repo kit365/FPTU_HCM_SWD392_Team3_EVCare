@@ -1,7 +1,7 @@
 import { pathAdmin } from "./paths.constant";
 import { HomeSimple, JournalPage, Group } from "iconoir-react";
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-
+import BadgeIcon from '@mui/icons-material/Badge';
 export interface AdminMenuItem {
     href: string
     label: string
@@ -28,5 +28,10 @@ export const adminMenuItems: AdminMenuItem[] = [
         href: `/${pathAdmin}/vehicle`,
         label: "Quản lý mẫu xe",
         icon: DirectionsCarIcon,
+    },
+    {
+        href: `/${pathAdmin}/car-file-management`,
+        label: "Quản lý hồ sơ xe",
+        icon: BadgeIcon,
     },
 ]

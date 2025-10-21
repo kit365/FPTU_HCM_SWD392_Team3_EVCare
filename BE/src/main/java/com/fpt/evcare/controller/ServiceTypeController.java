@@ -1,6 +1,7 @@
 package com.fpt.evcare.controller;
 
 import com.fpt.evcare.base.ApiResponse;
+import com.fpt.evcare.constants.PaginationConstants;
 import com.fpt.evcare.constants.ServiceTypeConstants;
 import com.fpt.evcare.dto.request.service_type.CreationServiceTypeRequest;
 import com.fpt.evcare.dto.request.service_type.UpdationServiceTypeRequest;
@@ -8,7 +9,6 @@ import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.ServiceTypeResponse;
 import com.fpt.evcare.service.ServiceTypeService;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -36,20 +37,33 @@ public class ServiceTypeController {
         return ResponseEntity.ok(ApiResponse.<ServiceTypeResponse>builder()
                 .success(true)
                 .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE)
-            .data(response)
+                .data(response)
+                .build()
+        );
+    }
+
+    @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST_FOR_APPOINTMENT)
+    @Operation(summary = "Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn", description = "Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn")
+    public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getListServiceTypeByVehicleTypeIdForAppointment(@PathVariable(name = "serviceTypeId") UUID id) {
+        List<ServiceTypeResponse> response = serviceTypeService.getAllServiceTypesByVehicleTypeForAppointment(id);
+        return ResponseEntity.ok(ApiResponse.< List<ServiceTypeResponse>>builder()
+                .success(true)
+                .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE)
+                .data(response)
                 .build()
         );
     }
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST)
-    @Operation(summary = "Lấy ra danh sách dịch vụ", description = "Lấy ra thông tin tất cả dịch vụ, có cấu trúc cây")
+    @Operation(summary = "Lấy ra danh sách dịch vụ theo id loại xe", description = "Lấy ra thông tin tất cả dịch vụ theo id loại xe, có cấu trúc cây")
     public ResponseEntity<ApiResponse<PageResponse<ServiceTypeResponse>>> getAllServiceTypes(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-            @Nullable @RequestParam(name = "keyword", defaultValue = "") String keyword) {
-         Pageable pageable = PageRequest.of(page, pageSize);
+            @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_NUMBER) int page,
+            @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_SIZE) int pageSize,
+            @RequestParam(name = PaginationConstants.KEYWORD_KEY, defaultValue = "", required = false) String keyword,
+            @PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
+        Pageable pageable = PageRequest.of(page, pageSize);
 
-        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, pageable);
+        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, vehicleTypeId, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ServiceTypeResponse>>builder()
                 .success(true)
@@ -100,5 +114,6 @@ public class ServiceTypeController {
                 .success(result)
                 .message(ServiceTypeConstants.MESSAGE_SUCCESS_RESTORING_SERVICE_TYPE)
                 .build()
-        );    }
+        );
+    }
 }

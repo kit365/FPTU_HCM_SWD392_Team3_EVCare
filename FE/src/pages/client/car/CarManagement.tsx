@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import CarTable from './CarTable'
 import CarCreate from './CarCreate'
+import React from 'react';
 
-const CarManagement = () => {
-
+const CarManagement: React.FC = () => {
   //fake data xe
-  const vehicles = [
+  const allVehicles = [
     { id: 1, carName: "VinFast VF3", licensePlate: "30A-12345", carType: "VF3" },
     { id: 2, carName: "VinFast VF5", licensePlate: "29B1-67890", carType: "VF5" },
     { id: 3, carName: "VinFast VF6", licensePlate: "31C-11223", carType: "VF6" },
@@ -25,17 +25,34 @@ const CarManagement = () => {
     { id: 17, carName: "Hyundai Tucson", licensePlate: "98T-33449", carType: "Tucson" }
   ];
 
-  const total = vehicles.length;
+  const [vehicles, setVehicles] = useState(allVehicles);
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const handleSearch = (value: string) => {
+    if (!value) {
+      setVehicles(allVehicles);
+      return;
+    }
+
+    const filtered = allVehicles.filter(vehicle =>
+      vehicle.carName.toLowerCase().includes(value.toLowerCase()) ||
+      vehicle.licensePlate.toLowerCase().includes(value.toLowerCase()) ||
+      vehicle.carType.toLowerCase().includes(value.toLowerCase())
+    );
+    setVehicles(filtered);
+    setCurrent(1); // Reset về trang 1 khi search
+  };
 
   return (
     <div style={{ padding: "20px" }}>
-      <CarCreate />
+      
+      {/*BẢNG HỒ SƠ XE */}
+      <CarCreate onSearch={handleSearch} />
+
       <CarTable
         vehicles={vehicles}
-        total={total}
+        total={vehicles.length}
         current={current}
         setCurrent={setCurrent}
         pageSize={pageSize}

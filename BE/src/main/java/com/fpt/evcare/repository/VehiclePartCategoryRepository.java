@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface VehiclePartCategoryRepository extends JpaRepository <VehiclePartCategoryEntity, UUID> {
@@ -12,4 +13,7 @@ public interface VehiclePartCategoryRepository extends JpaRepository <VehiclePar
     Page<VehiclePartCategoryEntity> findAllByIsDeletedFalse(Pageable pageable);
     Page<VehiclePartCategoryEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
     boolean existsByPartCategoryNameAndIsDeletedFalse(String partCategoryName);
+
+    //For data initializer
+    Optional<VehiclePartCategoryEntity> findByPartCategoryName(String partCategoryName);
 }
