@@ -23,12 +23,15 @@ export const ServiceBookingPage: React.FC = () => {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string>("");
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [serviceModes, setServiceModes] = useState<string[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState<boolean>(false);
   const [loadingServices, setLoadingServices] = useState<boolean>(false);
+  const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
 
-  // Fetch vehicle types on mount
+  // Fetch vehicle types and service modes on mount
   useEffect(() => {
     fetchVehicleTypes();
+    fetchServiceModes();
   }, []);
 
   // Fetch services when vehicle type changes
@@ -62,10 +65,9 @@ export const ServiceBookingPage: React.FC = () => {
   const fetchServiceTypes = async (vehicleTypeId: string) => {
     setLoadingServices(true);
     try {
-      const response = await bookingService.getServiceTypes({
+      const response = await bookingService.getServiceTypesByVehicleId(vehicleTypeId, {
         page: 0,
         pageSize: 100,
-        "vehicle-type-id": vehicleTypeId,
       });
       if (response.data.success && response.data.data.data) {
         setServiceTypes(response.data.data.data);
@@ -75,6 +77,21 @@ export const ServiceBookingPage: React.FC = () => {
       console.error("Error fetching service types:", error);
     } finally {
       setLoadingServices(false);
+    }
+  };
+
+  const fetchServiceModes = async () => {
+    setLoadingServiceModes(true);
+    try {
+      const response = await bookingService.getServiceModes();
+      if (response.data.success && response.data.data) {
+        setServiceModes(response.data.data);
+      }
+    } catch (error) {
+      message.error("Không thể tải danh sách loại dịch vụ");
+      console.error("Error fetching service modes:", error);
+    } finally {
+      setLoadingServiceModes(false);
     }
   };
 
@@ -97,23 +114,103 @@ export const ServiceBookingPage: React.FC = () => {
       key: service.serviceTypeId,
       children: service.children && service.children.length > 0
         ? service.children.map((child) => ({
-            title: child.serviceName,
-            value: child.serviceTypeId,
-            key: child.serviceTypeId,
-          }))
+          title: child.serviceName,
+          value: child.serviceTypeId,
+          key: child.serviceTypeId,
+        }))
         : undefined,
     }));
   };
 
   const serviceTreeData = buildServiceTree(serviceTypes);
 
-  const onFinish: FormProps["onFinish"] = (values) => {
-    const dateValue = values["dateTime"];
-    const formattedDate = isDayjs(dateValue)
-      ? (dateValue as Dayjs).format("YYYY-MM-DD HH:mm:ss")
-      : undefined;
+  // Hàm xử lý service selection logic
+  const processServiceSelection = (selectedServices: string[], serviceTreeData: any[]): string[] => {
+    if (!selectedServices || selectedServices.length === 0) return [];
+    
+    const result: string[] = [];
+    
+    selectedServices.forEach(serviceId => {
+      const selectedService = findServiceInTree(serviceTreeData, serviceId);
+      
+      if (selectedService) {
+        if (selectedService.children && selectedService.children.length > 0) {          
+          // Kiểm tra xem có children nào được chọn không
+          const selectedChildren = selectedServices.filter(id => 
+            selectedService.children?.some((child: any) => child.value === id)
+          );
+          
+          if (selectedChildren.length === 0) {
+            // Chỉ chọn parent → gửi tất cả children IDs (không gửi parent ID)
+            selectedService.children?.forEach((child: any) => {
+              result.push(child.value);
+            });
+          } else {
+            // Có chọn children cụ thể → chỉ gửi những children được chọn
+            result.push(...selectedChildren);
+          }
+        } else {
+          // Đây là leaf node → gửi trực tiếp
+          result.push(serviceId);
+        }
+      }
+    });
+    
+    return [...new Set(result)];
+  };
 
-    console.log("Form Submitted: ", { ...values, dateTime: formattedDate });
+  // Hàm helper để tìm service trong tree
+  const findServiceInTree = (treeData: any[], serviceId: string): any => {
+    for (const service of treeData) {
+      if (service.value === serviceId) return service;
+      if (service.children) {
+        const found = findServiceInTree(service.children, serviceId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const onFinish: FormProps["onFinish"] = async (values) => {
+    try {
+      const dateValue = values["dateTime"];
+      const formattedDate = isDayjs(dateValue)
+        ? (dateValue as Dayjs).format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
+        : new Date().toISOString();
+
+      // Xử lý service selection theo logic mới
+      const processedServiceIds = processServiceSelection(values.services || [], serviceTreeData);
+
+      // Map form values to API request
+      const appointmentData = {
+        customerFullName: values.customerName,
+        customerPhoneNumber: values.phone || "",
+        customerEmail: values.email,
+        vehicleTypeId: values.vehicleType,
+        vehicleNumberPlate: values.licensePlate,
+        vehicleKmDistances: values.mileage || "",
+        userAddress: values.location || "",
+        serviceMode: values.serviceType,
+        scheduledAt: formattedDate,
+        notes: values.notes || "",
+        serviceTypeIds: processedServiceIds,
+      };
+      
+      const response = await bookingService.createAppointment(appointmentData);
+
+      if (response.data.success) {
+        message.success(response.data.message || "Đặt lịch hẹn thành công!");
+        form.resetFields();
+        setSelectedVehicleTypeId("");
+        setServiceType("");
+      } else {
+        message.error(response.data.message || "Đặt lịch hẹn thất bại!");
+      }
+    } catch (error: any) {
+      console.error("Error creating appointment:", error);
+      const errorMessage = error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!";
+      message.error(errorMessage);
+    }
   };
 
   return (
@@ -183,8 +280,8 @@ export const ServiceBookingPage: React.FC = () => {
                   name="vehicleType"
                   rules={[{ required: true, message: "Vui lòng chọn mẫu xe" }]}
                 >
-                  <Select 
-                    placeholder="Lựa chọn" 
+                  <Select
+                    placeholder="Lựa chọn"
                     options={vehicleOptions}
                     loading={loadingVehicles}
                     onChange={handleVehicleTypeChange}
@@ -199,7 +296,6 @@ export const ServiceBookingPage: React.FC = () => {
                   rules={[
                     { required: true, message: "Vui lòng nhập biển số xe" },
                     { min: 7, message: "Biển số xe phải có ít nhất 7 ký tự" },
-                    { max: 8, message: "Biển số xe không được vượt quá 8 ký tự" },
                     {
                       pattern: /^(0[1-9]|[1-9][0-9])[A-Z]-\d{5}$/,
                       message: "Biển số xe không đúng định dạng. Ví dụ: 30A-12345",
@@ -243,10 +339,11 @@ export const ServiceBookingPage: React.FC = () => {
                 >
                   <Select
                     placeholder="Chọn loại dịch vụ"
-                    options={[
-                      { value: "STATIONARY", label: "STATIONARY" },
-                      { value: "MOBILE", label: "MOBILE" },
-                    ]}
+                    options={serviceModes.map((mode) => ({
+                      value: mode,
+                      label: mode,
+                    }))}
+                    loading={loadingServiceModes}
                     onChange={(value) => setServiceType(value)}
                   />
                 </Form.Item>
@@ -254,7 +351,7 @@ export const ServiceBookingPage: React.FC = () => {
                 {/* Nếu STATIONARY → hiện địa điểm, MOBILE → hiện input */}
                 {serviceType === "STATIONARY" && (
                   <Form.Item label="Địa điểm" name="location">
-                    <Input value="Vũng Tàu" disabled placeholder="Vũng Tàu"/>
+                    <Input value="Vũng Tàu" disabled placeholder="Vũng Tàu" />
                   </Form.Item>
                 )}
 
