@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { useForm } from 'react-hook-form';
-import type { RegisterUserRequest } from '../../../type/auth';
+import type { RegisterUserRequest } from '../../../types/admin/auth';
 const ClientRegister = () => {
   const { registerUser, isLoading } = useAuth();
   const navigate = useNavigate();
