@@ -10,6 +10,7 @@ import { VehicleDetail } from "../pages/admin/vehicle/VehicleDetail";
 import CarFileManagement from "../pages/admin/car file/CarFileManagement";
 import CarFileCreate from "../pages/admin/car file/CarFileCreate";
 import CarFileEdit from "../pages/admin/car file/CarFileEdit";
+import ServiceTypeManagement from "../pages/admin/service type/ServiceTypeManagement";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -24,6 +25,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "car-file-create", element: <CarFileCreate/> },
     { path: "car-file-edit/:id", element: <CarFileEdit/> },
     { path: "car-file-view/:id", element: <CarFileEdit/> },
+    { path: "service-types", element: <ServiceTypeManagement/> },
 ];
 
 export const AuthAdminRoutes = [

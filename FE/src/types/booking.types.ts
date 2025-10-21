@@ -141,7 +141,7 @@ export interface ServiceModeResponse {
 export interface CreateAppointmentRequest {
   customerId?: string;
   customerFullName: string;
-  customerPhoneNumber?: string; // Đổi từ bắt buộc thành optional
+  customerPhoneNumber?: string; 
   customerEmail: string;
   vehicleTypeId: string;
   vehicleNumberPlate: string;
