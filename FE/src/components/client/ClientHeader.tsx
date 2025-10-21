@@ -65,7 +65,7 @@ const ClientHeader = () => {
 
         // Hiển thị menu User khi đã đăng nhập
         ...(user?.userId ? [{
-            label: `Welcome ${user.username}`,
+            label: `Welcome ${user.email}`,
             key: 'setting',
             icon: <AliwangwangOutlined />,
             children: [

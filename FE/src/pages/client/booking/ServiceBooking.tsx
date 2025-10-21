@@ -12,6 +12,7 @@ import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
 import vinImage from "../../../assets/vin.jpg";
 import { bookingService } from "../../../service/bookingService";
+import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
 
 const { TextArea } = Input;
@@ -27,6 +28,9 @@ export const ServiceBookingPage: React.FC = () => {
   const [loadingVehicles, setLoadingVehicles] = useState<boolean>(false);
   const [loadingServices, setLoadingServices] = useState<boolean>(false);
   const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
+
+  // Lấy thông tin user từ AuthContext
+  const { user } = useAuthContext();
 
   // Fetch vehicle types and service modes on mount
   useEffect(() => {
@@ -183,13 +187,14 @@ export const ServiceBookingPage: React.FC = () => {
 
       // Map form values to API request
       const appointmentData = {
+        ...(user?.userId && { customerId: user.userId }), // Chỉ thêm customerId nếu user tồn tại và có userId
         customerFullName: values.customerName,
         customerPhoneNumber: values.phone || "",
         customerEmail: values.email,
         vehicleTypeId: values.vehicleType,
         vehicleNumberPlate: values.licensePlate,
         vehicleKmDistances: values.mileage || "",
-        userAddress: values.location || "",
+        userAddress: values.userAddress || values.location || "",
         serviceMode: values.serviceType,
         scheduledAt: formattedDate,
         notes: values.notes || "",
@@ -199,15 +204,30 @@ export const ServiceBookingPage: React.FC = () => {
       const response = await bookingService.createAppointment(appointmentData);
 
       if (response.data.success) {
+        console.log("APPOINTMENT CREATED SUCCESSFULLY:", {
+          appointmentData: appointmentData,
+          response: response.data,
+          appointmentId: response.data.data,
+          message: response.data.message
+        });
         message.success(response.data.message || "Đặt lịch hẹn thành công!");
         form.resetFields();
         setSelectedVehicleTypeId("");
         setServiceType("");
       } else {
+        console.log("APPOINTMENT CREATION FAILED:", {
+          appointmentData: appointmentData,
+          response: response.data,
+          errorMessage: response.data.message
+        });
         message.error(response.data.message || "Đặt lịch hẹn thất bại!");
       }
     } catch (error: any) {
-      console.error("Error creating appointment:", error);
+      console.error("Error creating appointment:", {
+        appointmentData: appointmentData,
+        error: error,
+        errorMessage: error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!"
+      });
       const errorMessage = error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!";
       message.error(errorMessage);
     }
@@ -357,15 +377,13 @@ export const ServiceBookingPage: React.FC = () => {
 
                 {serviceType === "MOBILE" && (
                   <Form.Item
-                    label="Số điện thoại liên hệ"
-                    name="mobilePhone"
+                    label="Địa chỉ gặp nạn"
+                    name="userAddress"
                     rules={[
-                      { required: true, message: "Vui lòng nhập số điện thoại" },
-                      { pattern: new RegExp(/\d+/g), message: "Cần nhập số!" },
-                      { min: 10, message: "Số điện thoại phải tối thiểu 10 số" },
+                      { required: true, message: "Vui lòng nhập địa chỉ gặp nạn" },
                     ]}
                   >
-                    <Input placeholder="Nhập số điện thoại liên hệ" />
+                    <Input placeholder="Nhập địa chỉ gặp nạn của bạn" />
                   </Form.Item>
                 )}
               </div>

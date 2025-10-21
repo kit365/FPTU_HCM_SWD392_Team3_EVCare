@@ -45,12 +45,6 @@ export const adminMenuItems: AdminMenuItem[] = [
                 href: `/${pathAdmin}/service-types`,
                 label: "Danh sách loại dịch vụ",
                 icon: JournalPage,
-            },
-            {
-                href: `/${pathAdmin}/service-categories`,
-                label: "Danh mục dịch vụ",
-                icon: Group,
-            },
-        ],
+            },]
     },
 ]
