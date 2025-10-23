@@ -3,6 +3,8 @@ import { pathAdmin } from "./paths.constant";
 import { HomeSimple, JournalPage, Group } from "iconoir-react";
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import BadgeIcon from '@mui/icons-material/Badge';
+import CategoryIcon from '@mui/icons-material/Category';
+import BuildIcon from '@mui/icons-material/Build';
 
 export interface AdminMenuItem {
     href?: string
@@ -38,13 +40,24 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: BadgeIcon,
     },
     {
-        label: "Quản lý loại dịch vụ",
-        icon: JournalPage,
+        label: "Quản lý phụ tùng",
+        icon: BuildIcon,
         children: [
             {
-                href: `/${pathAdmin}/service-types`,
-                label: "Danh sách loại dịch vụ",
-                icon: JournalPage,
-            },]
+                href: `/${pathAdmin}/vehicle-part-category`,
+                label: "Danh mục phụ tùng",
+                icon: CategoryIcon,
+            },
+            {
+                href: `/${pathAdmin}/vehicle-part`,
+                label: "Phụ tùng xe",
+                icon: BuildIcon,
+            },
+        ],
+    },
+    {
+        href: `/${pathAdmin}/service-type`,
+        label: "Loại dịch vụ",
+        icon: JournalPage,
     },
 ]

@@ -11,6 +11,19 @@ import CarFileManagement from "../pages/admin/car file/CarFileManagement";
 import CarFileCreate from "../pages/admin/car file/CarFileCreate";
 import CarFileEdit from "../pages/admin/car file/CarFileEdit";
 import { VehicleDetail } from "../pages/admin/vehicle/VehicleDetail";
+import { VehiclePartList } from "../pages/admin/vehicle-part/VehiclePartList";
+import { VehiclePartCreate } from "../pages/admin/vehicle-part/VehiclePartCreate";
+import { VehiclePartEdit } from "../pages/admin/vehicle-part/VehiclePartEdit";
+import { VehiclePartDetail } from "../pages/admin/vehicle-part/VehiclePartDetail";
+import { VehiclePartCategoryList } from "../pages/admin/vehicle-part-category/VehiclePartCategoryList";
+import { VehiclePartCategoryCreate } from "../pages/admin/vehicle-part-category/VehiclePartCategoryCreate";
+import { VehiclePartCategoryEdit } from "../pages/admin/vehicle-part-category/VehiclePartCategoryEdit";
+import { VehiclePartCategoryDetail } from "../pages/admin/vehicle-part-category/VehiclePartCategoryDetail";
+import { ServiceTypeList } from "../pages/admin/service-type/ServiceTypeList";
+import { ServiceTypeCreate } from "../pages/admin/service-type/ServiceTypeCreate";
+import { ServiceTypeEdit } from "../pages/admin/service-type/ServiceTypeEdit";
+import { ServiceTypeDetail } from "../pages/admin/service-type/ServiceTypeDetail";
+import { Profile } from "../pages/admin/profile/Profile";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -25,6 +38,19 @@ export const AdminRoutes: RouteObject[] = [
     { path: "car-file-create", element: <CarFileCreate /> },
     { path: "car-file-edit/:id", element: <CarFileEdit /> },
     { path: "car-file-view/:id", element: <CarFileEdit /> },
+    { path: "vehicle-part", element: <VehiclePartList /> },
+    { path: "vehicle-part/create", element: <VehiclePartCreate /> },
+    { path: "vehicle-part/edit/:id", element: <VehiclePartEdit /> },
+    { path: "vehicle-part/view/:id", element: <VehiclePartDetail /> },
+    { path: "vehicle-part-category", element: <VehiclePartCategoryList /> },
+    { path: "vehicle-part-category/create", element: <VehiclePartCategoryCreate /> },
+    { path: "vehicle-part-category/edit/:id", element: <VehiclePartCategoryEdit /> },
+    { path: "vehicle-part-category/view/:id", element: <VehiclePartCategoryDetail /> },
+    { path: "service-type", element: <ServiceTypeList /> },
+    { path: "service-type/create", element: <ServiceTypeCreate /> },
+    { path: "service-type/edit/:id", element: <ServiceTypeEdit /> },
+    { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
+    { path: "profile", element: <Profile /> },
 ];
 
 export const AuthAdminRoutes = [

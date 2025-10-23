@@ -3,7 +3,7 @@ import { Table, Popconfirm } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import CarUpdate from './CarUpdate.tsx';
-import type { CarProfile } from '../../../type/carModel.ts';
+import type { CarProfile } from '../../../types/carModel.ts';
 import CarDetail from './CarDetail.tsx';
 
 //định nghĩa prop
