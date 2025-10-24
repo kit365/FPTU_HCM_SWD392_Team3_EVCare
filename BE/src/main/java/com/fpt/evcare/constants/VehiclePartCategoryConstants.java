@@ -12,12 +12,13 @@ public class VehiclePartCategoryConstants {
 
     //Failed message
     public static final String MESSAGE_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND = "Không tìm thấy danh mục phụ tùng";
-    public static final String MESSAGE_ERR_VEHICLE_PART_CATEGORY_LIST_NOT_FOUND = "Không tìm thấy danh sách danh mục phụ tùng";
     public static final String MESSAGE_ERR_DUPLICATED_VEHICLE_PART_CATEGORY = "Danh mục phụ tùng này đã tồn tại";
+    public static final String MESSAGE_ERR_VEHICLE_PART_CATEGORY_LIST_NOT_FOUND = "Không tìm thấy danh sách danh mục phụ tùng";
 
     //Log
     //Error Logs
     public static final String LOG_ERR_VEHICLE_PART_CATEGORY_NOT_FOUND = "Không tìm thấy danh mục phụ tùng";
+    public static final String LOG_ERR_VEHICLE_PART_CATEGORY_LIST_NOT_FOUND = "Không tìm thấy danh sách danh mục phụ tùng: {}";
     public static final String LOG_ERR_DUPLICATED_VEHICLE_PART_CATEGORY = "Danh mục phụ tùng này đã tồn tại: {}";
 
     //Success Logs
@@ -36,6 +37,7 @@ public class VehiclePartCategoryConstants {
 
     // Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/part-category";
+    public static final String VEHICLE_PART_CATEGORY_SEARCH_LIST= "/search/";
     public static final String VEHICLE_PART_CATEGORY_LIST= "/";
     public static final String VEHICLE_PART_CATEGORY = "/{id}";
     public static final String VEHICLE_PART_CATEGORY_UPDATE = "/{id}";
