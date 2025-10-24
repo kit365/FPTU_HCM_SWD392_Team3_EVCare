@@ -7,7 +7,7 @@ import type {
   CreateVehicleTypeResponse,
   VehicleDetailResponse,
   UpdateVehicleTypeRequest
-} from "../type/carModel";
+} from "../types/carModel";
 import { apiClient } from "./api";
 import { VEHICLE_TYPE_BY_ID, VEHICLE_TYPE_ENDPOINT } from "../constants/vehicle-type.constant";
 import type { ApiResponse } from "../types/api";
