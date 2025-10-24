@@ -75,15 +75,14 @@ export const VehiclePartList = () => {
                     <td className="p-[1.2rem]">{item.vehicleType?.vehicleTypeName || '-'}</td>
                     <td className="p-[1.2rem]">{item.currentQuantity}</td>
                     <td className="p-[1.2rem]">{item.minStock}</td>
-                    <td className="p-[1.2rem]">{item.unitPrice?.toLocaleString('vi-VN')} VNĐ</td>
+                    <td className="p-[1.2rem]">{item.unitPrice?.toLocaleString('vi-VN')}</td>
                     <td className="p-[1.2rem]">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        item.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
+                      <span className={`px-2 py-1 rounded-full text-[1rem] font-medium ${item.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
                         item.status === 'LOW_STOCK' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
+                          'bg-red-100 text-red-800'
+                        }`}>
                         {item.status === 'AVAILABLE' ? 'Còn hàng' :
-                         item.status === 'LOW_STOCK' ? 'Sắp hết' : 'Hết hàng'}
+                          item.status === 'LOW_STOCK' ? 'Sắp hết' : 'Hết hàng'}
                       </span>
                     </td>
                     <td className="p-[1.2rem] text-center flex justify-center">

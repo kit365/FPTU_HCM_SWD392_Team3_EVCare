@@ -19,7 +19,7 @@ export const serviceTypeService = {
       pageSize: String(params.pageSize),
       ...(params.keyword ? { keyword: params.keyword } : {}),
     }).toString();
-    
+
     const response = await apiClient.get<ApiResponse<{
       data: ServiceTypeResponse[];
       totalPages: number;
@@ -30,7 +30,7 @@ export const serviceTypeService = {
 
   getById: async (id: string): Promise<ServiceTypeResponse> => {
     console.log('Calling getById with id:', id);
-    const response = await apiClient.get<ApiResponse<ServiceTypeResponse>>(`/service-type/${id}`);
+    const response = await apiClient.get<ApiResponse<ServiceTypeResponse>>(`/service-type/vehicle_type/${id}`);
     console.log('getById response:', response);
     return response.data.data;
   },

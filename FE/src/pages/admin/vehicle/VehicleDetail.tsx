@@ -36,7 +36,7 @@ export const VehicleDetail = () => {
     return (
         <div className="max-w-[1320px] px-[12px] mx-auto">
             <Card elevation={0} className="shadow-[0_3px_16px_rgba(142,134,171,0.05)]">
-                <CardHeaderAdmin title="Chi tiết mẫu xe" />
+                <CardHeaderAdmin title="Chi tiết mẫu xe" href={`/${pathAdmin}/vehicle/service/${id}`} content="Dịch vụ" />
                 <form
                     className="px-[2.4rem] pb-[2.4rem] grid grid-cols-2 gap-x-[24px] gap-y-[24px]"
                 >

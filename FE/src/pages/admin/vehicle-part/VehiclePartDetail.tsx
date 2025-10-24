@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Card } from "@mui/material";
@@ -18,7 +18,6 @@ export const VehiclePartDetail = () => {
   const { getById } = useVehiclePart();
   const { vehicleTypeOptions, fetchVehicleTypeNames } = useVehicleType();
   const { list: categoryOptions, getAll: fetchCategories } = useVehiclePartCategory();
-  const [response, setResponse] = useState<any>(null);
   const { register, reset } = useForm();
 
   useEffect(() => {
@@ -29,11 +28,8 @@ export const VehiclePartDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (id) {
-        console.log('Fetching vehicle part detail with id:', id);
         const response = await getById(id);
-        console.log('Vehicle part detail response:', response);
         if (response) {
-          setResponse(response);
           reset({
             ...response,
             vehicleTypeId: response.vehicleType?.vehicleTypeId || "",
@@ -74,23 +70,23 @@ export const VehiclePartDetail = () => {
 
           <div>
             <LabelAdmin htmlFor="vehicleTypeId" content="Loại xe" />
-            <SelectAdmin 
-              id="vehicleTypeId" 
-              name="vehicleTypeId" 
-              options={vehicleTypeOptions} 
-              register={register("vehicleTypeId")} 
-              disabled 
+            <SelectAdmin
+              id="vehicleTypeId"
+              name="vehicleTypeId"
+              options={vehicleTypeOptions}
+              register={register("vehicleTypeId")}
+              disabled
             />
           </div>
 
           <div>
             <LabelAdmin htmlFor="vehiclePartCategoryId" content="Danh mục phụ tùng" />
-            <SelectAdmin 
-              id="vehiclePartCategoryId" 
-              name="vehiclePartCategoryId" 
-              options={Array.isArray(categoryOptions) ? categoryOptions.map(category => ({ value: category.vehiclePartCategoryId, label: category.partCategoryName })) : []} 
-              register={register("vehiclePartCategoryId")} 
-              disabled 
+            <SelectAdmin
+              id="vehiclePartCategoryId"
+              name="vehiclePartCategoryId"
+              options={Array.isArray(categoryOptions) ? categoryOptions.map(category => ({ value: category.vehiclePartCategoryId, label: category.partCategoryName })) : []}
+              register={register("vehiclePartCategoryId")}
+              disabled
             />
           </div>
 

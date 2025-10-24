@@ -1,15 +1,10 @@
 
 import { pathAdmin } from "./paths.constant";
-import { HomeSimple, JournalPage, Group } from "iconoir-react";
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import BadgeIcon from '@mui/icons-material/Badge';
-import CategoryIcon from '@mui/icons-material/Category';
-import BuildIcon from '@mui/icons-material/Build';
-
+import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase } from "iconoir-react";
 export interface AdminMenuItem {
     href?: string
     label: string
-    icon: React.ElementType
+    icon?: React.ElementType
     children?: AdminMenuItem[]
 }
 
@@ -25,39 +20,34 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: Group,
     },
     {
-        href: `/${pathAdmin}/file-manager`,
-        label: "Quản lý file",
-        icon: JournalPage,
-    },
-    {
         href: `/${pathAdmin}/vehicle`,
-        label: "Quản lý mẫu xe",
-        icon: DirectionsCarIcon,
+        label: "Mẫu xe",
+        icon: Car,
     },
     {
         href: `/${pathAdmin}/car-file-management`,
-        label: "Quản lý hồ sơ xe",
-        icon: BadgeIcon,
+        label: "Hồ sơ xe",
+        icon: UserBadgeCheck,
     },
     {
-        label: "Quản lý phụ tùng",
-        icon: BuildIcon,
+        label: "Phụ tùng",
+        icon: Codepen,
         children: [
             {
                 href: `/${pathAdmin}/vehicle-part-category`,
                 label: "Danh mục phụ tùng",
-                icon: CategoryIcon,
+                icon: Menu
             },
             {
                 href: `/${pathAdmin}/vehicle-part`,
                 label: "Phụ tùng xe",
-                icon: BuildIcon,
+                icon: Erase
             },
         ],
     },
     {
-        href: `/${pathAdmin}/service-type`,
         label: "Loại dịch vụ",
-        icon: JournalPage,
+        icon: DownloadDataWindow,
+        children: []
     },
 ]

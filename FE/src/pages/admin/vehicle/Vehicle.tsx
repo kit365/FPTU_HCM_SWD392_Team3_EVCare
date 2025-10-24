@@ -10,7 +10,7 @@ import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useVehicleType } from "../../../hooks/useVehicleType";
-
+import CompassCalibrationIcon from '@mui/icons-material/CompassCalibration';
 interface TableColumn {
     title: string;
     width: number;
@@ -116,6 +116,13 @@ export const Vehicle = () => {
                                                 title="Chỉnh sửa"
                                             >
                                                 <EditIcon className="!w-full !h-full" />
+                                            </Link>
+                                            <Link
+                                                to={`/admin/vehicle/service/${item.vehicleTypeId}`}
+                                                className="text-yellow-300 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
+                                                title="Dịch vụ"
+                                            >
+                                                <CompassCalibrationIcon className="!w-full !h-full" />
                                             </Link>
                                             <Popconfirm
                                                 title="Xóa mẫu xe"

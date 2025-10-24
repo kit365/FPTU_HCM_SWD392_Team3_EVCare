@@ -18,17 +18,13 @@ export const useVehiclePart = () => {
   const search = useCallback(async (params: VehiclePartSearchRequest) => {
     setLoading(true);
     try {
-      console.log('Searching vehicle parts with params:', params);
       const response = await vehiclePartService.search(params);
-      console.log('Vehicle part search response:', response);
       if (response?.data?.success) {
         const data = response.data.data;
-        console.log('Vehicle part data:', data);
         setList(data.data);
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
       } else {
-        console.log('Search failed:', response?.data?.message);
         toast.error(response?.data?.message || "Không thể tải danh sách phụ tùng!");
       }
     } catch (error: any) {

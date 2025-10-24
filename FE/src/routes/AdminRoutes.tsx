@@ -24,6 +24,7 @@ import { ServiceTypeCreate } from "../pages/admin/service-type/ServiceTypeCreate
 import { ServiceTypeEdit } from "../pages/admin/service-type/ServiceTypeEdit";
 import { ServiceTypeDetail } from "../pages/admin/service-type/ServiceTypeDetail";
 import { Profile } from "../pages/admin/profile/Profile";
+import { VehicleService } from "../pages/admin/vehicle/VehicleService";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -34,6 +35,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "vehicle/create", element: <VehicleCreate /> },
     { path: "vehicle/edit/:id", element: <VehicleEdit /> },
     { path: "vehicle/view/:id", element: <VehicleDetail /> },
+    { path: "vehicle/service/:id", element: <VehicleService /> },
     { path: "car-file-management", element: <CarFileManagement /> },
     { path: "car-file-create", element: <CarFileCreate /> },
     { path: "car-file-edit/:id", element: <CarFileEdit /> },
