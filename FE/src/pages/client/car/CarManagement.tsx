@@ -45,7 +45,7 @@ const CarManagement: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "20px", backgroundColor: "#ffffff"  }}>
       
       {/*BẢNG HỒ SƠ XE */}
       <CarCreate onSearch={handleSearch} />

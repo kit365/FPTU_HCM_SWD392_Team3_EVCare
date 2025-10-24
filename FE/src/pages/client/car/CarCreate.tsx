@@ -36,15 +36,15 @@ const CarCreate: React.FC<CarCreateProps> = ({ onSearch }) => {
     }
 
     return (
-        <div className="car-form" style={{ margin: "10px 0" }}>
+        <div className="car-form" style={{ margin: "10px 0", marginBottom: "40px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3>Bảng Hồ Sơ Xe</h3>
+                <h3 className= "text-[20px] font-semibold">Bảng Hồ Sơ Xe</h3>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <Search 
                         placeholder="Tìm kiếm xe" 
                         onSearch={handleSearch}
                         onChange={(e) => handleSearch(e.target.value)}
-                        style={{ width: 300 }}
+                        style={{ width: 300}}
                         enterButton 
                         allowClear
                     />

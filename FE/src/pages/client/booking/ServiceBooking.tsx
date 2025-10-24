@@ -10,7 +10,6 @@ import {
 } from "antd";
 import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
-import vinImage from "../../../assets/vin.jpg";
 import { bookingService } from "../../../service/bookingService";
 import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
@@ -280,22 +279,49 @@ export const ServiceBookingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
-        style={{
-          backgroundImage: `url(${vinImage})`,
-          filter: "blur(2px)",
-        }}
-      />
+    <div className="min-h-screen relative bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-cyan-600/5"></div>
+      <div className="absolute inset-0" style={{
+        backgroundImage: `radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                         radial-gradient(circle at 75% 75%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)`
+      }}></div>
+
+      {/* Custom Styles */}
+      <style>{`
+        .ant-input, .ant-select-selector, .ant-picker, .ant-input-textarea {
+          border-radius: 12px !important;
+          border: 2px solid #e5e7eb !important;
+          transition: all 0.3s ease !important;
+        }
+        .ant-input:hover, .ant-select-selector:hover, .ant-picker:hover, .ant-input-textarea:hover {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        .ant-input:focus, .ant-input-focused, .ant-select-focused .ant-select-selector,
+        .ant-picker-focused, .ant-input-textarea:focus {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+        }
+        .ant-form-item-label > label {
+          font-weight: 600;
+          color: #374151;
+          font-size: 14px;
+        }
+        .ant-select-selection-placeholder {
+          color: #9ca3af !important;
+        }
+      `}</style>
 
       {/* Content Overlay */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-6xl w-full bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-center text-2xl font-bold mb-6">
-            ĐẶT LỊCH DỊCH VỤ
-          </h2>
+        <div className="max-w-6xl w-full bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+              ĐẶT LỊCH DỊCH VỤ
+            </h2>
+            <p className="text-gray-600 text-lg">Đặt lịch sửa chữa và bảo dưỡng xe điện VinFast</p>
+          </div>
 
           <Form
             form={form}
@@ -306,8 +332,13 @@ export const ServiceBookingPage: React.FC = () => {
             {/* Grid 2 cột */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Thông tin khách hàng */}
-              <div>
-                <h3 className="font-semibold mb-4">1. Thông tin khách hàng</h3>
+              <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+                <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-white font-bold text-sm">1</span>
+                  </div>
+                  Thông tin khách hàng
+                </h3>
                 <Form.Item
                   label="Họ tên"
                   name="customerName"
@@ -339,8 +370,13 @@ export const ServiceBookingPage: React.FC = () => {
               </div>
 
               {/* Thông tin xe */}
-              <div>
-                <h3 className="font-semibold mb-4">2. Thông tin xe</h3>
+              <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+                <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-white font-bold text-sm">2</span>
+                  </div>
+                  Thông tin xe
+                </h3>
                 <Form.Item
                   label="Mẫu xe"
                   name="vehicleType"
@@ -374,8 +410,13 @@ export const ServiceBookingPage: React.FC = () => {
             </div>
 
             {/* Dịch vụ */}
-            <div>
-              <h3 className="font-semibold mb-4">3. Dịch vụ</h3>
+            <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+              <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg flex items-center justify-center mr-3">
+                  <span className="text-white font-bold text-sm">3</span>
+                </div>
+                Dịch vụ
+              </h3>
               <Form.Item
                 name="services"
                 label="Chọn dịch vụ"
@@ -395,8 +436,13 @@ export const ServiceBookingPage: React.FC = () => {
             </div>
 
             {/* Loại dịch vụ & Thông tin liên hệ */}
-            <div>
-              <h3 className="font-semibold mb-4">4. Loại hình dịch vụ</h3>
+            <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+              <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center mr-3">
+                  <span className="text-white font-bold text-sm">4</span>
+                </div>
+                Loại hình dịch vụ
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Form.Item
                   label="Chọn thể loại dịch vụ"
@@ -449,26 +495,38 @@ export const ServiceBookingPage: React.FC = () => {
             </div>
 
             {/* Ghi chú */}
-            <div>
-              <h3 className="font-semibold mb-4">5. Ghi chú</h3>
+            <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+              <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-slate-500 rounded-lg flex items-center justify-center mr-3">
+                  <span className="text-white font-bold text-sm">5</span>
+                </div>
+                Ghi chú
+              </h3>
               <Form.Item name="notes">
                 <TextArea rows={4} placeholder="Nhập ghi chú (nếu có)" />
               </Form.Item>
             </div>
 
             {/* Nút Submit */}
-            <div className="text-center">
-              <Button type="primary" htmlType="submit" size="large">
-                Đặt lịch hẹn
-              </Button>
-              <Button
-                type="default"
-                onClick={handleOldData}
-                size="large"
-                style={{ marginLeft: '16px' }}
-              >
-                Sử dụng dữ liệu cũ
-              </Button>
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 border border-blue-200">
+              <div className="text-center space-x-4">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  size="large"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0 text-white font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                >
+                  Đặt lịch hẹn
+                </Button>
+                <Button
+                  type="default"
+                  onClick={handleOldData}
+                  size="large"
+                  className="bg-white/80 backdrop-blur-sm border-2 border-blue-200 text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-blue-50"
+                >
+                  Sử dụng dữ liệu cũ
+                </Button>
+              </div>
             </div>
           </Form>
         </div>
