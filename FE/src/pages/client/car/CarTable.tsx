@@ -26,24 +26,6 @@ type CarTableProps = {
 
 const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurrent, pageSize, setPageSize }) => {
 
-
-    // const handleDeleteCar = async (id) => {
-    //     const res = await deleteUserAPI(id);
-    //     if (res.data) {
-    //         notification.success({
-    //             message: "Delete car",
-    //             description: "Xóa car thành công"
-    //         })
-    //         await loadUser();
-
-    //     } else {
-    //         notification.error({
-    //             message: "Error delete user",
-    //             description: JSON.stringify(res.message)
-    //         })
-    //     }
-    // }
-
     const onChange = (pagination: any, filters: any, sorter: any, extra: any) => {
         console.log("check onChange:", pagination, filters, sorter, extra)
         //setCurrent, setPageSize
@@ -72,6 +54,8 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
     const columns: TableColumnsType<Vehicle> = [
         {
             title: 'STT',
+            align: 'center',
+            width: 50,
             render: (_: any, record: any, index: number) => {
                 return (
                     <>{(index + 1) + (current - 1) * pageSize}</>
@@ -107,9 +91,11 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
         },
         {
             title: 'Hành Động',
+            width: 120,
             key: 'action',
+            align: 'center',
             render: (_: any, record: any) => (
-                <div style={{ display: "flex", gap: "20px" }}>
+                <div style={{ display: "flex", gap: "20px", justifyContent: "center", alignItems: "center" }}>
                     <EditOutlined
                         onClick={() => {
                             setDataUpdate(record)
@@ -138,6 +124,9 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
                 columns={columns}
                 dataSource={vehicles}
                 rowKey={"id"}
+                bordered
+                size="middle"
+                rowClassName="custom-row"
                 pagination={
                     {
                         current: current,
