@@ -14,6 +14,8 @@ import vinImage from "../../../assets/vin.jpg";
 import { bookingService } from "../../../service/bookingService";
 import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
+import ViewOldDataModal from "./ViewOldDataModal";
+import type { OldBookingData } from "./mockOldBookingData";
 
 const { TextArea } = Input;
 const { SHOW_PARENT } = TreeSelect;
@@ -28,6 +30,7 @@ export const ServiceBookingPage: React.FC = () => {
   const [loadingVehicles, setLoadingVehicles] = useState<boolean>(false);
   const [loadingServices, setLoadingServices] = useState<boolean>(false);
   const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
+  const [isUseOldData, setIsUseOldData] = useState(false)
 
   // Lấy thông tin user từ AuthContext
   const { user } = useAuthContext();
@@ -47,6 +50,47 @@ export const ServiceBookingPage: React.FC = () => {
       form.setFieldValue("services", undefined);
     }
   }, [selectedVehicleTypeId]);
+
+  const handleOldData = () => {
+    setIsUseOldData(true);
+  };
+
+  const handleCancelModal = () => {
+    setIsUseOldData(false);
+  };
+
+  const handleSelectVehicle = (bookingData: OldBookingData['bookingHistory']) => {
+    // Chỉ fill thông tin cơ bản, không fill các trường selection
+    form.setFieldsValue({
+      customerName: bookingData.customerName,
+      phone: bookingData.phone,
+      email: bookingData.email,
+      // KHÔNG điền vehicleType (Mẫu xe)
+      mileage: bookingData.mileage,
+      licensePlate: bookingData.licensePlate,
+      // KHÔNG điền services (Dịch vụ)
+      // KHÔNG điền serviceType (Loại hình dịch vụ)
+      userAddress: bookingData.serviceType === 'MOBILE' ? bookingData.userAddress : undefined,
+      // KHÔNG điền dateTime (Thời gian hẹn)
+      notes: bookingData.notes,
+    });
+
+    // Reset các trường selection để user phải chọn lại
+    form.setFieldsValue({
+      vehicleType: undefined,
+      services: undefined,
+      serviceType: undefined,
+      dateTime: undefined,
+      location: undefined, // Reset location cho STATIONARY
+    });
+
+    // Reset state để không load services tự động
+    setSelectedVehicleTypeId("");
+    setServiceType("");
+
+    // Hiển thị message
+    message.success("Đã điền thông tin cơ bản từ lịch sử booking! Vui lòng chọn lại Mẫu xe, Dịch vụ và Thời gian.");
+  };
 
   const fetchVehicleTypes = async () => {
     setLoadingVehicles(true);
@@ -131,19 +175,19 @@ export const ServiceBookingPage: React.FC = () => {
   // Hàm xử lý service selection logic
   const processServiceSelection = (selectedServices: string[], serviceTreeData: any[]): string[] => {
     if (!selectedServices || selectedServices.length === 0) return [];
-    
+
     const result: string[] = [];
-    
+
     selectedServices.forEach(serviceId => {
       const selectedService = findServiceInTree(serviceTreeData, serviceId);
-      
+
       if (selectedService) {
-        if (selectedService.children && selectedService.children.length > 0) {          
+        if (selectedService.children && selectedService.children.length > 0) {
           // Kiểm tra xem có children nào được chọn không
-          const selectedChildren = selectedServices.filter(id => 
+          const selectedChildren = selectedServices.filter(id =>
             selectedService.children?.some((child: any) => child.value === id)
           );
-          
+
           if (selectedChildren.length === 0) {
             // Chỉ chọn parent → gửi tất cả children IDs (không gửi parent ID)
             selectedService.children?.forEach((child: any) => {
@@ -159,7 +203,7 @@ export const ServiceBookingPage: React.FC = () => {
         }
       }
     });
-    
+
     return [...new Set(result)];
   };
 
@@ -174,6 +218,8 @@ export const ServiceBookingPage: React.FC = () => {
     }
     return null;
   };
+
+
 
   const onFinish: FormProps["onFinish"] = async (values) => {
     try {
@@ -200,7 +246,7 @@ export const ServiceBookingPage: React.FC = () => {
         notes: values.notes || "",
         serviceTypeIds: processedServiceIds,
       };
-      
+
       const response = await bookingService.createAppointment(appointmentData);
 
       if (response.data.success) {
@@ -415,10 +461,25 @@ export const ServiceBookingPage: React.FC = () => {
               <Button type="primary" htmlType="submit" size="large">
                 Đặt lịch hẹn
               </Button>
+              <Button
+                type="default"
+                onClick={handleOldData}
+                size="large"
+                style={{ marginLeft: '16px' }}
+              >
+                Sử dụng dữ liệu cũ
+              </Button>
             </div>
           </Form>
         </div>
       </div>
+
+      {/* Modal for old data */}
+      <ViewOldDataModal
+        open={isUseOldData}
+        onCancel={handleCancelModal}
+        onSelectVehicle={handleSelectVehicle}
+      />
     </div>
   );
 };
