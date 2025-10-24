@@ -6,18 +6,20 @@ import { InputAdmin } from "../../../components/admin/ui/form/Input";
 import { SelectAdmin } from "../../../components/admin/ui/form/Select";
 import { Link } from "react-router-dom";
 import { pathAdmin } from "../../../constants/paths.constant";
-import { useVehiclePart } from "../../../hooks/useServiceTypeVehiclePart";
+import { useVehiclePart } from "../../../hooks/useVehiclePart";
 import { useVehicleType } from "../../../hooks/useVehicleType";
 import { useVehiclePartCategory } from "../../../hooks/useVehiclePartCategory";
 import { VEHICLE_PART_STATUS_OPTIONS } from "../../../constants/service-type-vehicle-part.constant";
 import { useEffect } from "react";
+
+import type { VehiclePartStatusEnum } from "../../../types/vehicle-part.types";
 
 type FormData = {
   vehiclePartName: string;
   currentQuantity: number;
   minStock: number;
   unitPrice: number;
-  status: string;
+  status: VehiclePartStatusEnum;
   averageLifespan: number;
   note?: string;
   vehicleTypeId: string;
@@ -27,6 +29,8 @@ type FormData = {
 export const VehiclePartCreate = () => {
   const { loading, create } = useVehiclePart();
   const { vehicleTypeOptions, fetchVehicleTypeNames } = useVehicleType();
+
+  
   const { list: categoryOptions, getAll: fetchCategories } = useVehiclePartCategory();
   
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
@@ -35,7 +39,7 @@ export const VehiclePartCreate = () => {
       currentQuantity: 1,
       minStock: 1,
       unitPrice: 1,
-      status: 'AVAILABLE',
+      status: 'AVAILABLE' as VehiclePartStatusEnum,
       averageLifespan: 1,
       note: "",
       vehicleTypeId: "",

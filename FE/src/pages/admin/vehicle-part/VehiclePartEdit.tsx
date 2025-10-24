@@ -8,7 +8,7 @@ import { InputAdmin } from "../../../components/admin/ui/form/Input";
 import { SelectAdmin } from "../../../components/admin/ui/form/Select";
 import { Link } from "react-router-dom";
 import { pathAdmin } from "../../../constants/paths.constant";
-import { useVehiclePart } from "../../../hooks/useServiceTypeVehiclePart";
+import { useVehiclePart } from "../../../hooks/useVehiclePart";
 import { useVehicleType } from "../../../hooks/useVehicleType";
 import { useVehiclePartCategory } from "../../../hooks/useVehiclePartCategory";
 import { VEHICLE_PART_STATUS_OPTIONS } from "../../../constants/service-type-vehicle-part.constant";

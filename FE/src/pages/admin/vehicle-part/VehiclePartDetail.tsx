@@ -7,7 +7,7 @@ import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { LabelAdmin } from "../../../components/admin/ui/form/Label";
 import { InputAdmin } from "../../../components/admin/ui/form/Input";
 import { SelectAdmin } from "../../../components/admin/ui/form/Select";
-import { useVehiclePart } from "../../../hooks/useServiceTypeVehiclePart";
+import { useVehiclePart } from "../../../hooks/useVehiclePart";
 import { useVehicleType } from "../../../hooks/useVehicleType";
 import { useVehiclePartCategory } from "../../../hooks/useVehiclePartCategory";
 import { VEHICLE_PART_STATUS_OPTIONS } from "../../../constants/service-type-vehicle-part.constant";
@@ -19,7 +19,6 @@ export const VehiclePartDetail = () => {
   const { vehicleTypeOptions, fetchVehicleTypeNames } = useVehicleType();
   const { list: categoryOptions, getAll: fetchCategories } = useVehiclePartCategory();
   const [response, setResponse] = useState<any>(null);
-
   const { register, reset } = useForm();
 
   useEffect(() => {

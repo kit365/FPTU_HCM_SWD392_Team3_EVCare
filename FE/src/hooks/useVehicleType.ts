@@ -1,17 +1,19 @@
 import { useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import { carModelService } from "../service/carModelService";
-import type {
-  GetVehicleTypeListRequest,
-  CreateVehicleTypeRequest,
-  UpdateVehicleTypeRequest,
-  VehicleDetailResponse,
-} from "../type/carModel";
+
 import type { VehicleProps } from "../types/admin/car.types";
+import type { 
+  GetVehicleTypeListRequest, 
+  VehicleDetailResponse,
+  CreateVehicleTypeRequest,
+  UpdateVehicleTypeRequest
+} from "../types/carModel";
 
 export const useVehicleType = () => {
   const [vehicleList, setVehicleList] = useState<VehicleProps[]>([]);
   const [vehicleDetail, setVehicleDetail] = useState<VehicleDetailResponse | null>(null);
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -113,13 +115,35 @@ export const useVehicleType = () => {
     }
   }, []);
 
+  /** 🔹 Lấy danh sách tên mẫu xe cho dropdown */
+  const fetchVehicleTypeNames = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await carModelService.getVehicleTypeList({ page: 0, pageSize: 1000 });
+      if (response?.data?.success) {
+        const data = response.data.data;
+        const options = data.data.map((item: VehicleProps) => ({
+          value: item.vehicleTypeId,
+          label: item.vehicleTypeName
+        }));
+        setVehicleTypeOptions(options);
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tải danh sách tên mẫu xe:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     vehicleList,
     vehicleDetail,
+    vehicleTypeOptions,
     loading,
     totalPages,
     totalElements,
     fetchVehicleTypeList,
+    fetchVehicleTypeNames,
     getVehicleType,
     createVehicleType,
     updateVehicleType,

@@ -23,12 +23,12 @@ export const vehiclePartCategoryService = {
       data: VehiclePartCategoryResponse[];
       totalPages: number;
       totalElements: number;
-    }>>(`/part-category/?${query}`);
-    return response.data.data;
+    }>>(`/part-category/search/?${query}`);
+    return response;
   },
 
   // Get all vehicle part categories (for dropdown)
-  getAll: async (): Promise<VehiclePartCategoryResponse[]> => {
+  getAll: async () => {
     const response = await apiClient.get<VehiclePartCategoryListApiResponse>('/part-category/');
     return response.data.data;
   },
@@ -36,6 +36,7 @@ export const vehiclePartCategoryService = {
   // Get by id
   getById: async (id: string): Promise<VehiclePartCategoryResponse> => {
     const response = await apiClient.get<VehiclePartCategoryApiResponse>(`/part-category/${id}`);
+    console.log('getById response:', response);
     return response.data.data;
   },
 
