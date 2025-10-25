@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,6 +44,40 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     ServiceTypeRepository serviceTypeRepository;
     ServiceTypeMapper serviceTypeMapper;
     ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
+
+    @Override
+    public List<ServiceTypeResponse> getParentServiceListByVehicleTypeId(UUID vehicleTypeId){
+        List<ServiceTypeEntity> serviceTypeEntityList = serviceTypeRepository.findByServiceTypeIdAndParentIdIsNullAndIsDeletedFalse(vehicleTypeId);
+        if(serviceTypeEntityList.isEmpty()){
+            log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID, vehicleTypeId);
+            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID);
+        }
+
+        return serviceTypeEntityList.stream().map(serviceTypeEntity -> {
+            ServiceTypeResponse serviceTypeResponse = new ServiceTypeResponse();
+            serviceTypeResponse.setServiceTypeId(serviceTypeEntity.getServiceTypeId());
+            serviceTypeResponse.setServiceName(serviceTypeEntity.getServiceName());
+
+            return serviceTypeResponse;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ServiceTypeResponse> getChildrenServiceByParentIdAndVehicleTypeId(UUID parentId, UUID vehicleTypeId){
+        List<ServiceTypeEntity> serviceTypeEntities = serviceTypeRepository.findByVehicleTypeAndParent(vehicleTypeId, parentId);
+        if(serviceTypeEntities.isEmpty()){
+            log.warn(ServiceTypeConstants.LOG_ERR_CHILDREN_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID_AND_PARENT_ID, vehicleTypeId, parentId);
+            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CHILDREN_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID_AND_PARENT_ID);
+        }
+
+        return serviceTypeEntities.stream().map(serviceTypeEntity -> {
+            ServiceTypeResponse serviceTypeResponse = new ServiceTypeResponse();
+            serviceTypeResponse.setServiceTypeId(serviceTypeEntity.getServiceTypeId());
+            serviceTypeResponse.setServiceName(serviceTypeEntity.getServiceName());
+
+            return serviceTypeResponse;
+        }).collect(Collectors.toList());
+    }
 
     @Override
     public List<ServiceTypeResponse> getAllServiceTypesByVehicleTypeForAppointment(UUID vehicleTypeId) {
