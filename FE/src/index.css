@@ -29,3 +29,15 @@ body {
   display: flex;
   position: relative;
 }
+/* Table Header Styling */
+.user-table .ant-table-thead > tr > th {
+    background-color: #dbe9ff !important;  
+    color: #1f2937 !important;             
+    font-weight: 600 !important;
+    border-bottom: 2px solid #bfdbfe !important;
+}
+
+/* Hover effect cho header */
+.user-table .ant-table-thead > tr > th:hover {
+    background-color: #bfdbfe !important;
+}

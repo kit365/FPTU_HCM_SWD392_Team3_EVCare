@@ -1,5 +1,5 @@
 //tạo request và response
-import type { VehicleListData } from "../types/admin/car.types";
+import type { VehicleListData } from "./admin/car.types";
 export interface GetVehicleTypeListRequest {
   page?: number;
   pageSize?: number;

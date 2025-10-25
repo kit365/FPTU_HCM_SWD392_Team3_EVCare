@@ -40,12 +40,12 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
                                 className="flex items-center w-full text-left"
                             >
                                 <item.icon
-                                    className={`w-[20px] h-[20px] text-[rgb(150,160,181)] ${expanded ? "mr-[16px]" : "w-[25px] h-[25px]"}`}
+                                    className={`w-[30px] h-[30px] text-[rgb(150,160,181)] ${expanded ? "mr-[16px]" : "w-[25px] h-[25px]"}`}
                                 />
                                 {expanded && (
                                     <>
                                         <span className="flex-1">{item.label}</span>
-                                        <span className="text-xs">
+                                        <span className="text-[1rem]">
                                             {isOpen ? '▼' : '▶'}
                                         </span>
                                     </>
