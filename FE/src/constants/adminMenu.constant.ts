@@ -45,9 +45,9 @@ export const adminMenuItems: AdminMenuItem[] = [
             },
         ],
     },
-    {
-        label: "Loại dịch vụ",
-        icon: DownloadDataWindow,
-        children: []
-    },
+    // {
+    //     label: "Loại dịch vụ",
+    //     icon: DownloadDataWindow,
+    //     children: []
+    // },
 ]

@@ -7,8 +7,9 @@ import { Popconfirm } from 'antd';
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { useVehiclePart } from "../../../hooks/useServiceTypeVehiclePart";
+
 import { FormEmpty } from "../../../components/admin/ui/FormEmpty";
+import { useVehiclePart } from "../../../hooks/useVehiclePart";
 
 const columns = [
   { title: "STT", width: 5 },

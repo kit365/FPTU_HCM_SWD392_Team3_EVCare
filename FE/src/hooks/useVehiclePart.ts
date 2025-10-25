@@ -50,6 +50,21 @@ export const useVehiclePart = () => {
     }
   }, []);
 
+  const getByVehicleTypeId = useCallback(async (vehicleTypeId: string) => {
+    setLoading(true);
+    try {
+      const data = await vehiclePartService.getByVehicleTypeId(vehicleTypeId);
+      setList(Array.isArray(data) ? data : []);
+      return Array.isArray(data) ? data : [];
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Không thể tải danh sách phụ tùng!");
+      setList([]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const getById = useCallback(async (id: string) => {
     setLoading(true);
     try {
@@ -144,6 +159,7 @@ export const useVehiclePart = () => {
     totalElements,
     search,
     getAll,
+    getByVehicleTypeId,
     getById,
     create,
     update,

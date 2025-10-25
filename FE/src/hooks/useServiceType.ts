@@ -28,6 +28,7 @@ export const useServiceType = () => {
     }
   }, []);
 
+  // Get service type detail by service type ID
   const getById = useCallback(async (id: string) => {
     setLoading(true);
     try {
@@ -35,8 +36,49 @@ export const useServiceType = () => {
       setDetail(data);
       return data;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể tải loại dịch vụ!");
+      toast.error(error?.response?.data?.message || "Không thể tải chi tiết dịch vụ!");
       return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Get services by vehicle type ID
+  const getByVehicleTypeId = useCallback(async (vehicleTypeId: string, params?: { page?: number; pageSize?: number; keyword?: string; isActive?: boolean }) => {
+    setLoading(true);
+    try {
+      const data = await serviceTypeService.getByVehicleTypeId(vehicleTypeId, params);
+      setDetail(data);
+      return data;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Không thể tải danh sách dịch vụ!");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getParentsByVehicleTypeId = useCallback(async (vehicleTypeId: string) => {
+    setLoading(true);
+    try {
+      const data = await serviceTypeService.getParentsByVehicleTypeId(vehicleTypeId);
+      return Array.isArray(data) ? data : [];
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Không thể tải danh sách dịch vụ cha!");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getChildrenByParentAndVehicleType = useCallback(async (parentId: string, vehicleTypeId: string) => {
+    setLoading(true);
+    try {
+      const data = await serviceTypeService.getChildrenByParentAndVehicleType(parentId, vehicleTypeId);
+      return Array.isArray(data) ? data : [];
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Không thể tải danh sách dịch vụ con!");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -122,6 +164,9 @@ export const useServiceType = () => {
     totalElements,
     search,
     getById,
+    getByVehicleTypeId,
+    getParentsByVehicleTypeId,
+    getChildrenByParentAndVehicleType,
     create,
     update,
     remove,

@@ -2,11 +2,11 @@ package com.fpt.evcare.repository;
 
 
 import com.fpt.evcare.entity.ServiceTypeEntity;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
@@ -44,4 +44,31 @@ public interface ServiceTypeRepository extends JpaRepository<ServiceTypeEntity, 
 """)
     boolean existsByServiceNameAndVehicleTypeId(@Param("serviceName") String serviceName,
                                                 @Param("vehicleTypeId") UUID vehicleTypeId);
+
+    // Custom query để lấy CHỈ PARENT services (parentId = null) với pagination
+    @Query("""
+    SELECT st FROM ServiceTypeEntity st
+    WHERE st.vehicleTypeEntity.vehicleTypeId = :vehicleTypeId
+      AND st.isDeleted = FALSE
+      AND st.parentId IS NULL
+      AND (:isActive IS NULL OR st.isActive = :isActive)
+    """)
+    Page<ServiceTypeEntity> findByVehicleTypeIdAndIsActive(
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("isActive") Boolean isActive,
+            Pageable pageable);
+
+    @Query("""
+    SELECT st FROM ServiceTypeEntity st
+    WHERE st.vehicleTypeEntity.vehicleTypeId = :vehicleTypeId
+      AND st.isDeleted = FALSE
+      AND st.parentId IS NULL
+      AND LOWER(st.serviceName) LIKE LOWER(CONCAT('%', :search, '%'))
+      AND (:isActive IS NULL OR st.isActive = :isActive)
+    """)
+    Page<ServiceTypeEntity> findByVehicleTypeIdAndSearchAndIsActive(
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("search") String search,
+            @Param("isActive") Boolean isActive,
+            Pageable pageable);
 }

@@ -14,7 +14,7 @@ public interface ServiceTypeService {
     List<ServiceTypeResponse> getParentServiceListByVehicleTypeId(UUID vehicleTypeId);
     List<ServiceTypeResponse> getChildrenServiceByParentIdAndVehicleTypeId(UUID parentId, UUID vehicleTypeId);
     List<ServiceTypeResponse> getAllServiceTypesByVehicleTypeForAppointment(UUID vehicleTypeId);
-    PageResponse<ServiceTypeResponse> searchServiceType(String search, UUID vehicleTypeId, Pageable pageable);
+    PageResponse<ServiceTypeResponse> searchServiceType(String search, UUID vehicleTypeId, Boolean isActive, Pageable pageable);
     boolean createServiceType(CreationServiceTypeRequest creationServiceTypeRequest);
     boolean updateServiceType(UUID id, UpdationServiceTypeRequest updationServiceTypeRequest);
     boolean deleteServiceType(UUID id);

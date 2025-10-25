@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -34,6 +35,20 @@ public class ServiceTypeVehiclePartController {
                 .success(true)
                 .message(ServiceTypeVehiclePartConstants.MESSAGE_SUCCESS_SHOWING_SERVICE_TYPE_VEHICLE_PART)
                 .data(response)
+                .build());
+    }
+
+    @Operation(summary = "Lấy danh sách phụ tùng theo Service Type ID")
+    @GetMapping("/service-type/{serviceTypeId}")
+    public ResponseEntity<ApiResponse<List<ServiceTypeVehiclePartResponse>>> getVehiclePartsByServiceTypeId(
+            @PathVariable(name = "serviceTypeId") UUID serviceTypeId) {
+        List<ServiceTypeVehiclePartResponse> responses = serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(serviceTypeId);
+
+        log.info("Successfully retrieved vehicle parts for service type: " + serviceTypeId);
+        return ResponseEntity.ok(ApiResponse.<List<ServiceTypeVehiclePartResponse>>builder()
+                .success(true)
+                .message("Lấy danh sách phụ tùng thành công")
+                .data(responses)
                 .build());
     }
 
