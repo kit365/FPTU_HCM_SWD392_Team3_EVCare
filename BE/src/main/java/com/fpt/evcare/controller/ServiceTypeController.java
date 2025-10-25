@@ -54,6 +54,31 @@ public class ServiceTypeController {
         );
     }
 
+    @GetMapping(ServiceTypeConstants.PARENT_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE_ID)
+    @Operation(summary = "Lấy ra danh sách dịch vụ cha theo loại xe", description = "Lấy ra danh sách dịch vụ cha theo loại xe")
+    public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getParentServiceListByVehicleTypeId(@PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
+
+        List<ServiceTypeResponse> response = serviceTypeService.getParentServiceListByVehicleTypeId(vehicleTypeId);
+        return ResponseEntity.ok(ApiResponse.< List<ServiceTypeResponse>>builder()
+                .success(true)
+                .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_PARENT_SERVICE_TYPE_LIST)
+                .data(response)
+                .build()
+        );
+    }
+
+    @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST_BY_PARENT_ID_AND_VEHICLE_TYPE_ID)
+    @Operation(summary = "Lấy ra danh sách dịch vụ con theo loại xe và dịch vụ cha", description = "Lấy ra danh sách dịch vụ con theo loại xe và dịch vụ cha")
+    public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getChildrenServiceByParentIdAndVehicleTypeId(@PathVariable(name = "serviceTypeId") UUID parentId, @PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
+        List<ServiceTypeResponse> response = serviceTypeService.getChildrenServiceByParentIdAndVehicleTypeId(parentId, vehicleTypeId);
+        return ResponseEntity.ok(ApiResponse.< List<ServiceTypeResponse>>builder()
+                .success(true)
+                .message(ServiceTypeConstants.MESSAGE_SUCCESS_SHOWING_CHILDREN_SERVICE_TYPE_LIST)
+                .data(response)
+                .build()
+        );
+    }
+
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST)
     @Operation(summary = "Lấy ra danh sách dịch vụ theo id loại xe", description = "Lấy ra thông tin tất cả dịch vụ theo id loại xe, có cấu trúc cây")
     public ResponseEntity<ApiResponse<PageResponse<ServiceTypeResponse>>> getAllServiceTypes(

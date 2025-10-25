@@ -14,6 +14,17 @@ import java.util.UUID;
 public interface ServiceTypeRepository extends JpaRepository<ServiceTypeEntity, UUID> {
     ServiceTypeEntity findByServiceTypeIdAndIsDeletedFalse(UUID id);
     ServiceTypeEntity findByServiceTypeIdAndIsDeletedTrue(UUID id);
+
+    @Query(value = "SELECT * FROM service_types " +
+            "WHERE vehicle_type_id = :id " +
+            "AND parent_id IS NULL " +
+            "AND is_deleted = false",
+            nativeQuery = true)
+    List<ServiceTypeEntity> findByServiceTypeIdAndParentIdIsNullAndIsDeletedFalse(@Param("id") UUID id);
+
+    @Query(value = "SELECT * FROM service_types WHERE vehicle_type_id = :vehicleTypeId AND parent_id = :parentId AND is_deleted = false", nativeQuery = true)
+    List<ServiceTypeEntity> findByVehicleTypeAndParent(@Param("vehicleTypeId") UUID vehicleTypeId, @Param("parentId") UUID parentId);
+
     List<ServiceTypeEntity> findByParentServiceTypeIdAndIsDeletedFalse(UUID id);
     List<ServiceTypeEntity> findByParentServiceTypeIdAndIsDeletedTrue(UUID id);
     List<ServiceTypeEntity> findByVehicleTypeEntityVehicleTypeIdAndIsDeletedFalse(UUID id);

@@ -11,6 +11,8 @@ import java.util.UUID;
 
 public interface ServiceTypeService {
     ServiceTypeResponse getServiceTypeById(UUID id);
+    List<ServiceTypeResponse> getParentServiceListByVehicleTypeId(UUID vehicleTypeId);
+    List<ServiceTypeResponse> getChildrenServiceByParentIdAndVehicleTypeId(UUID parentId, UUID vehicleTypeId);
     List<ServiceTypeResponse> getAllServiceTypesByVehicleTypeForAppointment(UUID vehicleTypeId);
     PageResponse<ServiceTypeResponse> searchServiceType(String search, UUID vehicleTypeId, Pageable pageable);
     boolean createServiceType(CreationServiceTypeRequest creationServiceTypeRequest);

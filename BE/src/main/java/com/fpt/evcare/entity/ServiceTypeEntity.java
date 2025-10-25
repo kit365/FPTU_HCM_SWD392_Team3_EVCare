@@ -41,7 +41,7 @@ public class ServiceTypeEntity extends BaseEntity {
     ServiceTypeEntity parent;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_part_id")
+    @JoinColumn(name = "vehicle_type_id")
     VehicleTypeEntity vehicleTypeEntity;
 
     @OneToMany(mappedBy = "serviceType", fetch = FetchType.LAZY)
