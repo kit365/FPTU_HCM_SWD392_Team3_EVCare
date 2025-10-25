@@ -28,10 +28,6 @@ public class CreationAppointmentRequest {
     @Email(message = "Email không hợp lệ")
     String customerEmail;
 
-    List<UUID> technicianId;
-
-    UUID assigneeId;
-
     @NotNull(message = "Loại xe không được để trống")
     UUID vehicleTypeId;
 
@@ -44,8 +40,6 @@ public class CreationAppointmentRequest {
     String userAddress;
 
     String serviceMode;
-
-    String status;
 
     LocalDateTime scheduledAt;
 

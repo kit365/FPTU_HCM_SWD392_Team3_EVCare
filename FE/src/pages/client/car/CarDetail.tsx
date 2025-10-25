@@ -1,5 +1,5 @@
 import { Input, Modal } from "antd";
-import type { CarProfile } from "../../../type/carModel";
+import type { CarProfile } from "../../../types/carModel";
 
 interface CarDetailProps {
     dataDetail: CarProfile | null;
@@ -8,18 +8,18 @@ interface CarDetailProps {
     setIsOpenDetail: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const CarDetail:  React.FC<CarDetailProps> = ({isOpenDetail, setIsOpenDetail}) => {
+const CarDetail: React.FC<CarDetailProps> = ({ isOpenDetail, setIsOpenDetail }) => {
 
-    const resetAndCloseModal= () => {
+    const resetAndCloseModal = () => {
         setIsOpenDetail(false);
     }
 
     const handleSubmit = () => {
-                //goi API get appointment
+        //goi API get appointment
         resetAndCloseModal();
     }
-  return (
-    <>
+    return (
+        <>
             <Modal
                 open={isOpenDetail}
                 onOk={() => handleSubmit()}
@@ -31,29 +31,29 @@ const CarDetail:  React.FC<CarDetailProps> = ({isOpenDetail, setIsOpenDetail}) =
                     <div>
                         <span>Tên xe</span>
                         <Input
-                            // value={carName}
-                            // onChange={(event) => { setCarName(event.target.value) }}
+                        // value={carName}
+                        // onChange={(event) => { setCarName(event.target.value) }}
                         />
                     </div>
                     <div>
                         <span>Biển số</span>
                         <Input
-                            // value={licensePlate}
-                            // onChange={(event) => { setLicensePlate(event.target.value) }}
+                        // value={licensePlate}
+                        // onChange={(event) => { setLicensePlate(event.target.value) }}
                         />
                     </div>
                     <div>
                         <span>Còn nữa...</span>
                         <Input
-                            // value={carType}
-                            // onChange={(event) => { setCarType(event.target.value) }}
+                        // value={carType}
+                        // onChange={(event) => { setCarType(event.target.value) }}
                         />
                     </div>
                 </div>
             </Modal>
         </>
-     
-  )
+
+    )
 }
 
 export default CarDetail

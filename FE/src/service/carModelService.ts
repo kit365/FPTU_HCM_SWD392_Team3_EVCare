@@ -7,7 +7,7 @@ import type {
   CreateVehicleTypeResponse,
   VehicleDetailResponse,
   UpdateVehicleTypeRequest
-} from "../type/carModel";
+} from "../types/carModel";
 import { apiClient } from "./api";
 import { VEHICLE_TYPE_BY_ID, VEHICLE_TYPE_ENDPOINT } from "../constants/vehicle-type.constant";
 import type { ApiResponse } from "../types/api";
@@ -21,7 +21,6 @@ export const carModelService = {
       `${API_BASE}/${VEHICLE_TYPE_ENDPOINT}`,
       { params }
     );
-    console.log("GỌI API THÀNH CÔNG, RESPONSE:", response);
     return response;
   },
   createVehicleType: async (data: CreateVehicleTypeRequest) => {
@@ -29,7 +28,6 @@ export const carModelService = {
       `${API_BASE}/${VEHICLE_TYPE_ENDPOINT}`,
       data
     );
-    console.log("TẠO MỚI VEHICLE TYPE RESPONSE:", response);
     return response;
   },
 
@@ -37,17 +35,21 @@ export const carModelService = {
     const response = await apiClient.get<ApiResponse<VehicleDetailResponse>>(
       `${API_BASE}/${VEHICLE_TYPE_BY_ID(id)}`
     );
-    console.log("TÌM VEHICLE TYPE BY ID RESPONSE:", response);
     return response;
   },
 
   updateVehicleType: async (id: string, data: UpdateVehicleTypeRequest) => {
-    const response = await apiClient.patch<ApiResponse<UpdateVehicleTypeRequest>>(
+    const response = await apiClient.patch<ApiResponse<string>>(
       `${API_BASE}/${VEHICLE_TYPE_BY_ID(id)}`,
       data
     );
     return response;
+  },
+
+  deleteVehicleType: async (id: string) => {
+    const response = await apiClient.delete<ApiResponse<string>>(
+      `${API_BASE}/${VEHICLE_TYPE_BY_ID(id)}`
+    );
+    return response;
   }
-
-
 };

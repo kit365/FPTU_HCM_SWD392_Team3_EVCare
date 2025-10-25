@@ -1,76 +1,152 @@
-import { useState } from "react";
-import { notify } from "../components/admin/common/Toast";
-import type { CreateVehicleTypeRequest, CreateVehicleTypeResponse, UpdateVehicleTypeRequest, VehicleDetailResponse } from "../type/carModel";
+import { useState, useCallback } from "react";
+import { toast } from "react-toastify";
 import { carModelService } from "../service/carModelService";
 
+import type { VehicleProps } from "../types/admin/car.types";
+import type { 
+  GetVehicleTypeListRequest, 
+  VehicleDetailResponse,
+  CreateVehicleTypeRequest,
+  UpdateVehicleTypeRequest
+} from "../types/carModel";
 
-export function useVehicleType() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [vehicleType, setVehicleType] = useState<VehicleDetailResponse | null>(null);
-  const createVehicleType = async (data: CreateVehicleTypeRequest): Promise<CreateVehicleTypeResponse> => {
-    setIsLoading(true);
+export const useVehicleType = () => {
+  const [vehicleList, setVehicleList] = useState<VehicleProps[]>([]);
+  const [vehicleDetail, setVehicleDetail] = useState<VehicleDetailResponse | null>(null);
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  /** 🔹 Lấy danh sách mẫu xe (list + phân trang) */
+  const fetchVehicleTypeList = useCallback(async (params: GetVehicleTypeListRequest) => {
+    setLoading(true);
     try {
-      const response = await carModelService.createVehicleType(data);
-      if (response?.data.success === true) {
-        notify.success(response?.data.message || "Tạo mới mẫu xe thành công");
+      const response = await carModelService.getVehicleTypeList(params);
+      if (response?.data?.success) {
+        const data = response.data.data;
+        setVehicleList(data.data);
+        setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
       } else {
-        notify.error(response?.data.message || "Tạo mới mẫu xe thất bại!");
+        toast.error(response?.data?.message || "Không thể tải danh sách mẫu xe!");
       }
-      return response.data;
-    } catch (error) {
-      notify.error("Có lỗi xảy ra khi tạo mới!");
-      throw error;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi tải danh sách mẫu xe!");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  }, []);
 
-    
-  };
-
-   const getVehicleType = async (id: string): Promise<VehicleDetailResponse | null> => {
-    setIsLoading(true);
+  /** 🔹 Lấy chi tiết mẫu xe theo ID */
+  const getVehicleType = useCallback(async (id: string) => {
+    setLoading(true);
     try {
       const response = await carModelService.findVehicleTypeById(id);
-      if (response?.data.success === true) {
-        setVehicleType(response.data.data);
+      if (response?.data.success) {
+        setVehicleDetail(response.data.data);
         return response.data.data;
       } else {
-        notify.error(response?.data.message || "Lấy thông tin mẫu xe thất bại!");
+        toast.error(response?.data.message || "Không tìm thấy mẫu xe!");
         return null;
       }
-    } catch (error) {
-      notify.error("Có lỗi xảy ra khi lấy thông tin mẫu xe!");
-      throw error;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi lấy thông tin mẫu xe!");
+      return null;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }
+  }, []);
 
-  const updateVehicleType = async(id: string, data: UpdateVehicleTypeRequest) : Promise<boolean> => {
-    setIsLoading(true);
+  const createVehicleType = useCallback(async (data: CreateVehicleTypeRequest) => {
+    setLoading(true);
     try {
-      const response = await carModelService.updateVehicleType(id, data);
-      if (response?.data.success === true) {
-        notify.success(response?.data.message || "Cập nhật mẫu xe thành công");
+      const response = await carModelService.createVehicleType(data);
+      if (response?.data.success) {
+        toast.success(response?.data.message || "Tạo mẫu xe thành công!");
         return true;
       } else {
-        notify.error(response?.data.message || "Cập nhật mẫu xe thất bại!");
+        toast.error(response?.data.message || "Tạo mẫu xe thất bại!");
         return false;
       }
-    } catch (error) {
-      notify.error("Có lỗi xảy ra khi cập nhật mẫu xe!");
-      throw error;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi tạo mẫu xe!");
+      return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }
+  }, []);
 
+  const updateVehicleType = useCallback(async (id: string, data: UpdateVehicleTypeRequest) => {
+    setLoading(true);
+    try {
+      const response = await carModelService.updateVehicleType(id, data);
+      if (response?.data.success) {
+        toast.success(response?.data.message || "Cập nhật mẫu xe thành công!");
+        return true;
+      } else {
+        toast.error(response?.data.message || "Cập nhật mẫu xe thất bại!");
+        return false;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi cập nhật mẫu xe!");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteVehicleType = useCallback(async (id: string) => {
+    setLoading(true);
+    try {
+      const response = await carModelService.deleteVehicleType(id);
+      if (response?.data.success) {
+        toast.success(response?.data.message || "Xóa mẫu xe thành công!");
+        return true;
+      } else {
+        toast.error(response?.data.message || "Xóa mẫu xe thất bại!");
+        return false;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi xóa mẫu xe!");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Lấy danh sách tên mẫu xe cho dropdown */
+  const fetchVehicleTypeNames = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await carModelService.getVehicleTypeList({ page: 0, pageSize: 1000 });
+      if (response?.data?.success) {
+        const data = response.data.data;
+        const options = data.data.map((item: VehicleProps) => ({
+          value: item.vehicleTypeId,
+          label: item.vehicleTypeName
+        }));
+        setVehicleTypeOptions(options);
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tải danh sách tên mẫu xe:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
-    isLoading,
-    createVehicleType,
+    vehicleList,
+    vehicleDetail,
+    vehicleTypeOptions,
+    loading,
+    totalPages,
+    totalElements,
+    fetchVehicleTypeList,
+    fetchVehicleTypeNames,
     getVehicleType,
+    createVehicleType,
     updateVehicleType,
-    vehicleType,
+    deleteVehicleType,
   };
-}
+};

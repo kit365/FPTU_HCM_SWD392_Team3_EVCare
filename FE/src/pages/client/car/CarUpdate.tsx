@@ -1,6 +1,6 @@
 import { Input, notification, Modal } from "antd";
 import { useEffect, useState } from 'react'
-import type { CarProfile } from "../../../type/carModel";
+import type { CarProfile } from "../../../types/carModel";
 interface CarUpdateProps {
     dataUpdate: CarProfile | null;
     setDataUpdate: React.Dispatch<React.SetStateAction<CarProfile | null>>;
@@ -22,9 +22,9 @@ const CarUpdate: React.FC<CarUpdateProps> = ({
     const handleSubmit = () => {
         //goi API thuc hien update
         notification.success({
-                message: "Updated car profile",
-                description: "Cập nhật hồ sơ thành công"
-            })
+            message: "Updated car profile",
+            description: "Cập nhật hồ sơ thành công"
+        })
         resetAndCloseModal();
         //goi ham load ho so
     }

@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@mui/material";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { LabelAdmin } from "../../../components/admin/ui/form/Label";
 import { SelectAdmin } from "../../../components/admin/ui/form/Select";
-import { ButtonAdmin } from "../../../components/admin/ui/Button";
 import { InputAdmin } from "../../../components/admin/ui/form/Input";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -58,7 +57,7 @@ const CarFileEdit = () => {
     // Lấy dữ liệu theo id từ URL
     if (id) {
       const carFileData = mockDatabase[id];
-      
+
       if (carFileData) {
         setValue("username", carFileData.username);
         setValue("email", carFileData.email);
@@ -89,9 +88,9 @@ const CarFileEdit = () => {
       setLoading(false);
       navigate(`/${pathAdmin}/car-file-management`);
       notification.success({
-            message: "Create Car file",
-            description: "Tạo hồ sơ xe thành công"
-        })
+        message: "Create Car file",
+        description: "Tạo hồ sơ xe thành công"
+      })
     }, 1000);
   };
 

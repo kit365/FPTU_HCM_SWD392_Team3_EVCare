@@ -1,175 +1,22 @@
 import { useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
 import { Card } from "@mui/material";
+import moment from "moment";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { LabelAdmin } from "../../../components/admin/ui/form/Label";
 import { InputAdmin } from "../../../components/admin/ui/form/Input";
-import { ButtonAdmin } from "../../../components/admin/ui/Button";
-import { useVehicleType } from "../../../hooks/useVehicleType";
-import { pathAdmin } from "../../../constants/paths.constant";
 import { SelectAdmin } from "../../../components/admin/ui/form/Select";
+import { useVehicleType } from "../../../hooks/useVehicleType";
 import { manufacturers } from "../../../constants/manufacturer.constant";
-import type { UpdateVehicleTypeRequest, VehicleTypeModel} from "../../../type/carModel";
-
-
-// Định nghĩa schema validation
-const schema = yup.object().shape({
-    vehicleTypeName: yup
-        .string()
-        .trim()
-        .required("Vui lòng nhập tên mẫu xe")
-        .test("has-word", "Phải có ít nhất 1 từ hợp lệ", (value) => {
-            const v = (value || "").trim();
-            const words = v.split(/\s+/).filter(Boolean);
-            return words.length >= 1 && /[A-Za-zÀ-ỹ]/u.test(v);
-        }),
-    manufacturer: yup
-        .string()
-        .trim()
-        .required("Vui lòng chọn hãng sản xuất"),
-    modelYear: yup
-        .number()
-        .typeError("Năm sản xuất phải là số")
-        .required("Vui lòng nhập năm sản xuất")
-        .min(2000, "Năm sản xuất phải từ 2000 trở lên")
-        .max(new Date().getFullYear() + 1, "Năm sản xuất không hợp lệ"),
-    batteryCapacity: yup
-        .number()
-        .typeError("Dung lượng pin phải là số")
-        .required("Vui lòng nhập dung lượng pin")
-        .min(1, "Dung lượng pin phải lớn hơn 0"),
-    maintenanceIntervalKm: yup
-        .number()
-        .typeError("Bảo dưỡng (km) phải là số")
-        .required("Vui lòng nhập số km bảo dưỡng")
-        .min(1, "Số km bảo dưỡng phải lớn hơn 0"),
-    maintenanceIntervalMonths: yup
-        .number()
-        .typeError("Bảo dưỡng (tháng) phải là số")
-        .required("Vui lòng nhập số tháng bảo dưỡng")
-        .min(1, "Số tháng bảo dưỡng phải lớn hơn 0"),
-    description: yup
-        .string()
-        .trim()
-        .required("Vui lòng nhập mô tả"),
-    isActive: yup.boolean().optional(),
-    isActive: yup.boolean().required()
-}) satisfies yup.ObjectSchema<UpdateVehicleTypeRequest>;
-
-
-
-// Định nghĩa fields giống với VehicleCreate
-const fields = [
-    {
-        name: "vehicleTypeName" as const,
-        label: "Tên mẫu xe",
-        placeholder: "Nhập tên mẫu xe...",
-        type: "text",
-        component: "input"
-    },
-    {
-        name: "manufacturer" as const,
-        label: "Hãng sản xuất",
-        placeholder: "Chọn hãng sản xuất...",
-        type: "select",
-        component: "select",
-        options: manufacturers
-    },
-    {
-        name: "modelYear" as const,
-        label: "Năm sản xuất",
-        placeholder: "Nhập năm sản xuất...",
-        type: "number",
-        component: "input"
-    },
-    {
-        name: "batteryCapacity" as const,
-        label: "Dung lượng pin (kWh)",
-        placeholder: "Nhập dung lượng pin...",
-        type: "number",
-        component: "input"
-    },
-    {
-        name: "maintenanceIntervalKm" as const,
-        label: "Bảo dưỡng (km)",
-        placeholder: "Nhập số km bảo dưỡng...",
-        type: "number",
-        component: "input"
-    },
-    {
-        name: "maintenanceIntervalMonths" as const,
-        label: "Bảo dưỡng (tháng)",
-        placeholder: "Nhập số tháng bảo dưỡng...",
-        type: "number",
-        component: "input"
-    },
-    {
-        name: "description" as const,
-        label: "Mô tả",
-        placeholder: "Nhập mô tả...",
-        type: "text",
-        component: "input",
-        fullWidth: true
-    },
-    {
-        name: "createdAt" as const,
-        label: "Ngày tạo",
-        placeholder: "",
-        type: "text",
-        component: "input",
-        fullWidth: false
-    },
-    {
-        name: "updatedAt" as const,
-        label: "Ngày cập nhật",
-        placeholder: "",
-        type: "text",
-        component: "input",
-        fullWidth: false
-    },
-];
+import { pathAdmin } from "../../../constants/paths.constant";
 
 export const VehicleDetail = () => {
     const { id } = useParams();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const isEdit = location.pathname.includes("edit");
-    const { isLoading: loading, getVehicleType, updateVehicleType } = useVehicleType();
-    // Hàm định dạng ngày giờ
-    const formatDateTime = (isoString: string) => {
-        if (!isoString) return "";
-        const date = new Date(isoString);
-        return date.toLocaleString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-    // Khởi tạo react-hook-form
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<UpdateVehicleTypeRequest>({
-        resolver: yupResolver(schema),
-        defaultValues: {
-    vehicleTypeName: "",
-    manufacturer: "",
-    modelYear: 0,
-    batteryCapacity: 1,
-    maintenanceIntervalKm: 0,
-    maintenanceIntervalMonths: 0,
-    description: "",
-    isActive: true,
-    createdAt: "",
-    updatedAt: "",
-    createdBy: "",
-    updatedBy: "",
-},
-    });
+    const { getVehicleType } = useVehicleType();
 
-    // Lấy dữ liệu xe khi component mount
+    const { register, reset } = useForm();
+
     useEffect(() => {
         const fetchVehicle = async () => {
             if (id) {
@@ -177,88 +24,117 @@ export const VehicleDetail = () => {
                 if (response) {
                     reset({
                         ...response,
-                        createdAt: formatDateTime(response.createdAt),
-                        updatedAt: formatDateTime(response.updatedAt),
+                        createdAt: moment(response.createdAt).format("HH:mm - DD/MM/YYYY"),
+                        updatedAt: moment(response.updatedAt).format("HH:mm - DD/MM/YYYY"),
                     });
                 }
             }
         };
         fetchVehicle();
-    }, [id]);
-
-    const onSubmit = async (data: UpdateVehicleTypeRequest) => {
-        if (isEdit && id) {
-            const success = await updateVehicleType(id, data);
-            if (success) {
-                // Reload data sau khi update thành công
-                const updatedData = await getVehicleType(id);
-                if (updatedData) {
-                    reset({
-                        ...updatedData,
-                        createdAt: formatDateTime(updatedData.createdAt),
-                        updatedAt: formatDateTime(updatedData.updatedAt),
-                    });
-                }
-                navigate(`/${pathAdmin}/vehicle`);
-            }
-        }
-    };
+    }, []);
 
     return (
         <div className="max-w-[1320px] px-[12px] mx-auto">
             <Card elevation={0} className="shadow-[0_3px_16px_rgba(142,134,171,0.05)]">
-                <CardHeaderAdmin title={isEdit ? "Chỉnh sửa mẫu xe" : "Chi tiết mẫu xe"} />
+                <CardHeaderAdmin title="Chi tiết mẫu xe" href={`/${pathAdmin}/vehicle/service/${id}`} content="Dịch vụ" />
                 <form
-                    onSubmit={handleSubmit(onSubmit)}
-                    className="px-[2.4rem] pb-[2.4rem] grid grid-cols-2 gap-[24px]"
+                    className="px-[2.4rem] pb-[2.4rem] grid grid-cols-2 gap-x-[24px] gap-y-[24px]"
                 >
-                    {fields.map(({ name, label, placeholder, type, component, options, fullWidth }) => (
-                        <div key={name} className={fullWidth ? "col-span-2" : ""}>
-                            <LabelAdmin htmlFor={name} content={label} />
-                            {component === 'select' ? (
-                                <SelectAdmin
-                                    id={name}
-                                    name={name}
-                                    placeholder={placeholder}
-                                    options={options || []}
-                                    register={register(name)}
-                                    error={errors[name]?.message}
-                                    disabled={!isEdit}
-                                />
-                            ) : (
-                                <InputAdmin
-                                    id={name}
-                                    type={type}
-                                    placeholder={placeholder}
-                                    {...register(name)}
-                                    error={errors[name]?.message}
-                                    disabled={!isEdit}
-                                />
-                            )}
-                        </div>
-                    ))}
+                    <div>
+                        <LabelAdmin htmlFor="vehicleTypeName" content="Tên mẫu xe" />
+                        <InputAdmin
+                            id="vehicleTypeName"
+                            {...register("vehicleTypeName")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="manufacturer" content="Hãng sản xuất" />
+                        <SelectAdmin
+                            id="manufacturer"
+                            name="manufacturer"
+                            options={manufacturers}
+                            register={register("manufacturer")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="modelYear" content="Năm sản xuất" />
+                        <InputAdmin
+                            id="modelYear"
+                            type="number"
+                            {...register("modelYear")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="batteryCapacity" content="Dung lượng pin (kWh)" />
+                        <InputAdmin
+                            id="batteryCapacity"
+                            type="number"
+                            {...register("batteryCapacity")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="maintenanceIntervalKm" content="Bảo dưỡng (km)" />
+                        <InputAdmin
+                            id="maintenanceIntervalKm"
+                            type="number"
+                            {...register("maintenanceIntervalKm")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="maintenanceIntervalMonths" content="Bảo dưỡng (tháng)" />
+                        <InputAdmin
+                            id="maintenanceIntervalMonths"
+                            type="number"
+                            {...register("maintenanceIntervalMonths")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="createdAt" content="Ngày tạo" />
+                        <InputAdmin
+                            id="createdAt"
+                            {...register("createdAt")}
+                            disabled
+                        />
+                    </div>
+
+                    <div>
+                        <LabelAdmin htmlFor="updatedAt" content="Ngày cập nhật" />
+                        <InputAdmin
+                            id="updatedAt"
+                            {...register("updatedAt")}
+                            disabled
+                        />
+                    </div>
+
+                    <div className="col-span-2">
+                        <LabelAdmin htmlFor="description" content="Mô tả" />
+                        <InputAdmin
+                            id="description"
+                            {...register("description")}
+                            disabled
+                        />
+                    </div>
+
+                    {/* ====== Buttons ====== */}
                     <div className="col-span-2 flex items-center gap-[6px] justify-end">
-                        {isEdit ? (
-                            <>
-                                <ButtonAdmin
-                                    text={loading ? "Đang lưu..." : "Lưu thay đổi"}
-                                    type="submit"
-                                    className="bg-[#22c55e] border-[#22c55e] shadow-[0_1px_2px_0_rgba(34,197,94,0.35)]"
-                                    disabled={loading}
-                                />
-                                <ButtonAdmin
-                                    text="Hủy"
-                                    href={`/${pathAdmin}/vehicle`}
-                                    className="bg-[#ef4d56] border-[#ef4d56] shadow-[0_1px_2px_0_rgba(239,77,86,0.35)]"
-                                />
-                            </>
-                        ) : (
-                            <ButtonAdmin
-                                text="Quay lại"
-                                href={`/${pathAdmin}/vehicle`}
-                                className="bg-gray-500 border-gray-500 shadow-[0_1px_2px_0_rgba(0,0,0,0.35)]"
-                            />
-                        )}
+                        <Link
+                            to={`/${pathAdmin}/vehicle`}
+                            className="flex items-center cursor-pointer text-white text-[1.3rem] font-[500] py-[0.82rem] px-[1.52rem] leading-[1.5] border rounded-[0.64rem] hover:opacity-90 transition-opacity duration-150 ease-in-out bg-[#7c3aed] border-[#7c3aed] shadow-[0_1px_2px_0_rgba(124,58,237,0.35)]"
+                        >
+                            Quay lại
+                        </Link>
                     </div>
                 </form>
             </Card>

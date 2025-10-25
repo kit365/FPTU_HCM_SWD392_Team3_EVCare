@@ -18,7 +18,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
+
+import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @RestController
 @AllArgsConstructor
@@ -28,7 +31,7 @@ import java.util.UUID;
 public class VehiclePartCategoryController {
     VehiclePartCategoryService vehiclePartCategoryService;
 
-    @Operation(summary = "Lấy thông tin loại phụ tùng theo ID")
+    @Operation(summary = "Lấy thông tin danh mục phụ tùng theo ID")
     @GetMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY)
     public ResponseEntity<ApiResponse<VehiclePartCategoryResponse>> getVehiclePartCategoryById(@PathVariable UUID id) {
         log.info(VehiclePartCategoryConstants.LOG_SUCCESS_SHOWING_VEHICLE_PART_CATEGORY, id);
@@ -42,8 +45,21 @@ public class VehiclePartCategoryController {
         );
     }
 
-    @Operation(summary = "Tìm kiếm loại phụ tùng")
+    @Operation(summary = "Lấy danh sách danh mục phụ tùng theo")
     @GetMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_LIST)
+    public ResponseEntity<ApiResponse<List<VehiclePartCategoryResponse>>> getVehiclePartCategoryList() {
+        List<VehiclePartCategoryResponse> response = vehiclePartCategoryService.getvehiclePartCategoryResponseList();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehiclePartCategoryResponse>>builder()
+                .success(true)
+                .data(response)
+                .build()
+        );
+
+    }
+
+    @Operation(summary = "Tìm kiếm loại phụ tùng")
+    @GetMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_SEARCH_LIST)
     public ResponseEntity<ApiResponse<PageResponse<VehiclePartCategoryResponse>>> searchVehiclePartCategory(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,

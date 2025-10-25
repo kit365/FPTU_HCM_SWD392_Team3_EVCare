@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -44,6 +45,22 @@ public class VehiclePartCategoryServiceImpl implements VehiclePartCategoryServic
 
         log.info(VehiclePartCategoryConstants.LOG_INFO_SHOWING_VEHICLE_PART_CATEGORY, id);
         return vehiclePartCategoryMapper.toResponse(vehiclePartCategoryEntity);
+    }
+
+    @Override
+    public List<VehiclePartCategoryResponse> getvehiclePartCategoryResponseList(){
+        List<VehiclePartCategoryEntity> vehiclePartCategoryEntities = vehiclePartCategoryRepository.findAllByIsDeletedFalse();
+        if(vehiclePartCategoryEntities == null) {
+            log.warn(VehiclePartCategoryConstants.LOG_ERR_VEHICLE_PART_CATEGORY_LIST_NOT_FOUND);
+            throw new ResourceNotFoundException(VehiclePartCategoryConstants.MESSAGE_ERR_VEHICLE_PART_CATEGORY_LIST_NOT_FOUND);
+        }
+        return vehiclePartCategoryEntities.stream().map(vehiclePartCategoryEntity -> {
+            VehiclePartCategoryResponse vehiclePartCategoryResponse = new VehiclePartCategoryResponse();
+            vehiclePartCategoryResponse.setVehiclePartCategoryId(vehiclePartCategoryEntity.getVehiclePartCategoryId());
+            vehiclePartCategoryResponse.setPartCategoryName(vehiclePartCategoryEntity.getPartCategoryName());
+
+            return vehiclePartCategoryResponse;
+        }).collect(Collectors.toList());
     }
 
     @Override

@@ -4,7 +4,6 @@ import CarCreate from './CarCreate'
 import React from 'react';
 
 const CarManagement: React.FC = () => {
-
   //fake data xe
   const allVehicles = [
     { id: 1, carName: "VinFast VF3", licensePlate: "30A-12345", carType: "VF3" },
@@ -46,8 +45,8 @@ const CarManagement: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-     
+    <div style={{ padding: "20px", backgroundColor: "#ffffff"  }}>
+      
       {/*BẢNG HỒ SƠ XE */}
       <CarCreate onSearch={handleSearch} />
 

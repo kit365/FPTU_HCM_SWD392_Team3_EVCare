@@ -1,5 +1,5 @@
 //tạo request và response
-import type { VehicleListData } from "../types/admin/car.types";
+import type { VehicleListData } from "./admin/car.types";
 export interface GetVehicleTypeListRequest {
   page?: number;
   pageSize?: number;
@@ -65,6 +65,15 @@ export interface UpdateVehicleTypeRequest {
   maintenanceIntervalMonths: number;
   description: string;
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface VehicleTypeModel extends UpdateVehicleTypeRequest {
+  vehicleTypeId: string;
+  isDeleted: boolean;
 }
 
 
