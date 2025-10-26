@@ -30,6 +30,8 @@ import { VehicleProfileList } from "../pages/admin/vehicle-profile/VehicleProfil
 import { VehicleProfileCreate } from "../pages/admin/vehicle-profile/VehicleProfileCreate";
 import { VehicleProfileEdit } from "../pages/admin/vehicle-profile/VehicleProfileEdit";
 import { VehicleProfileDetail } from "../pages/admin/vehicle-profile/VehicleProfileDetail";
+import Shift from "../pages/admin/warranty_and_shift/Shift";
+import Warranty from "../pages/admin/warranty_and_shift/Warranty";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -63,6 +65,9 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
     { path: "appointment-manage", element: <AppointmentManage/> },
+    { path: "shift", element: <Shift/> },
+    { path: "warranty", element: <Warranty/> },
+
 ];
 
 export const AuthAdminRoutes = [

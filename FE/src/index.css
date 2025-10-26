@@ -41,3 +41,17 @@ body {
 .user-table .ant-table-thead > tr > th:hover {
     background-color: #bfdbfe !important;
 }
+
+/* DatePicker trong Modal - đảm bảo hiển thị đúng */
+.ant-picker-dropdown {
+    z-index: 9999 !important;
+}
+
+/* Modal Dialog overflow để DatePicker hiển thị đúng */
+.MuiDialog-paper {
+    overflow: visible !important;
+}
+
+.MuiDialogContent-root {
+    overflow: visible !important;
+}

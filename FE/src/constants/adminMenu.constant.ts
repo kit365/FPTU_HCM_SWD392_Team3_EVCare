@@ -50,4 +50,20 @@ export const adminMenuItems: AdminMenuItem[] = [
         label: "Quản lý lịch hẹn",
         icon: DownloadDataWindow,
     },
+    {
+        label: "Ca làm và bảo hành",
+        icon: Codepen,
+        children: [
+            {
+                href: `/${pathAdmin}/shift`,
+                label: "Ca làm",
+                icon: Menu
+            },
+            {
+                href: `/${pathAdmin}/warranty`,
+                label: "Bảo hành",
+                icon: Erase
+            },
+        ],
+    },
 ]
