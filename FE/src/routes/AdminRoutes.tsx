@@ -25,6 +25,7 @@ import { ServiceTypeEdit } from "../pages/admin/service-type/ServiceTypeEdit";
 import { ServiceTypeDetail } from "../pages/admin/service-type/ServiceTypeDetail";
 import { Profile } from "../pages/admin/profile/Profile";
 import { VehicleService } from "../pages/admin/vehicle/VehicleService";
+import AppointmentManage from "../pages/admin/appointment/AppointmentManage";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -53,6 +54,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/edit/:id", element: <ServiceTypeEdit /> },
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
+    { path: "appointment-manage", element: <AppointmentManage/> },
 ];
 
 export const AuthAdminRoutes = [

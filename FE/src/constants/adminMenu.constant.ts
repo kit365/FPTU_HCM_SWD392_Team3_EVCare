@@ -45,9 +45,9 @@ export const adminMenuItems: AdminMenuItem[] = [
             },
         ],
     },
-    // {
-    //     label: "Loại dịch vụ",
-    //     icon: DownloadDataWindow,
-    //     children: []
-    // },
+    {
+        href: `/${pathAdmin}/appointment-manage`,
+        label: "Cuộc hẹn",
+        icon: DownloadDataWindow,
+    },
 ]
