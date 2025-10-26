@@ -42,7 +42,7 @@ public class VehicleController {
     }
     @Operation(summary = "Lấy thông tin xe theo ID")
     @GetMapping(VehicleConstants.VEHICLE)
-    public ResponseEntity<ApiResponse<VehicleResponse>> getVehicleById(@RequestParam("vehicleId") String vehicleId) {
+    public ResponseEntity<ApiResponse<VehicleResponse>> getVehicleById(@PathVariable("id") String vehicleId) {
         VehicleResponse response = vehicleService.getVehicleById(java.util.UUID.fromString(vehicleId));
         return ResponseEntity
                 .ok(ApiResponse.<VehicleResponse>builder()
@@ -52,13 +52,15 @@ public class VehicleController {
                         .build()
                 );
     }
-    @Operation(summary = "Tìm kiếm xe")
+    @Operation(summary = "Tìm kiếm xe với bộ lọc")
     @GetMapping(VehicleConstants.VEHICLE_LIST)
     public ResponseEntity<ApiResponse<PageResponse<VehicleResponse>>> getVehicleList(@RequestParam(value = "keyword", required = false) String keyword,
+                                                                       @RequestParam(value = "vehicleTypeId", required = false) String vehicleTypeId,
                                                                        @RequestParam(value = "page", defaultValue = "0") int page,
                                                                        @RequestParam(value = "size", defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        PageResponse<VehicleResponse> response = vehicleService.searchVehicle(keyword, pageable);
+        UUID vehicleTypeUuid = vehicleTypeId != null && !vehicleTypeId.isEmpty() ? UUID.fromString(vehicleTypeId) : null;
+        PageResponse<VehicleResponse> response = vehicleService.searchVehicle(keyword, vehicleTypeUuid, pageable);
         return ResponseEntity
                 .ok(ApiResponse.<PageResponse<VehicleResponse>>builder()
                         .success(true)
@@ -69,7 +71,7 @@ public class VehicleController {
     }
     @Operation(summary = "Cập nhật xe")
     @PatchMapping(VehicleConstants.VEHICLE_UPDATE)
-    public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@RequestParam("vehicleId") UUID vehicleId,
+    public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@PathVariable("id") UUID vehicleId,
                                                              @Valid @RequestBody UpdationVehicleRequest request) {
         VehicleResponse response = vehicleService.updateVehicle(vehicleId, request);
         return ResponseEntity
@@ -82,7 +84,7 @@ public class VehicleController {
     }
     @Operation(summary = "Xóa xe")
     @DeleteMapping(VehicleConstants.VEHICLE_DELETE)
-    public ResponseEntity<ApiResponse<String>> deleteVehicle(@RequestParam("vehicleId") UUID vehicleId) {
+    public ResponseEntity<ApiResponse<String>> deleteVehicle(@PathVariable("id") UUID vehicleId) {
         vehicleService.deleteVehicle(vehicleId);
         return ResponseEntity
                 .ok(ApiResponse.<String>builder()
@@ -93,7 +95,7 @@ public class VehicleController {
     }
     @Operation(summary = "Khôi phục xe đã xóa")
     @PatchMapping(VehicleConstants.VEHICLE_RESTORE)
-    public ResponseEntity<ApiResponse<String>> restoreVehicle(@RequestParam("vehicleId") UUID vehicleId) {
+    public ResponseEntity<ApiResponse<String>> restoreVehicle(@PathVariable("id") UUID vehicleId) {
         vehicleService.restoreVehicle(vehicleId);
         return ResponseEntity
                 .ok(ApiResponse.<String>builder()

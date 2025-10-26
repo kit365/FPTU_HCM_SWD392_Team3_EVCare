@@ -1,6 +1,6 @@
 
 import { pathAdmin } from "./paths.constant";
-import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase } from "iconoir-react";
+import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, Menu, Erase } from "iconoir-react";
 export interface AdminMenuItem {
     href?: string
     label: string
@@ -25,8 +25,8 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: Car,
     },
     {
-        href: `/${pathAdmin}/car-file-management`,
-        label: "Hồ sơ xe",
+        href: `/${pathAdmin}/vehicle-profile`,
+        label: "Hồ sơ xe người dùng",
         icon: UserBadgeCheck,
     },
     {
@@ -45,9 +45,4 @@ export const adminMenuItems: AdminMenuItem[] = [
             },
         ],
     },
-    // {
-    //     label: "Loại dịch vụ",
-    //     icon: DownloadDataWindow,
-    //     children: []
-    // },
 ]
