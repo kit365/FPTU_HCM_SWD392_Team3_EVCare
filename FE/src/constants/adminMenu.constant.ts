@@ -47,7 +47,7 @@ export const adminMenuItems: AdminMenuItem[] = [
     },
     {
         href: `/${pathAdmin}/appointment-manage`,
-        label: "Cuộc hẹn",
+        label: "Quản lý lịch hẹn",
         icon: DownloadDataWindow,
     },
 ]
