@@ -52,7 +52,11 @@ export const Table = ({
                 if (header.key === "actions") {
                   return (
                     <td key={header.key} className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2 items-center">
+                        {/* Custom actions (e.g. "Phân công" button) */}
+                        {item['actions'] && item['actions']}
+                        
+                        {/* Default actions (view, edit, delete, restore) */}
                         {viewPath && (
                           <Link
                             to={`${viewPath}/${item.id}`}
@@ -92,7 +96,7 @@ export const Table = ({
                 
                 return (
                   <td key={header.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item[header.key]}
+                    {typeof item[header.key] === 'object' ? item[header.key] : item[header.key]}
                   </td>
                 );
               })}

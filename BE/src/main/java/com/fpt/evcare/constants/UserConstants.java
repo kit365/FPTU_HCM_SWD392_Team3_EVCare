@@ -53,4 +53,5 @@ public class UserConstants {
     public static final String USER_RESTORE = "/restore/{id}";
     public static final String USER_CREATION = "/";
     public static final String USER_PROFILE = "/profile";
+    public static final String USER_BY_ROLE = "/by-role";
 }

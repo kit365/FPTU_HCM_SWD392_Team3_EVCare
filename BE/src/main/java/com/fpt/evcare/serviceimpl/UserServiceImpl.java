@@ -303,6 +303,38 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
+    @Override
+    public List<UserResponse> getUsersByRole(String roleName) {
+        try {
+            com.fpt.evcare.enums.RoleEnum roleEnum = com.fpt.evcare.enums.RoleEnum.valueOf(roleName.toUpperCase());
+            List<UserEntity> users = userRepository.findByRoleNameAndIsDeletedFalse(roleEnum);
+            
+            if (users.isEmpty()) {
+                log.warn("No users found for role: {}", roleName);
+                return new ArrayList<>();
+            }
+            
+            List<UserResponse> userResponses = new ArrayList<>();
+            for (UserEntity user : users) {
+                UserResponse response = userMapper.toResponse(user);
+                List<String> roleNames = new ArrayList<>();
+                if (user.getRoles() != null) {
+                    for (RoleEntity role : user.getRoles()) {
+                        roleNames.add(role.getRoleName().toString());
+                    }
+                }
+                response.setRoleName(roleNames);
+                userResponses.add(response);
+            }
+            
+            log.info("Found {} users for role: {}", userResponses.size(), roleName);
+            return userResponses;
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid role name: {}", roleName);
+            throw new ResourceNotFoundException("Vai trò không hợp lệ: " + roleName);
+        }
+    }
+
     private void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {
         List<String> errors = new ArrayList<>(); // Trả về 1 danh sách lỗi (để biết rõ đang bị lỗi những gì)
             if(creationUserRequest.getUsername() != null && userRepository.existsByUsername(creationUserRequest.getUsername())){

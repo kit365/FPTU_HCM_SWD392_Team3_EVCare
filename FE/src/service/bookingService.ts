@@ -36,7 +36,7 @@ export const bookingService = {
   // Get service modes
   getServiceModes: async () => {
     const response = await apiClient.get<ServiceModeResponse>(
-      `${API_BASE}/appointment/status/{id}`
+      `${API_BASE}/appointment/service-mode/`
     );
     console.log("GET SERVICE MODES RESPONSE:", response);
     return response;

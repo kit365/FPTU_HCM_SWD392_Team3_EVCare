@@ -12,6 +12,8 @@ import com.fpt.evcare.enums.AppointmentStatusEnum;
 import com.fpt.evcare.enums.MaintenanceManagementStatusEnum;
 import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.enums.ServiceModeEnum;
+import com.fpt.evcare.enums.ShiftStatusEnum;
+import com.fpt.evcare.enums.ShiftTypeEnum;
 import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.mapper.AppointmentMapper;
@@ -28,6 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -49,6 +53,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     MaintenanceManagementService maintenanceManagementService;
     MaintenanceRecordRepository maintenanceRecordRepository;
     MaintenanceManagementRepository maintenanceManagementRepository;
+    com.fpt.evcare.repository.ShiftRepository shiftRepository;
 
     @Override
     public List<String> getAllServiceMode(){
@@ -451,7 +456,85 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT);
         appointmentRepository.save(appointmentEntity);
+        
+        autoCreateShiftForAppointment(appointmentEntity);
+        
         return true;
+    }
+    
+
+    private void autoCreateShiftForAppointment(AppointmentEntity appointment) {
+        log.info(AppointmentConstants.LOG_INFO_AUTO_CREATING_SHIFT, appointment.getAppointmentId());
+        
+        try {
+            LocalDateTime startTime = appointment.getScheduledAt();
+            
+            int totalMinutes = 0;
+            if (appointment.getServiceTypeEntities() != null && !appointment.getServiceTypeEntities().isEmpty()) {
+                totalMinutes = appointment.getServiceTypeEntities().stream()
+                        .filter(service -> !service.getIsDeleted())
+                        .mapToInt(service -> service.getEstimatedDurationMinutes() != null 
+                                ? service.getEstimatedDurationMinutes() 
+                                : 60) 
+                        .sum();
+                
+                log.info(AppointmentConstants.LOG_INFO_TOTAL_SERVICE_DURATION, 
+                        totalMinutes, appointment.getServiceTypeEntities().size());
+            } else {
+                totalMinutes = 120;
+                log.warn(AppointmentConstants.LOG_WARN_NO_SERVICES_DEFAULT_DURATION);
+            }
+            
+    
+            LocalDateTime endTime = startTime.plusMinutes(totalMinutes);
+            BigDecimal totalHours = calculateTotalHours(startTime, endTime);
+            
+            log.info(AppointmentConstants.LOG_INFO_CALCULATED_SHIFT_TIME, 
+                    startTime, endTime, totalHours);
+            
+            // 3. Build shift entity
+            com.fpt.evcare.entity.ShiftEntity shift = com.fpt.evcare.entity.ShiftEntity.builder()
+                    .appointment(appointment)
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .totalHours(totalHours)
+                    .status(ShiftStatusEnum.PENDING_ASSIGNMENT) // Chờ phân công người
+                    .shiftType(ShiftTypeEnum.APPOINTMENT)
+                    .assignee(null) // Chưa có người phụ trách
+                    .staff(null) // Chưa có staff
+                    .technicians(new ArrayList<>()) // Chưa có technicians
+                    .notes("Auto-created from appointment") 
+                    .build();
+            
+            shift.setIsActive(true);
+            shift.setIsDeleted(false);
+            
+            // Build search field
+            String search = com.fpt.evcare.utils.UtilFunction.concatenateSearchField(
+                    appointment.getCustomerFullName(),
+                    appointment.getAppointmentId().toString(),
+                    "PENDING_ASSIGNMENT"
+            );
+            shift.setSearch(search);
+            
+            shiftRepository.save(shift);
+            log.info(AppointmentConstants.LOG_SUCCESS_AUTO_CREATED_SHIFT, 
+                    shift.getShiftId(), appointment.getAppointmentId(), endTime, totalHours);
+                    
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_AUTO_CREATING_SHIFT, 
+                    appointment.getAppointmentId(), e.getMessage(), e);
+        }
+    }
+    
+    private BigDecimal calculateTotalHours(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        Duration duration = Duration.between(startTime, endTime);
+        double totalHoursDouble = duration.toMinutes() / 60.0;
+        return BigDecimal.valueOf(totalHoursDouble).setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override

@@ -32,6 +32,9 @@ public class ServiceTypeEntity extends BaseEntity {
     String serviceName;
 
     String description;
+    
+    @Column(name = "estimated_duration_minutes")
+    Integer estimatedDurationMinutes; // Thời lượng ước tính (phút)
 
     String search;
 

@@ -191,6 +191,7 @@ public class AppointmentController {
                 );
     }
 
+    //xài cho customer(update profile người dùng, nếu appoinment trong progress -> lỗi)
     @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_CUSTOMER)
     @Operation(summary = "Cập nhật 1 cuộc hẹn cho người dùng ", description = "Câp nhật thông tin cuộc hẹn của người dùng đó")
     public ResponseEntity<ApiResponse<String>> updateAppointmentForCustomer(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationCustomerAppointmentRequest updationCustomerAppointmentRequest) {
@@ -205,6 +206,8 @@ public class AppointmentController {
                 );
     }
 
+
+    //Xài cho shift(khi phân công -> đien thông tin của nhân viên và tenichcan)
     @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_ADMIN)
     @Operation(summary = "Cập nhật 1 cuộc hẹn bên phía admin ", description = "Câp nhật thông tin cuộc hẹn bên phía admin")
     public ResponseEntity<ApiResponse<String>> updateAppointmentForStaff(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationAppointmentRequest updationAppointmentRequest) {
@@ -219,6 +222,8 @@ public class AppointmentController {
                 );
     }
 
+
+    //
     @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_STATUS)
     @Operation(summary = "Cập nhật 1 trạng thái cuộc hẹn ", description = "Câp nhật trạng thái cuộc hẹn (chỉ admin được phép xài)")
     public ResponseEntity<ApiResponse<String>> updateAppointmentStatus(@PathVariable(name = "id") UUID id, @RequestBody String status) {

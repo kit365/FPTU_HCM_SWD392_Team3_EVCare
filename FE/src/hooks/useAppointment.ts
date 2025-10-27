@@ -23,11 +23,17 @@ export const useAppointment = () => {
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
       } else {
-        toast.error(response?.data?.message || "Không thể tải danh sách cuộc hẹn!");
+        // Don't show error toast, let UI handle empty state
+        setList([]);
+        setTotalPages(0);
+        setTotalElements(0);
       }
     } catch (error: any) {
       console.error('Appointment search error:', error);
-      toast.error(error?.response?.data?.message || "Không thể tải danh sách cuộc hẹn!");
+      // Don't show error toast, let UI handle empty state
+      setList([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
