@@ -10,6 +10,7 @@ import com.fpt.evcare.entity.UserEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,6 +31,9 @@ public interface UserService {
     boolean updateUser(UpdationUserRequest updationUserRequest, UUID id);
     boolean deleteUser(UUID id);
     boolean restoreUser(UUID id);
+
+    // Get users by role name
+    List<UserResponse> getUsersByRole(String roleName);
 
 
 }

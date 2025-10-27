@@ -4,6 +4,7 @@ export interface ServiceTypeResponse {
   serviceTypeId: string;
   serviceName: string;
   description?: string;
+  estimatedDurationMinutes?: number; // Thời lượng ước tính (phút)
   parentId?: string;
   vehicleTypeResponse?: VehicleTypeResponse;
   isActive?: boolean;

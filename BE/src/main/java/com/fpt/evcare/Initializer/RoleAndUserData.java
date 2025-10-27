@@ -1,4 +1,4 @@
-package com.fpt.evcare.initializer;
+package com.fpt.evcare.Initializer;
 
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;

@@ -65,6 +65,25 @@ export const useUser = () => {
     }
   }, []);
 
+  // Fetch user options by role for dropdown
+  const fetchUserOptionsByRole = useCallback(async (roleName: string) => {
+    setLoading(true);
+    try {
+      const users = await userService.getUsersByRole(roleName);
+      const options = users.map((user: UserResponse) => ({
+        value: user.userId,
+        label: user.fullName || user.username || user.email
+      }));
+      return options;
+    } catch (error: any) {
+      console.error('Fetch user options by role error:', error);
+      toast.error(`Không thể tải danh sách ${roleName}!`);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Get by ID
   const getById = useCallback(async (userId: string) => {
     setLoading(true);
@@ -177,6 +196,7 @@ export const useUser = () => {
     userOptions,
     search,
     fetchUserOptions,
+    fetchUserOptionsByRole,
     searchUserProfile,
     getById,
     create,

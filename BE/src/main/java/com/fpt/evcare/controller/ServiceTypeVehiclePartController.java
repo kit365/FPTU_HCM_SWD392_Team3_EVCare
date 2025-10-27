@@ -47,10 +47,10 @@ public class ServiceTypeVehiclePartController {
             @PathVariable(name = "serviceTypeId") UUID serviceTypeId) {
         List<ServiceTypeVehiclePartResponse> responses = serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(serviceTypeId);
 
-        log.info("Successfully retrieved vehicle parts for service type: " + serviceTypeId);
+        log.info(ServiceTypeVehiclePartConstants.LOG_SUCCESS_RETRIEVED_VEHICLE_PARTS_BY_SERVICE_TYPE, serviceTypeId);
         return ResponseEntity.ok(ApiResponse.<List<ServiceTypeVehiclePartResponse>>builder()
                 .success(true)
-                .message("Lấy danh sách phụ tùng thành công")
+                .message(ServiceTypeVehiclePartConstants.MESSAGE_SUCCESS_RETRIEVED_VEHICLE_PARTS)
                 .data(responses)
                 .build());
     }

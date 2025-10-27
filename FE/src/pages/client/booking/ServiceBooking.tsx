@@ -477,10 +477,16 @@ export const ServiceBookingPage: React.FC = () => {
                 >
                   <Select
                     placeholder="Chọn loại dịch vụ"
-                    options={serviceModes.map((mode) => ({
-                      value: mode,
-                      label: mode,
-                    }))}
+                    options={serviceModes.map((mode) => {
+                      const serviceModeMap: { [key: string]: string } = {
+                        'STATIONARY': 'Tại trung tâm',
+                        'MOBILE': 'Di động (Tận nơi)',
+                      };
+                      return {
+                        value: mode,
+                        label: serviceModeMap[mode] || mode,
+                      };
+                    })}
                     loading={loadingServiceModes}
                     onChange={(value) => setServiceType(value)}
                   />
