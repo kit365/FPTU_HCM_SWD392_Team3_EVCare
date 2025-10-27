@@ -11,6 +11,7 @@ public class UserConstants {
 
     //Failed message
     public static final String MESSAGE_ERR_USER_NOT_FOUND = "Không tìm thấy người dùng";
+    public static final String MESSAGE_ERR_USER_ROLE_NOT_MATCH = "Người dùng có vai trò không phù hợp";
     public static final String MESSAGE_ERR_USER_LIST_NOT_FOUND = "Danh sách người dùng trống";
     public static final String MESSAGE_ERR_DUPLICATED_USER_EMAIL = "Email này đã tồn tại";
     public static final String MESSAGE_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại";
@@ -23,6 +24,7 @@ public class UserConstants {
 
     //Error log
     public static final String LOG_ERR_USER_NOT_FOUND = "Người dùng không tồn tại: {}";
+    public static final String LOG_ERR_USER_ROLE_NOT_MATCH = "Người dùng có vai trò không phù hợp: {}";
     public static final String LOG_ERR_USER_LIST_NOT_FOUND = "Danh sách người dùng trống: {}";
     public static final String LOG_ERR_DUPLICATED_USER_EMAIL = "Email này đã tồn tại: {}";
     public static final String LOG_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại: {}";

@@ -232,16 +232,16 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
         checkDuplicateCreationServiceName(creationServiceTypeRequest.getServiceName(), creationServiceTypeRequest.getVehicleTypeId());
         ServiceTypeEntity serviceTypeEntity = serviceTypeMapper.toEntity(creationServiceTypeRequest);
 
-        // Kiểm tra và gán parent (nếu có)
-        if (creationServiceTypeRequest.getParentId() != null) {
-            ServiceTypeEntity parent = validateAndGetParent(creationServiceTypeRequest.getParentId(), serviceTypeEntity.getServiceTypeId());
-            serviceTypeEntity.setParent(parent);
-            serviceTypeEntity.setParentId(parent.getServiceTypeId());
-        }
-
         // Gán vehicle type
         VehicleTypeEntity vehicleType = validateAndGetVehicleType(creationServiceTypeRequest.getVehicleTypeId());
         serviceTypeEntity.setVehicleTypeEntity(vehicleType);
+
+        // Kiểm tra và gán parent (nếu có)
+        if (creationServiceTypeRequest.getParentId() != null) {
+            ServiceTypeEntity parent = validateAndGetParent(creationServiceTypeRequest.getParentId(), serviceTypeEntity.getServiceTypeId(), vehicleType.getVehicleTypeId());
+            serviceTypeEntity.setParent(parent);
+            serviceTypeEntity.setParentId(parent.getServiceTypeId());
+        }
 
         String search = UtilFunction.concatenateSearchField(creationServiceTypeRequest.getServiceName(),
                 vehicleType.getVehicleTypeName(),
@@ -398,22 +398,32 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
         return hasCycle(parent.getParentId(), currentId);
     }
 
-    private ServiceTypeEntity validateAndGetParent(UUID parentId, UUID currentId) {
+    private ServiceTypeEntity validateAndGetParent(UUID parentId, UUID currentId, UUID vehicleTypeId) {
         ServiceTypeEntity parent = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(parentId);
         if(parent == null){
             log.warn(ServiceTypeConstants.LOG_ERR_PARENT_SERVICE_TYPE_NOT_FOUND);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_NOT_FOUND);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_NOT_FOUND);
         }
 
         if(parent.getIsDeleted() != null && parent.getIsDeleted()){
             log.warn(ServiceTypeConstants.LOG_ERR_PARENT_SERVICE_TYPE_IS_DELETED);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_DELETED);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_DELETED);
         }
 
         if(hasCycle(parentId, currentId)){
             log.warn(ServiceTypeConstants.LOG_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY);
         }
+
+        // 🚗 Kiểm tra loại xe của con và cha phải trùng nhau
+        if (parent.getVehicleTypeEntity() != null && vehicleTypeId != null) {
+            UUID parentVehicleTypeId = parent.getVehicleTypeEntity().getVehicleTypeId();
+            if (!parentVehicleTypeId.equals(vehicleTypeId)) {
+                log.warn(ServiceTypeConstants.LOG_ERR_VEHICLE_TYPE_DOES_NOT_MATCH_BETWEEN_BOTH_SERVICES, vehicleTypeId);
+                throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_DOES_NOT_MATCH_BETWEEN_BOTH_SERVICES);
+            }
+        }
+
         return parent;
     }
 

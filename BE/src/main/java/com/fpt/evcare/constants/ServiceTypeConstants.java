@@ -28,6 +28,7 @@ public class ServiceTypeConstants {
     public static final String MESSAGE_ERR_SERVICE_TYPE_IS_USED_ON_APPOINTMENT = "Loại dịch vụ này được sử dụng trong cuộc hẹn: {}";
     public static final String MESSAGE_ERR_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID = "Không tìm thấy danh sách dịch vụ theo id loại xe";
     public static final String MESSAGE_ERR_CHILDREN_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID_AND_PARENT_ID = "Không tìm thấy danh sách dịch vụ con theo loại xe và dịch vụ cha";
+    public static final String MESSAGE_ERR_VEHICLE_TYPE_DOES_NOT_MATCH_BETWEEN_BOTH_SERVICES = "Loại xe của dịch vụ con không ứng với của dịch vụ cha";
 
     //Log message
 
@@ -39,6 +40,7 @@ public class ServiceTypeConstants {
     public static final String LOG_ERR_CHILDREN_SERVICE_TYPE_LIST_NOT_FOUND_BY_VEHICLE_TYPE_ID_AND_PARENT_ID = "Không tìm thấy danh sách dịch vụ con theo id loại xe: {} và dịch vụ cha: {}";
     public static final String LOG_ERR_PART_NOT_ENOUGH_FOR_USING_IN_SERVICE = "Không đủ phụ tùng [{}] trong kho cho dịch vụ [{}]. Cần {}, còn {}";
     public static final String LOG_ERR_SERVICE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ: {}";
+    public static final String LOG_ERR_VEHICLE_TYPE_DOES_NOT_MATCH_BETWEEN_BOTH_SERVICES = "Loại xe của dịch vụ con không ứng với của dịch vụ cha: {}";
     public static final String LOG_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND = "Không tìm thấy loại dịch vụ cho id loại xe: {}";
     public static final String LOG_ERR_PARENT_SERVICE_TYPE_IS_DELETED = "Loại dịch vụ cha đã bị xóa: {}";
     public static final String LOG_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY = "Phát hiện vòng lặp trong cấu trúc dịch vụ: {}";

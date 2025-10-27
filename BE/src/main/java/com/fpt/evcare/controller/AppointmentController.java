@@ -5,6 +5,7 @@ import com.fpt.evcare.constants.AppointmentConstants;
 import com.fpt.evcare.constants.PaginationConstants;
 import com.fpt.evcare.dto.request.appointment.CreationAppointmentRequest;
 import com.fpt.evcare.dto.request.appointment.UpdationAppointmentRequest;
+import com.fpt.evcare.dto.request.appointment.UpdationCustomerAppointmentRequest;
 import com.fpt.evcare.dto.response.AppointmentResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.entity.ServiceTypeEntity;
@@ -35,7 +36,7 @@ public class AppointmentController {
 
     AppointmentService appointmentService;
 
-    @GetMapping(AppointmentConstants.APPOINTMENT_STATUS)
+    @GetMapping(AppointmentConstants.SERVICE_MODE)
     @Operation(summary = "Lấy danh sách Service Mode", description = "Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
     public ResponseEntity<ApiResponse<List<String>>> getAllServiceModes() {
         List<String> serviceModes = appointmentService.getAllServiceMode();
@@ -50,19 +51,74 @@ public class AppointmentController {
         );
     }
 
-    @GetMapping(AppointmentConstants.SERVICE_MODE)
-    @Operation(summary = "Lấy danh sách Appointment Status", description = "Hiển thị toàn bộ các giá trị của enum AppointmentStatusEnum")
-    public ResponseEntity<ApiResponse<List<String>>> getAllStatuses() {
-        List<String> statuses = appointmentService.getAllStatus();
+    @GetMapping(AppointmentConstants.CANCEL_STATUS)
+    @Operation(summary = "Lấy Cancel Appointment Status (dùng cho khách và admin nếu muốn hủy)", description = "Hiển thị giá trị của enum Cancel Appointment Status")
+    public ResponseEntity<ApiResponse<String>> getCancelStatus() {
+        String status = appointmentService.getCancelStatus();
 
-        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT_STATUS_LIST);
+        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT_CANCELLED_STATUS);
         return ResponseEntity.ok(
-                ApiResponse.<List<String>>builder()
+                ApiResponse.<String>builder()
                         .success(true)
-                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_APPOINTMENT_STATUS_LIST)
-                        .data(statuses)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_APPOINTMENT_CANCELLED_STATUS)
+                        .data(status)
                         .build()
         );
+    }
+
+    @GetMapping(AppointmentConstants.IN_PROGRESS_STATUS)
+    @Operation(summary = "Lấy In Progress Appointment Status (dùng cho admin khi chuyển trạng thái)", description = "Hiển thị giá trị của enum In Progress Appointment Status")
+    public ResponseEntity<ApiResponse<String>> getInProgressStatus() {
+        String status = appointmentService.getInProgressStatus();
+
+        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT_IN_PROGRESS_STATUS);
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_APPOINTMENT_IN_PROGRESS_STATUS)
+                        .data(status)
+                        .build()
+        );
+    }
+
+    @GetMapping(AppointmentConstants.SEARCH_BY_CUSTOMER)
+    @Operation(summary = "Tra cứu danh sách cuộc hẹn cho khách hàng bằng email hoặc sđt", description = "Tra cứu danh sách cuộc hẹn cho khách hàng")
+    public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> getAllAppointmentsByEmailOrPhoneForCustomer(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+            @Nullable @RequestParam(name = "keyword") String keyword) {
+
+        Pageable pageable = PageRequest.of(page, pageSize);
+        PageResponse<AppointmentResponse> response = appointmentService.getAllAppointmentsByEmailOrPhoneForCustomer(keyword, pageable);
+
+        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_SEARCH_APPOINTMENT_FOR_CUSTOMER);
+        return ResponseEntity
+                .ok(ApiResponse.<PageResponse<AppointmentResponse>>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_SEARCH_APPOINTMENT_FOR_CUSTOMER)
+                        .data(response)
+                        .build()
+                );
+    }
+
+    @GetMapping(AppointmentConstants.SEARCH_BY_GUEST)
+    @Operation(summary = "Tra cứu danh sách cuộc hẹn cho khách vãng lai bằng email hoặc sđt", description = "Tra cứu danh sách cuộc hẹn cho khách vãng lai")
+    public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> getAllAppointmentsByEmailOrPhoneForGuest(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+            @Nullable @RequestParam(name = "keyword") String keyword) {
+
+        Pageable pageable = PageRequest.of(page, pageSize);
+        PageResponse<AppointmentResponse> response = appointmentService.getAllAppointmentsByEmailOrPhoneForGuest(keyword, pageable);
+
+        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_SEARCH_APPOINTMENT_FOR_GUEST);
+        return ResponseEntity
+                .ok(ApiResponse.<PageResponse<AppointmentResponse>>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_SEARCH_APPOINTMENT_FOR_GUEST)
+                        .data(response)
+                        .build()
+                );
     }
 
     @GetMapping(AppointmentConstants.APPOINTMENT)
@@ -73,21 +129,6 @@ public class AppointmentController {
         log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT);
         return ResponseEntity
                 .ok(ApiResponse.<AppointmentResponse>builder()
-                        .success(true)
-                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_APPOINTMENT)
-                        .data(response)
-                        .build()
-                );
-    }
-
-    @GetMapping(AppointmentConstants.APPOINTMENT_QUOTE_PRICE_CALCULATING)
-    @Operation(summary = "Lấy giá tạm tính cho cuộc hẹn", description = "Từ danh sách dịch vụ mà người dùng chọn, tính ra giá tạm tính để khách hàng biết giá cụ thể cho dịch vụ đó (nhưng chưa thể tính vì có chi phí phát sinh trong quá trình bảo dưỡng")
-    public ResponseEntity<ApiResponse<BigDecimal>> calculateQuotePrice(@RequestBody @Valid List<ServiceTypeEntity> serviceTypeEntityList) {
-        BigDecimal response = appointmentService.calculateQuotePrice(serviceTypeEntityList);
-
-        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT);
-        return ResponseEntity
-                .ok(ApiResponse.<BigDecimal>builder()
                         .success(true)
                         .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_APPOINTMENT)
                         .data(response)
@@ -150,58 +191,44 @@ public class AppointmentController {
                 );
     }
 
-    @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE)
-    @Operation(summary = "Cập nhật 1 cuộc hẹn ", description = "Câp nhật thông tin của cuộc hẹn đó")
-    public ResponseEntity<ApiResponse<String>> updateAppointment(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationAppointmentRequest updationAppointmentRequest) {
-        boolean response = appointmentService.updateAppointment(id, updationAppointmentRequest);
+    @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_CUSTOMER)
+    @Operation(summary = "Cập nhật 1 cuộc hẹn cho người dùng ", description = "Câp nhật thông tin cuộc hẹn của người dùng đó")
+    public ResponseEntity<ApiResponse<String>> updateAppointmentForCustomer(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationCustomerAppointmentRequest updationCustomerAppointmentRequest) {
+        boolean response = appointmentService.updateAppointmentForCustomer(id, updationCustomerAppointmentRequest) ;
 
-        log.info(AppointmentConstants.LOG_SUCCESS_UPDATING_APPOINTMENT);
+        log.info(AppointmentConstants.LOG_SUCCESS_UPDATING_APPOINTMENT_CUSTOMER);
         return ResponseEntity
                 .ok(ApiResponse.<String>builder()
                         .success(response)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT_CUSTOMER)
+                        .build()
+                );
+    }
+
+    @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_ADMIN)
+    @Operation(summary = "Cập nhật 1 cuộc hẹn bên phía admin ", description = "Câp nhật thông tin cuộc hẹn bên phía admin")
+    public ResponseEntity<ApiResponse<String>> updateAppointmentForStaff(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationAppointmentRequest updationAppointmentRequest) {
+        boolean response = appointmentService.updateAppointmentForStaff(id, updationAppointmentRequest);
+
+        log.info(AppointmentConstants.LOG_SUCCESS_UPDATING_APPOINTMENT_ADMIN);
+        return ResponseEntity
+                .ok(ApiResponse.<String>builder()
+                        .success(response)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT_ADMIN)
+                        .build()
+                );
+    }
+
+    @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_STATUS)
+    @Operation(summary = "Cập nhật 1 trạng thái cuộc hẹn ", description = "Câp nhật trạng thái cuộc hẹn (chỉ admin được phép xài)")
+    public ResponseEntity<ApiResponse<String>> updateAppointmentStatus(@PathVariable(name = "id") UUID id, @RequestBody String status) {
+        appointmentService.updateAppointmentStatus(id, status);
+
+        log.info(AppointmentConstants.LOG_SUCCESS_UPDATING_APPOINTMENT_STATUS);
+        return ResponseEntity
+                .ok(ApiResponse.<String>builder()
+                        .success(true)
                         .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT_STATUS)
-                        .build()
-                );
-    }
-
-    @PatchMapping(AppointmentConstants.APPOINTMENT_STATUS_UPDATE)
-    @Operation(summary = "Cập nhật trạng thái 1 cuộc hẹn ", description = "Câp nhật trạng thái của cuộc hẹn đó")
-    public ResponseEntity<ApiResponse<String>> updateAppointmentStatus(@PathVariable UUID id, @RequestBody String statusEnum) {
-        boolean response = appointmentService.updateAppointmentStatus(id, statusEnum);
-
-        log.info(AppointmentConstants.LOG_SUCCESS_UPDATING_APPOINTMENT_STATUS, statusEnum);
-        return ResponseEntity
-                .ok(ApiResponse.<String>builder()
-                        .success(response)
-                        .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT)
-                        .build()
-                );
-    }
-
-    @DeleteMapping(AppointmentConstants.APPOINTMENT_DELETE)
-    @Operation(summary = "Xóa 1 cuộc hẹn ", description = "Xóa 1 cuộc hẹn")
-    public ResponseEntity<ApiResponse<String>> updateAppointment(@PathVariable(name = "id") UUID id) {
-        boolean response = appointmentService.deleteAppointment(id);
-
-        log.info(AppointmentConstants.LOG_SUCCESS_DELETING_APPOINTMENT);
-        return ResponseEntity
-                .ok(ApiResponse.<String>builder()
-                        .success(response)
-                        .message(AppointmentConstants.MESSAGE_SUCCESS_DELETING_APPOINTMENT)
-                        .build()
-                );
-    }
-
-    @PatchMapping(AppointmentConstants.APPOINTMENT_RESTORE)
-    @Operation(summary = "Khôi phục 1 cuộc hẹn ", description = "Xóa 1 cuộc hẹn")
-    public ResponseEntity<ApiResponse<String>> restoreAppointment(@PathVariable(name = "id") UUID id) {
-        boolean response = appointmentService.restoreAppointment(id);
-
-        log.info(AppointmentConstants.LOG_SUCCESS_RESTORING_APPOINTMENT);
-        return ResponseEntity
-                .ok(ApiResponse.<String>builder()
-                        .success(response)
-                        .message(AppointmentConstants.MESSAGE_SUCCESS_RESTORING_APPOINTMENT)
                         .build()
                 );
     }

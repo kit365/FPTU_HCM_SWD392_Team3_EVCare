@@ -92,4 +92,7 @@ public class AppointmentEntity extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "Service_type_id")
     )
     List<ServiceTypeEntity> serviceTypeEntities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
+    List<MaintenanceManagementEntity> maintenanceManagementEntities = new ArrayList<>();
 }

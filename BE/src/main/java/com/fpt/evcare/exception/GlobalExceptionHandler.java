@@ -1,6 +1,7 @@
 package com.fpt.evcare.exception;
 
 import com.fpt.evcare.base.ApiResponse;
+import com.fpt.evcare.constants.VehiclePartConstants;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -185,6 +186,22 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLockException(OptimisticLockException ex) {
+        if (log.isErrorEnabled()) {
+            log.warn(VehiclePartConstants.LOG_ERR_CONCURRENT_UPDATE);
+            log.error("OptimisticLockException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
     @ExceptionHandler(UserValidationException.class)
     public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
         if (log.isErrorEnabled()) {
@@ -195,7 +212,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message(ex.getMessage())
+                        .message(ex.getMessage() + "/n" + VehiclePartConstants.MESSAGE_ERR_CONCURRENT_UPDATE)
                         .build()
                 );
     }
