@@ -13,8 +13,7 @@ import { Dayjs, isDayjs } from "dayjs";
 import { bookingService } from "../../../service/bookingService";
 import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
-import ViewOldDataModal from "./ViewOldDataModal";
-import type { OldBookingData } from "./mockOldBookingData";
+import ViewOldDataModal, { type VehicleProfileData } from "./ViewOldDataModal";
 
 const { TextArea } = Input;
 const { SHOW_PARENT } = TreeSelect;
@@ -29,7 +28,8 @@ export const ServiceBookingPage: React.FC = () => {
   const [loadingVehicles, setLoadingVehicles] = useState<boolean>(false);
   const [loadingServices, setLoadingServices] = useState<boolean>(false);
   const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
-  const [isUseOldData, setIsUseOldData] = useState(false)
+  const [isUseOldData, setIsUseOldData] = useState(false);
+  const [disabledFields, setDisabledFields] = useState<Set<string>>(new Set());
 
   // Lấy thông tin user từ AuthContext
   const { user } = useAuthContext();
@@ -58,21 +58,32 @@ export const ServiceBookingPage: React.FC = () => {
     setIsUseOldData(false);
   };
 
-  const handleSelectVehicle = (bookingData: OldBookingData['bookingHistory']) => {
-    // Chỉ fill thông tin cơ bản, không fill các trường selection
+  const handleResetForm = () => {
+    form.resetFields();
+    setDisabledFields(new Set());
+    setSelectedVehicleTypeId("");
+    setServiceType("");
+    setServiceTypes([]);
+  };
+
+  const handleSelectVehicle = (vehicleData: VehicleProfileData) => {
+    // Fill thông tin cơ bản từ hồ sơ xe và disable các field này
     form.setFieldsValue({
-      customerName: bookingData.customerName,
-      phone: bookingData.phone,
-      email: bookingData.email,
-      // KHÔNG điền vehicleType (Mẫu xe)
-      mileage: bookingData.mileage,
-      licensePlate: bookingData.licensePlate,
-      // KHÔNG điền services (Dịch vụ)
-      // KHÔNG điền serviceType (Loại hình dịch vụ)
-      userAddress: bookingData.serviceType === 'MOBILE' ? bookingData.userAddress : undefined,
-      // KHÔNG điền dateTime (Thời gian hẹn)
-      notes: bookingData.notes,
+      customerName: vehicleData.customerName,
+      phone: vehicleData.phone,
+      email: vehicleData.email,
+      mileage: vehicleData.mileage,
+      licensePlate: vehicleData.licensePlate,
     });
+    
+    // Disable các field được điền từ dữ liệu cũ
+    setDisabledFields(new Set([
+      'customerName',
+      'phone', 
+      'email',
+      'mileage',
+      'licensePlate'
+    ]));
 
     // Reset các trường selection để user phải chọn lại
     form.setFieldsValue({
@@ -88,7 +99,7 @@ export const ServiceBookingPage: React.FC = () => {
     setServiceType("");
 
     // Hiển thị message
-    message.success("Đã điền thông tin cơ bản từ lịch sử booking! Vui lòng chọn lại Mẫu xe, Dịch vụ và Thời gian.");
+    message.success("Đã điền thông tin cơ bản từ hồ sơ xe! Vui lòng chọn lại Mẫu xe, Dịch vụ và Thời gian.");
   };
 
   const fetchVehicleTypes = async () => {
@@ -344,7 +355,10 @@ export const ServiceBookingPage: React.FC = () => {
                   name="customerName"
                   rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
                 >
-                  <Input placeholder="Nhập họ và tên" />
+                  <Input 
+                    placeholder="Nhập họ và tên" 
+                    disabled={disabledFields.has('customerName')}
+                  />
                 </Form.Item>
                 <Form.Item
                   label="Số điện thoại"
@@ -355,7 +369,10 @@ export const ServiceBookingPage: React.FC = () => {
                     { min: 10, message: "Số điện thoại phải tối thiểu 10 số" },
                   ]}
                 >
-                  <Input placeholder="Tối thiểu 10 chữ số" />
+                  <Input 
+                    placeholder="Tối thiểu 10 chữ số" 
+                    disabled={disabledFields.has('phone')}
+                  />
                 </Form.Item>
                 <Form.Item
                   label="Email"
@@ -365,7 +382,10 @@ export const ServiceBookingPage: React.FC = () => {
                     { type: "email", message: "Email không hợp lệ" },
                   ]}
                 >
-                  <Input placeholder="vidu@gmail.com" />
+                  <Input 
+                    placeholder="vidu@gmail.com" 
+                    disabled={disabledFields.has('email')}
+                  />
                 </Form.Item>
               </div>
 
@@ -390,7 +410,10 @@ export const ServiceBookingPage: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label="Số Km" name="mileage">
-                  <Input placeholder="Nhập số km trên phương tiện" />
+                  <Input 
+                    placeholder="Nhập số km trên phương tiện" 
+                    disabled={disabledFields.has('mileage')}
+                  />
                 </Form.Item>
                 <Form.Item
                   label="Biển số xe"
@@ -404,7 +427,10 @@ export const ServiceBookingPage: React.FC = () => {
                     },
                   ]}
                 >
-                  <Input placeholder="Ví dụ: 30A-12345" />
+                  <Input 
+                    placeholder="Ví dụ: 30A-12345" 
+                    disabled={disabledFields.has('licensePlate')}
+                  />
                 </Form.Item>
               </div>
             </div>
@@ -524,7 +550,15 @@ export const ServiceBookingPage: React.FC = () => {
                   size="large"
                   className="bg-white/80 backdrop-blur-sm border-2 border-blue-200 text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-blue-50"
                 >
-                  Sử dụng dữ liệu cũ
+                  Sử dụng hồ sơ xe
+                </Button>
+                <Button
+                  type="default"
+                  onClick={handleResetForm}
+                  size="large"
+                  className="bg-white/80 backdrop-blur-sm border-2 border-orange-200 text-orange-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-orange-50"
+                >
+                  Nhập lại từ đầu
                 </Button>
               </div>
             </div>
