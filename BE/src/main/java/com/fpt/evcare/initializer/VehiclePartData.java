@@ -77,7 +77,7 @@ public class VehiclePartData implements CommandLineRunner {
         });
     }
 
-    private void createCategoryIfNotExists(String categoryName, String description) {
+    private void createCategoryIfNotExists(String categoryName, String description, VehicleTypeEntity vehicleType) {
         Optional<VehiclePartCategoryEntity> existingCategory = vehiclePartCategoryRepository.findByPartCategoryName(categoryName);
         if (existingCategory.isPresent()) {
             log.info("Danh mục '{}' đã tồn tại, bỏ qua.", categoryName);
