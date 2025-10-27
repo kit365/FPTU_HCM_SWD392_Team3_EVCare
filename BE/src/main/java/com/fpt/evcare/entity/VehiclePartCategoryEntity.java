@@ -32,6 +32,6 @@ public class VehiclePartCategoryEntity extends BaseEntity {
     @Column(name = "search", length = 255)
     String search;
 
-    @OneToMany(mappedBy = "vehiclePartCategories")
+    @OneToMany(mappedBy = "vehiclePartCategories", fetch = FetchType.EAGER)
     List<VehiclePartEntity> vehicleParts;
 }

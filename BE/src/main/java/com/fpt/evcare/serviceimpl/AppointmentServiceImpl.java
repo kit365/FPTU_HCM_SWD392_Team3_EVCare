@@ -15,9 +15,14 @@ import com.fpt.evcare.enums.ServiceModeEnum;
 import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.mapper.AppointmentMapper;
+import com.fpt.evcare.mapper.InvoiceMapper;
 import com.fpt.evcare.repository.*;
 import com.fpt.evcare.service.*;
 import com.fpt.evcare.utils.UtilFunction;
+import com.fpt.evcare.dto.request.EmailRequestDTO;
+import com.fpt.evcare.entity.InvoiceEntity;
+import com.fpt.evcare.entity.MaintenanceManagementEntity;
+import com.fpt.evcare.enums.InvoiceStatusEnum;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -49,6 +54,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     MaintenanceManagementService maintenanceManagementService;
     MaintenanceRecordRepository maintenanceRecordRepository;
     MaintenanceManagementRepository maintenanceManagementRepository;
+    EmailService emailService;
+    InvoiceRepository invoiceRepository;
+    InvoiceMapper invoiceMapper;
+    PaymentMethodRepository paymentMethodRepository;
 
     @Override
     public List<String> getAllServiceMode(){
@@ -245,6 +254,65 @@ public class AppointmentServiceImpl implements AppointmentService {
             return appointmentResponse;
         }
         ).getContent();
+
+        log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT_LIST);
+        return PageResponse.<AppointmentResponse>builder()
+                .data(appointmentResponseList)
+                .page(appointmentEntityPage.getNumber())
+                .totalElements(appointmentEntityPage.getTotalElements())
+                .totalPages(appointmentEntityPage.getTotalPages())
+                .build();
+    }
+
+    @Override
+    public PageResponse<AppointmentResponse> searchAppointmentWithFilters(String keyword, String status, String serviceMode, 
+                                                                           String fromDate, String toDate, Pageable pageable) {
+        log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT_LIST);
+        
+        Page<AppointmentEntity> appointmentEntityPage = appointmentRepository.findAppointmentsWithFilters(
+                keyword, status, serviceMode, fromDate, toDate, pageable);
+
+        List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
+            AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
+
+            UserEntity customer = appointmentEntity.getCustomer();
+            if(customer != null){
+                UserResponse response = new UserResponse();
+                response.setUserId(customer.getUserId());
+                appointmentResponse.setCustomer(response);
+            }
+
+            List<UserResponse> technicianEntities = new ArrayList<>();
+            appointmentEntity.getTechnicianEntities().forEach(technicianEntity -> {
+                UserResponse technicianResponse = mapUserEntityToResponse(technicianEntity);
+                technicianEntities.add(technicianResponse);
+            });
+            appointmentResponse.setTechnicianResponses(technicianEntities);
+
+            UserEntity assignee = appointmentEntity.getAssignee();
+            appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
+
+            // Lấy những dịch vụ có trong cuộc hẹn
+            appointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(appointmentEntity));
+
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            if(appointmentEntity.getVehicleTypeEntity() != null) {
+                vehicleTypeResponse.setVehicleTypeId(appointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
+                vehicleTypeResponse.setVehicleTypeName(appointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
+                vehicleTypeResponse.setManufacturer(appointmentEntity.getVehicleTypeEntity().getManufacturer());
+                vehicleTypeResponse.setModelYear(appointmentEntity.getVehicleTypeEntity().getModelYear());
+            }
+            appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
+
+            // Nếu dịch vụ đó không còn tồn tại, giá tạm tính phải mất
+            if(appointmentResponse.getServiceTypeResponses().isEmpty()) {
+                appointmentResponse.setQuotePrice(BigDecimal.ZERO);
+            } else {
+                appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
+            }
+
+            return appointmentResponse;
+        }).getContent();
 
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT_LIST);
         return PageResponse.<AppointmentResponse>builder()
@@ -602,10 +670,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentStatusEnum currentStatus = appointmentEntity.getStatus();
         AppointmentStatusEnum newStatus = isValidAppointmentStatus(status);
 
-        // Appointment chỉ hoàn thành khi các Maintenace Management của Appointment đó cùng COMPLETED
+        // Appointment chỉ hoàn thành khi các Maintenance Management của Appointment đó cùng COMPLETED
         if(newStatus == AppointmentStatusEnum.COMPLETED){
-            log.warn(AppointmentConstants.LOG_ERR_CANNOT_CHANGE_COMPLETED_STATUS_WHILE_MAINTENANCE_MANAGEMENT_IN_PROGRESS);
-            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_CANNOT_CHANGE_COMPLETED_STATUS_WHILE_MAINTENANCE_MANAGEMENT_IN_PROGRESS);
+            // Check xem có maintenance nào đang IN_PROGRESS không
+            boolean hasInProgressMaintenance = maintenanceManagementRepository.existsByAppointmentIdAndStatus(
+                appointmentEntity.getAppointmentId(), 
+                MaintenanceManagementStatusEnum.IN_PROGRESS.toString()
+            );
+            
+            if(hasInProgressMaintenance){
+                log.warn(AppointmentConstants.LOG_ERR_CANNOT_CHANGE_COMPLETED_STATUS_WHILE_MAINTENANCE_MANAGEMENT_IN_PROGRESS);
+                throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_CANNOT_CHANGE_COMPLETED_STATUS_WHILE_MAINTENANCE_MANAGEMENT_IN_PROGRESS);
+            }
         }
 
         // Không cho phép chỉnh sửa nếu đã COMPLETED hoặc CANCELLED
@@ -635,6 +711,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             // Khi chuyển sang IN_PROGRESS → tạo Maintenance Management
             addMaintenanceManagementData(appointmentEntity);
+            
+            // Gửi email thông báo bắt đầu dịch vụ
+            sendInProgressEmail(appointmentEntity);
         }
 
         // Khi chuyển sang CANCELLED → kiểm tra maintenance
@@ -749,8 +828,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Nếu ngày được chọn nhỏ hơn hiện tại
-        if (scheduledAt.isBefore(now)) {
+        // Cho phép chọn thời điểm hiện tại hoặc trong tương lai
+        // Chỉ block các thời điểm đã qua hơn 1 phút
+        LocalDateTime oneMinuteAgo = now.minusMinutes(1);
+        
+        if (scheduledAt.isBefore(oneMinuteAgo)) {
             throw new EntityValidationException(AppointmentConstants.LOG_ERR_SCHEDULE_TIME_NOT_LESS_THAN_NOW);
         }
     }
@@ -916,6 +998,46 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             // Lưu lại trạng thái của maintenance management
             maintenanceManagementRepository.saveAll(maintenanceManagementEntities1);
+        }
+    }
+
+    /**
+     * Gửi email thông báo bắt đầu dịch vụ khi appointment chuyển sang IN_PROGRESS
+     */
+    private void sendInProgressEmail(AppointmentEntity appointment) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(AppointmentConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = AppointmentConstants.EMAIL_SUBJECT_IN_PROGRESS;
+            String emailBody = String.format(
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_GREETING +
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_CONTENT +
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_APPOINTMENT_INFO +
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_APPOINTMENT_ID +
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_VEHICLE +
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_TIME +
+                AppointmentConstants.EMAIL_BODY_IN_PROGRESS_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate(),
+                appointment.getScheduledAt().toString()
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(AppointmentConstants.LOG_INFO_SENT_IN_PROGRESS_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_IN_PROGRESS_EMAIL, e.getMessage());
         }
     }
 }

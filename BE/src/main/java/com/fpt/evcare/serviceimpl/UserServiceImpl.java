@@ -5,6 +5,7 @@ import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.TechnicianResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
@@ -301,6 +302,19 @@ public class UserServiceImpl implements UserService {
         log.info(UserConstants.LOG_SUCCESS_RESTORING_USER, user.getUsername());
         userRepository.save(user);
         return true;
+    }
+
+    @Override
+    public List<TechnicianResponse> getTechnicians() {
+        log.info("Getting technicians list");
+        List<UserEntity> technicians = userRepository.findTechnicians();
+        
+        return technicians.stream()
+                .map(technician -> TechnicianResponse.builder()
+                        .userId(technician.getUserId())
+                        .fullName(technician.getFullName())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {

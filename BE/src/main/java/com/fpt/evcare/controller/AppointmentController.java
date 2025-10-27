@@ -137,14 +137,49 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.APPOINTMENT_LIST)
-    @Operation(summary = "Lấy thông tin danh sách cuộc hẹn ", description = "Show toàn bộ thông tin các cuộc hẹn hiện có")
+    @Operation(
+        summary = "Lấy danh sách cuộc hẹn với bộ lọc", 
+        description = """
+            Lấy danh sách cuộc hẹn với các bộ lọc tùy chọn. Tất cả parameters đều optional.
+            
+            Các tham số:
+            - keyword: Từ khóa tìm kiếm (tên khách hàng, email, số điện thoại)
+            - status: Trạng thái cuộc hẹn (PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED)
+            - serviceMode: Chế độ dịch vụ (STATIONARY: tại chỗ, MOBILE: di động)
+            - fromDate: Lọc từ ngày (format: yyyy-MM-dd, ví dụ: 2024-01-01)
+            - toDate: Lọc đến ngày (format: yyyy-MM-dd, ví dụ: 2024-12-31)
+            - page: Số trang (mặc định: 0)
+            - pageSize: Số lượng mỗi trang (mặc định: 10)
+            
+            Ví dụ:
+            - Lấy tất cả appointment: GET /api/appointment/
+            - Lọc theo keyword: GET /api/appointment/?keyword=Nguyen Van A
+            - Lọc appointment đang chờ: GET /api/appointment/?status=PENDING
+            - Lọc appointment mobile đã hoàn thành: GET /api/appointment/?serviceMode=MOBILE&status=COMPLETED
+            - Lọc trong khoảng thời gian: GET /api/appointment/?fromDate=2024-01-01&toDate=2024-12-31
+            - Lọc kết hợp: GET /api/appointment/?keyword=Nguyen&status=IN_PROGRESS&fromDate=2024-01-01
+            """
+    )
     public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> searchAppointment(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-            @Nullable @RequestParam(name = "keyword") String keyword) {
+            @Nullable @RequestParam(name = "keyword") String keyword,
+            @Nullable @RequestParam(name = "status") String status,
+            @Nullable @RequestParam(name = "serviceMode") String serviceMode,
+            @Nullable @RequestParam(name = "fromDate") String fromDate,
+            @Nullable @RequestParam(name = "toDate") String toDate) {
 
         Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<AppointmentResponse> response = appointmentService.searchAppointment(keyword, pageable);
+        
+        // Nếu không có filter nào thì dùng method cũ
+        boolean hasFilters = status != null || serviceMode != null || fromDate != null || toDate != null;
+        
+        PageResponse<AppointmentResponse> response;
+        if (hasFilters) {
+            response = appointmentService.searchAppointmentWithFilters(keyword, status, serviceMode, fromDate, toDate, pageable);
+        } else {
+            response = appointmentService.searchAppointment(keyword, pageable);
+        }
 
         log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT_LIST);
         return ResponseEntity

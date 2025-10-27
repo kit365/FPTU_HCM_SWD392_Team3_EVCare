@@ -50,14 +50,47 @@ public class MaintenanceManagementController {
     }
 
     @GetMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_SEARCH_FOR_ADMIN)
-    @Operation(summary = "Hiển thị danh sách maintenance management cho admin", description = "Hiển thị danh sách Maintenance Management cho admin có phân trang và tìm kiếm theo keyword")
+    @Operation(
+        summary = "Hiển thị danh sách maintenance management cho admin với bộ lọc", 
+        description = """
+            Hiển thị danh sách Maintenance Management cho admin với các bộ lọc tùy chọn.
+            
+            Parameters:
+            - keyword: Từ khóa tìm kiếm - optional
+            - status: Trạng thái (PENDING, IN_PROGRESS, COMPLETED, CANCELLED) - optional
+            - vehicleId: ID xe - optional (format: UUID)
+            - fromDate: Lọc từ ngày (format: yyyy-MM-dd) - optional
+            - toDate: Lọc đến ngày (format: yyyy-MM-dd) - optional
+            - page: Số trang (default: 0)
+            - pageSize: Số lượng mỗi trang (default: 10)
+            
+            Ví dụ:
+            - Lọc theo status: GET /api/maintenance-management/?status=IN_PROGRESS
+            - Lọc theo date range: GET /api/maintenance-management/?fromDate=2024-01-01&toDate=2024-12-31
+            - Lọc theo vehicle: GET /api/maintenance-management/?vehicleId=xxx
+            - Lọc kết hợp: GET /api/maintenance-management/?status=COMPLETED&fromDate=2024-01-01&toDate=2024-12-31
+            """
+    )
     public ResponseEntity<ApiResponse<PageResponse<MaintenanceManagementResponse>>> searchMaintenanceManagement(
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = "10") int pageSize,
-            @Nullable @RequestParam(name = PaginationConstants.KEYWORD_KEY) String keyword
+            @Nullable @RequestParam(name = PaginationConstants.KEYWORD_KEY) String keyword,
+            @Nullable @RequestParam(name = "status") String status,
+            @Nullable @RequestParam(name = "vehicleId") String vehicleId,
+            @Nullable @RequestParam(name = "fromDate") String fromDate,
+            @Nullable @RequestParam(name = "toDate") String toDate
     ) {
         Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<MaintenanceManagementResponse> response = maintenanceManagementService.searchMaintenanceManagement(keyword, pageable);
+        
+        // Nếu có filter thì dùng method có filter
+        boolean hasFilters = status != null || vehicleId != null || fromDate != null || toDate != null;
+        
+        PageResponse<MaintenanceManagementResponse> response;
+        if (hasFilters) {
+            response = maintenanceManagementService.searchMaintenanceManagementWithFilters(keyword, status, vehicleId, fromDate, toDate, pageable);
+        } else {
+            response = maintenanceManagementService.searchMaintenanceManagement(keyword, pageable);
+        }
 
         log.info(MaintenanceManagementConstants.LOG_SUCCESS_SHOWING_MAINTENANCE_MANAGEMENT_LIST_FOR_ADMIN);
         return ResponseEntity.ok(

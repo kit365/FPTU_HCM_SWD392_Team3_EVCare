@@ -14,6 +14,9 @@ public interface VehiclePartService {
     List<String> getAllVehiclePartStatuses();
     List<VehiclePartResponse> getAllVehiclePartsByVehicleTypeId(UUID vehicleTypeId);
     PageResponse<VehiclePartResponse> searchVehiclePart(String search, Pageable pageable);
+    PageResponse<VehiclePartResponse> searchVehiclePartWithFilters(String keyword, String vehicleTypeId, 
+                                                                   String categoryId, String status, 
+                                                                   Boolean minStock, Pageable pageable);
     void subtractQuantity(UUID vehiclePartId, Integer quantity);
     void restoreQuantity(UUID vehiclePartId, Integer quantity);
     boolean addVehiclePart(CreationVehiclePartRequest creationVehiclePartRequest);

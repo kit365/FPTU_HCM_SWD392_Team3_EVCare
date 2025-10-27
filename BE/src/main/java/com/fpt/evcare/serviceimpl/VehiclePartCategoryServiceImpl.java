@@ -5,7 +5,9 @@ import com.fpt.evcare.dto.request.vehicle_part_category.CreationVehiclePartCateg
 import com.fpt.evcare.dto.request.vehicle_part_category.UpdationVehiclePartCategoryRequest;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.VehiclePartCategoryResponse;
+import com.fpt.evcare.dto.response.VehiclePartSimpleResponse;
 import com.fpt.evcare.entity.VehiclePartCategoryEntity;
+import com.fpt.evcare.entity.VehiclePartEntity;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.VehiclePartCategoryException;
 import com.fpt.evcare.mapper.VehiclePartCategoryMapper;
@@ -44,7 +46,19 @@ public class VehiclePartCategoryServiceImpl implements VehiclePartCategoryServic
         }
 
         log.info(VehiclePartCategoryConstants.LOG_INFO_SHOWING_VEHICLE_PART_CATEGORY, id);
-        return vehiclePartCategoryMapper.toResponse(vehiclePartCategoryEntity);
+        
+        VehiclePartCategoryResponse response = vehiclePartCategoryMapper.toResponse(vehiclePartCategoryEntity);
+        
+        // Map vehicle parts nếu có
+        if (vehiclePartCategoryEntity.getVehicleParts() != null) {
+            List<VehiclePartSimpleResponse> vehicleParts = vehiclePartCategoryEntity.getVehicleParts().stream()
+                    .filter(part -> !part.getIsDeleted())
+                    .map(this::mapToSimpleResponse)
+                    .collect(Collectors.toList());
+            response.setVehicleParts(vehicleParts);
+        }
+        
+        return response;
     }
 
     @Override
@@ -58,6 +72,16 @@ public class VehiclePartCategoryServiceImpl implements VehiclePartCategoryServic
             VehiclePartCategoryResponse vehiclePartCategoryResponse = new VehiclePartCategoryResponse();
             vehiclePartCategoryResponse.setVehiclePartCategoryId(vehiclePartCategoryEntity.getVehiclePartCategoryId());
             vehiclePartCategoryResponse.setPartCategoryName(vehiclePartCategoryEntity.getPartCategoryName());
+            vehiclePartCategoryResponse.setDescription(vehiclePartCategoryEntity.getDescription());
+            
+            // Map vehicle parts nếu có
+            if (vehiclePartCategoryEntity.getVehicleParts() != null) {
+                List<VehiclePartSimpleResponse> vehicleParts = vehiclePartCategoryEntity.getVehicleParts().stream()
+                        .filter(part -> !part.getIsDeleted())
+                        .map(this::mapToSimpleResponse)
+                        .collect(Collectors.toList());
+                vehiclePartCategoryResponse.setVehicleParts(vehicleParts);
+            }
 
             return vehiclePartCategoryResponse;
         }).collect(Collectors.toList());
@@ -78,7 +102,18 @@ public class VehiclePartCategoryServiceImpl implements VehiclePartCategoryServic
         }
 
         List<VehiclePartCategoryResponse> vehiclePartCategoryResponseList = vehiclePartCategoryEntityPage
-                .map(vehiclePartCategoryMapper :: toResponse)
+                .map(entity -> {
+                    VehiclePartCategoryResponse response = vehiclePartCategoryMapper.toResponse(entity);
+                    // Map vehicle parts nếu có
+                    if (entity.getVehicleParts() != null) {
+                        List<VehiclePartSimpleResponse> vehicleParts = entity.getVehicleParts().stream()
+                                .filter(part -> !part.getIsDeleted())
+                                .map(this::mapToSimpleResponse)
+                                .collect(Collectors.toList());
+                        response.setVehicleParts(vehicleParts);
+                    }
+                    return response;
+                })
                 .getContent();
 
 
@@ -167,5 +202,16 @@ public class VehiclePartCategoryServiceImpl implements VehiclePartCategoryServic
                 log.warn(VehiclePartCategoryConstants.LOG_ERR_DUPLICATED_VEHICLE_PART_CATEGORY, partCategoryName);
                 throw new VehiclePartCategoryException(VehiclePartCategoryConstants.MESSAGE_ERR_DUPLICATED_VEHICLE_PART_CATEGORY);
             }
+    }
+    
+    private VehiclePartSimpleResponse mapToSimpleResponse(VehiclePartEntity vehiclePart) {
+        return VehiclePartSimpleResponse.builder()
+                .vehiclePartId(vehiclePart.getVehiclePartId())
+                .vehiclePartName(vehiclePart.getVehiclePartName())
+                .currentQuantity(vehiclePart.getCurrentQuantity())
+                .minStock(vehiclePart.getMinStock())
+                .unitPrice(vehiclePart.getUnitPrice())
+                .status(vehiclePart.getStatus())
+                .build();
     }
 }

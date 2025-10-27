@@ -74,15 +74,48 @@ public class VehiclePartController {
         );
     }
 
-    @Operation(summary = "Tìm kiếm phụ tùng")
+    @Operation(
+        summary = "Tìm kiếm phụ tùng với bộ lọc", 
+        description = """
+            Tìm kiếm phụ tùng với các bộ lọc tùy chọn. Tất cả parameters đều optional.
+            
+            Parameters:
+            - keyword: Từ khóa tìm kiếm (tên phụ tùng)
+            - vehicleTypeId: ID loại xe (format: UUID)
+            - categoryId: ID danh mục phụ tùng (format: UUID)
+            - status: Trạng thái (AVAILABLE, OUT_OF_STOCK, LOW_STOCK)
+            - minStock: Chỉ lấy phụ tùng sắp hết hàng (currentQuantity <= minStock) - true/false
+            - page: Số trang (default: 0)
+            - pageSize: Số lượng mỗi trang (default: 10)
+            
+            Ví dụ:
+            - Lọc theo category: GET /api/vehicle-part/?categoryId=xxx
+            - Lọc low stock: GET /api/vehicle-part/?minStock=true
+            - Lọc theo status và category: GET /api/vehicle-part/?status=AVAILABLE&categoryId=xxx
+            - Lọc kết hợp: GET /api/vehicle-part/?keyword=battery&vehicleTypeId=xxx&status=LOW_STOCK
+            """
+    )
     @GetMapping(VehiclePartConstants.VEHICLE_PART_LIST)
     public ResponseEntity<ApiResponse<PageResponse<VehiclePartResponse>>> searchVehiclePart(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-            @Nullable @RequestParam(name = "keyword") String keyword) {
+            @Nullable @RequestParam(name = "keyword") String keyword,
+            @Nullable @RequestParam(name = "vehicleTypeId") String vehicleTypeId,
+            @Nullable @RequestParam(name = "categoryId") String categoryId,
+            @Nullable @RequestParam(name = "status") String status,
+            @Nullable @RequestParam(name = "minStock") Boolean minStock) {
 
         Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<VehiclePartResponse> response = vehiclePartService.searchVehiclePart(keyword, pageable);
+        
+        // Nếu có filter thì dùng method có filter
+        boolean hasFilters = vehicleTypeId != null || categoryId != null || status != null || minStock != null;
+        
+        PageResponse<VehiclePartResponse> response;
+        if (hasFilters) {
+            response = vehiclePartService.searchVehiclePartWithFilters(keyword, vehicleTypeId, categoryId, status, minStock, pageable);
+        } else {
+            response = vehiclePartService.searchVehiclePart(keyword, pageable);
+        }
 
         log.info(VehiclePartConstants.LOG_SUCCESS_SHOWING_VEHICLE_PART_LIST);
         return ResponseEntity.ok(ApiResponse.<PageResponse<VehiclePartResponse>>builder()

@@ -62,6 +62,7 @@ public class AppointmentConstants {
     public static final String LOG_ERR_APPOINTMENT_INVALID_TRANSITION_TO_IN_PROGRESS = "Không thể chuyển sang IN_PROGRESS vì trạng thái hiện tại không phải là PENDING.";
     public static final String LOG_ERR_APPOINTMENT_CANNOT_CANCEL_HAS_MAINTENANCE = "Không thể huỷ cuộc hẹn {} vì đã có dữ liệu bảo trì.";
     public static final String LOG_ERR_CANNOT_CHANGE_COMPLETED_STATUS_WHILE_MAINTENANCE_MANAGEMENT_IN_PROGRESS = "Cuộc hẹn chỉ được hoàn thành khi các quản lý bảo dưỡng của cuộc hẹn đó hoàn thành: {}";
+    public static final String LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY = "Customer email is null or empty, cannot send in-progress email";
 
     // Info Logs
     public static final String LOG_INFO_SHOWING_APPOINTMENT = "Đang lấy lịch hẹn với id: {}";
@@ -75,6 +76,18 @@ public class AppointmentConstants {
     public static final String LOG_INFO_SHOWING_SERVICE_MODE_LIST = "Đang lấy danh sách chế độ dịch vụ cuộc hen: {}";
     public static final String LOG_INFO_APPOINTMENT_STATUS_UPDATE = "Đang cập nhật trạng thái Appointment {} từ {} → {}";
     public static final String LOG_INFO_UPDATING_APPOINTMENT_BY_CUSTOMER = "Đang cập nhật thông tin khách hàng trong cuộc hẹn, id cuộc hẹn: {}";
+    public static final String LOG_INFO_SENT_IN_PROGRESS_EMAIL = "Sent in-progress email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_IN_PROGRESS_EMAIL = "Failed to send in-progress email: {}";
+    
+    // Email Content
+    public static final String EMAIL_SUBJECT_IN_PROGRESS = "Thông báo bắt đầu dịch vụ bảo dưỡng xe điện";
+    public static final String EMAIL_BODY_IN_PROGRESS_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_IN_PROGRESS_CONTENT = "Chúng tôi xin thông báo rằng dịch vụ bảo dưỡng xe điện của bạn đã bắt đầu được thực hiện.\n\n";
+    public static final String EMAIL_BODY_IN_PROGRESS_APPOINTMENT_INFO = "Thông tin cuộc hẹn:\n";
+    public static final String EMAIL_BODY_IN_PROGRESS_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_IN_PROGRESS_VEHICLE = "- Biển số xe: %s\n";
+    public static final String EMAIL_BODY_IN_PROGRESS_TIME = "- Thời gian dự kiến: %s\n\n";
+    public static final String EMAIL_BODY_IN_PROGRESS_FOOTER = "Chúng tôi sẽ cập nhật tiến độ dịch vụ cho bạn.\n\nTrân trọng,\nEV Care Team";
 
 
     // Success Logs

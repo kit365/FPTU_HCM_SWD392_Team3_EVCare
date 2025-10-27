@@ -173,6 +173,7 @@ public class MaintenanceRecordServiceImpl implements MaintenanceRecordService {
             throw new ResourceNotFoundException(MaintenanceRecordConstants.MESSAGE_ERR_VEHICLE_PART_NOT_FOUND);
         }
 
+
         Integer quantityUsed = creationMaintenanceRecordRequest.getQuantityUsed();
         if (vehiclePart.getCurrentQuantity() < quantityUsed) {
             log.warn(VehiclePartConstants.LOG_ERR_INSUFFICIENT_VEHICLE_PART_STOCK + vehiclePart.getVehiclePartName());

@@ -95,4 +95,7 @@ public class AppointmentEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
     List<MaintenanceManagementEntity> maintenanceManagementEntities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
+    List<com.fpt.evcare.entity.InvoiceEntity> invoices = new ArrayList<>();
 }
