@@ -1,21 +1,14 @@
 import React, { useState } from 'react'
-import { Table, Popconfirm } from 'antd';
+import { Table, Popconfirm, Tag } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import CarUpdate from './CarUpdate.tsx';
-import type { CarProfile } from '../../../types/carModel.ts';
-import CarDetail from './CarDetail.tsx';
+import { DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import AppointmentDetail from './AppointmentDetail.tsx';
+import type { UserAppointment } from '../../../types/booking.types';
 
 //định nghĩa prop
-type Vehicle = {
-    id: number;
-    carName: string;
-    licensePlate: string;
-    carType: string;
-};
-
 type CarTableProps = {
-    vehicles: Vehicle[];
+    appointments: UserAppointment[];
+    loading: boolean;
     total: number;
     current: number;
     setCurrent: React.Dispatch<React.SetStateAction<number>>;
@@ -24,7 +17,7 @@ type CarTableProps = {
 };
 
 
-const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurrent, pageSize, setPageSize }) => {
+const CarTable: React.FC<CarTableProps> = ({ appointments, loading, total, current, setCurrent, pageSize, setPageSize }) => {
 
     const onChange = (pagination: any, filters: any, sorter: any, extra: any) => {
         console.log("check onChange:", pagination, filters, sorter, extra)
@@ -45,13 +38,47 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
         console.log({ pagination, filters, sorter, extra })
     };
 
-    const [dataUpdate, setDataUpdate] = useState<CarProfile | null>(null);
-    const [dataDetail, setDataDetail] = useState<CarProfile | null>(null);
-    const [isOpenUpdate, setIsOpenUpdate] = useState(false);
+    const [dataDetail, setDataDetail] = useState<UserAppointment | null>(null);
     const [isOpenDetail, setIsOpenDetail] = useState(false);
 
 
-    const columns: TableColumnsType<Vehicle> = [
+    // Function to get status color
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return 'orange';
+            case 'CONFIRMED':
+                return 'blue';
+            case 'IN_PROGRESS':
+                return 'purple';
+            case 'COMPLETED':
+                return 'green';
+            case 'CANCELLED':
+                return 'red';
+            default:
+                return 'default';
+        }
+    };
+
+    // Function to get status text in Vietnamese
+    const getStatusText = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return 'Chờ xác nhận';
+            case 'CONFIRMED':
+                return 'Đã xác nhận';
+            case 'IN_PROGRESS':
+                return 'Đang thực hiện';
+            case 'COMPLETED':
+                return 'Hoàn thành';
+            case 'CANCELLED':
+                return 'Đã hủy';
+            default:
+                return status;
+        }
+    };
+
+    const columns: TableColumnsType<UserAppointment> = [
         {
             title: 'STT',
             align: 'center',
@@ -64,11 +91,10 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
         },
         {
             title: 'Tên xe',
-            dataIndex: 'carName',
-            sorter: (a, b) => a.carName.localeCompare(b.carName, 'vi', { sensitivity: 'base' }),
+            dataIndex: 'vehicleTypeResponse',
+            sorter: (a, b) => a.vehicleTypeResponse.vehicleTypeName.localeCompare(b.vehicleTypeResponse.vehicleTypeName, 'vi', { sensitivity: 'base' }),
             sortDirections: ['ascend', 'descend'],
-
-            render: (_: any, record: any) => {
+            render: (_: any, record: UserAppointment) => {
                 return (
                     <a
                         href='#'
@@ -76,42 +102,55 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
                             setDataDetail(record);
                             setIsOpenDetail(true);
                         }}
-                    >{record.carName}</a>
+                    >{record.vehicleTypeResponse.vehicleTypeName}</a>
                 )
             }
         },
-
         {
-            title: 'Biển số',
-            dataIndex: 'licensePlate',
+            title: 'Biển số xe',
+            dataIndex: 'vehicleNumberPlate',
         },
         {
-            title: 'Loại xe',
-            dataIndex: 'carType',
+            title: 'Tình trạng',
+            dataIndex: 'status',
+            render: (status: string) => (
+                <Tag color={getStatusColor(status)}>
+                    {getStatusText(status)}
+                </Tag>
+            ),
         },
         {
             title: 'Hành Động',
             width: 120,
             key: 'action',
             align: 'center',
-            render: (_: any, record: any) => (
+            render: (_: any, record: UserAppointment) => (
                 <div style={{ display: "flex", gap: "20px", justifyContent: "center", alignItems: "center" }}>
-                    <EditOutlined
+                    <EyeOutlined
+                        onClick={() => {
+                            setDataDetail(record);
+                            setIsOpenDetail(true);
+                        }}
+                        style={{ cursor: "pointer", color: "blue" }} 
+                        title="Xem chi tiết"
+                    />
+                    {/* <EditOutlined
                         onClick={() => {
                             setDataUpdate(record)
                             setIsOpenUpdate(true)
                         }}
-                        style={{ cursor: "pointer", color: "orange" }} />
+                        style={{ cursor: "pointer", color: "orange" }} 
+                        title="Chỉnh sửa"
+                    /> */}
                     <Popconfirm
-                        title="Xóa hồ sơ xe"
-                        description="Bạn chắc chắn xóa hồ sơ xe này ?"
-                        // onConfirm={() => handleDeleteCar(record.carId)}
+                        title="Xóa cuộc hẹn"
+                        description="Bạn chắc chắn xóa cuộc hẹn này ?"
+                        // onConfirm={() => handleDeleteAppointment(record.appointmentId)}
                         okText="Yes"
                         cancelText="No"
                         placement="left"
-
                     >
-                        <DeleteOutlined style={{ cursor: "pointer", color: "red" }} />
+                        <DeleteOutlined style={{ cursor: "pointer", color: "red" }} title="Xóa" />
                     </Popconfirm>
                 </div>
             ),
@@ -122,11 +161,12 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
             <Table
                 className="user-table"
                 columns={columns}
-                dataSource={vehicles}
-                rowKey={"id"}
+                dataSource={appointments}
+                rowKey={"appointmentId"}
                 bordered
                 size="middle"
                 rowClassName="custom-row"
+                loading={loading}
                 pagination={
                     {
                         current: current,
@@ -138,14 +178,14 @@ const CarTable: React.FC<CarTableProps> = ({ vehicles, total, current, setCurren
                 onChange={onChange}
             />
 
-            <CarUpdate
+            {/* <CarUpdate
                 dataUpdate={dataUpdate}
                 setDataUpdate={setDataUpdate}
                 isOpenUpdate={isOpenUpdate}
                 setIsOpenUpdate={setIsOpenUpdate}
-            />
+            /> */}
 
-            <CarDetail
+            <AppointmentDetail
                 dataDetail={dataDetail}
                 setDataDetail={setDataDetail}
                 isOpenDetail={isOpenDetail}

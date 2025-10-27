@@ -1,16 +1,31 @@
 
 
-import React from 'react';
-import { Modal, List, Typography, Card, Empty } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Modal, List, Typography, Card, Empty, Spin } from 'antd';
 import { CarOutlined } from '@ant-design/icons';
-import { mockOldBookingData, type OldBookingData } from './mockOldBookingData';
+import { bookingService } from '../../../service/bookingService';
+import { useAuthContext } from '../../../context/useAuthContext';
+import type { UserAppointment } from '../../../types/booking.types';
 
 const { Title, Text } = Typography;
+
+// Interface cho dữ liệu hồ sơ xe cơ bản
+export interface VehicleProfileData {
+  appointmentId: string;
+  vehicleName: string;
+  licensePlate: string;
+  customerName: string;
+  phone: string;
+  email: string;
+  mileage: string;
+  lastServiceDate: string;
+  serviceType: string;
+}
 
 interface ViewOldDataModalProps {
   open: boolean;
   onCancel: () => void;
-  onSelectVehicle: (bookingData: OldBookingData['bookingHistory']) => void;
+  onSelectVehicle: (vehicleData: VehicleProfileData) => void;
 }
 
 const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
@@ -18,8 +33,52 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
   onCancel,
   onSelectVehicle,
 }) => {
-  const handleVehicleSelect = (vehicle: OldBookingData) => {
-    onSelectVehicle(vehicle.bookingHistory);
+  const { user } = useAuthContext();
+  const [vehicleProfiles, setVehicleProfiles] = useState<VehicleProfileData[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch vehicle profiles from API
+  const fetchVehicleProfiles = useCallback(async () => {
+    if (!user?.userId) return;
+    
+    setLoading(true);
+    try {
+      const response = await bookingService.getUserAppointments(user.userId, {
+        page: 0,
+        pageSize: 100,
+        keyword: undefined
+      });
+      
+      if (response.data.success) {
+        const profiles: VehicleProfileData[] = response.data.data.data.map((appointment: UserAppointment) => ({
+          appointmentId: appointment.appointmentId,
+          vehicleName: appointment.vehicleTypeResponse.vehicleTypeName,
+          licensePlate: appointment.vehicleNumberPlate,
+          customerName: appointment.customerFullName,
+          phone: appointment.customerPhoneNumber,
+          email: appointment.customerEmail,
+          mileage: appointment.vehicleKmDistances,
+          lastServiceDate: appointment.scheduledAt,
+          serviceType: appointment.serviceMode
+        }));
+        setVehicleProfiles(profiles);
+      }
+    } catch (error) {
+      console.error("Error fetching vehicle profiles:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.userId]);
+
+  // Fetch data when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchVehicleProfiles();
+    }
+  }, [open, fetchVehicleProfiles]);
+
+  const handleVehicleSelect = (vehicle: VehicleProfileData) => {
+    onSelectVehicle(vehicle);
     onCancel(); // Đóng modal sau khi chọn
   };
 
@@ -39,9 +98,14 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
       width={600}
       centered
     >
-      {mockOldBookingData.length > 0 ? (
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '16px' }}>Đang tải dữ liệu hồ sơ xe...</div>
+        </div>
+      ) : vehicleProfiles.length > 0 ? (
         <List
-          dataSource={mockOldBookingData}
+          dataSource={vehicleProfiles}
           renderItem={(item) => (
             <List.Item
               style={{
@@ -73,16 +137,16 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
                     </Text>
                     <br />
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      Khách hàng: {item.bookingHistory.customerName}
+                      Khách hàng: {item.customerName}
                     </Text>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      Dịch vụ: {item.bookingHistory.serviceType}
+                      Dịch vụ: {item.serviceType === 'STATIONARY' ? 'Tại trạm' : 'Di động'}
                     </Text>
                     <br />
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      Ngày: {new Date(item.bookingHistory.dateTime).toLocaleDateString('vi-VN')}
+                      Ngày: {new Date(item.lastServiceDate).toLocaleDateString('vi-VN')}
                     </Text>
                     <br />
                     <Text type="secondary" style={{ fontSize: '11px', color: '#999' }}>
@@ -96,7 +160,7 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
         />
       ) : (
         <Empty
-          description="Không có dữ liệu lịch sử"
+          description="Không có dữ liệu hồ sơ xe"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       )}
