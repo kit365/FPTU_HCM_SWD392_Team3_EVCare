@@ -60,4 +60,35 @@ public interface MaintenanceManagementRepository extends JpaRepository<Maintenan
 """)
     boolean existsByAppointmentId(@Param("appointmentId") UUID appointmentId);
 
+    @Query("""
+    SELECT CASE WHEN COUNT(mm) > 0 THEN TRUE ELSE FALSE END
+    FROM MaintenanceManagementEntity mm
+    WHERE mm.appointment.appointmentId = :appointmentId
+      AND mm.status = :status
+      AND mm.isDeleted = false
+""")
+    boolean existsByAppointmentIdAndStatus(@Param("appointmentId") UUID appointmentId, @Param("status") String status);
+
+    @Query(value = """
+        SELECT mm.* 
+        FROM maintenance_managements mm
+        JOIN appointments a ON mm.appointment_id = a.id
+        LEFT JOIN vehicles v ON a.vehicle_id = v.id
+        WHERE mm.is_deleted = FALSE
+          AND a.is_deleted = FALSE
+          AND (:keyword IS NULL OR :keyword = '' OR LOWER(mm.search) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:status IS NULL OR :status = '' OR UPPER(mm.status) = UPPER(:status))
+          AND (:vehicleId IS NULL OR :vehicleId = '' OR v.id = CAST(:vehicleId AS UUID))
+          AND (:fromDate IS NULL OR mm.created_at >= CAST(:fromDate AS TIMESTAMP))
+          AND (:toDate IS NULL OR mm.created_at <= CAST(:toDate AS TIMESTAMP))
+        ORDER BY mm.created_at DESC
+        """, nativeQuery = true)
+    Page<MaintenanceManagementEntity> findAllMaintenanceManagementsWithFilters(
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("vehicleId") String vehicleId,
+            @Param("fromDate") String fromDate,
+            @Param("toDate") String toDate,
+            Pageable pageable);
+
 }

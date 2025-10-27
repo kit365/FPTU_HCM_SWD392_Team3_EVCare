@@ -8,6 +8,7 @@ import com.fpt.evcare.dto.response.AppointmentResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +22,8 @@ public interface AppointmentService {
     String getInProgressStatus();
     PageResponse<AppointmentResponse> getAppointmentsByUserId(UUID userId, String keyword, Pageable pageable);
     PageResponse<AppointmentResponse> searchAppointment(String keyword, Pageable pageable);
+    PageResponse<AppointmentResponse> searchAppointmentWithFilters(String keyword, String status, String serviceMode, 
+                                                                    String fromDate, String toDate, Pageable pageable);
 
     boolean addAppointment(CreationAppointmentRequest creationAppointmentRequest);
     boolean updateAppointmentForCustomer(UUID id, UpdationCustomerAppointmentRequest updationCustomerAppointmentRequest);

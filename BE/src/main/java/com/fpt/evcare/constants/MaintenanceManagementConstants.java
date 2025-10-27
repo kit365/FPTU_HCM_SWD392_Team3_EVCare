@@ -48,6 +48,9 @@ public class MaintenanceManagementConstants {
     public static final String LOG_ERR_CANCEL_INITIALIZING_MAINTENANCE_MANAGEMENT_FOR_THIS_SERVICE_BECAUSE_OF_PART_NOT_ENOUGH = "Bỏ qua việc tạo MaintenanceManagement cho dịch vụ cha [{}] vì kho không đủ phụ tùng.";
     public static final String LOG_ERR_NOT_ALL_RECORDS_APPROVED_BY_USER = "Không thể chuyển trạng thái sang COMPLETED vì cần tất cả phiếu bảo dưỡng phải được đồng ý bời khách hàng: {}";
     public static final String LOG_ERR_INVALID_STATUS_TRANSITION = "Cấm chuyển trạng thái không hợp lệ: từ %s sang %s";
+    public static final String LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY = "Customer email is null or empty, cannot send completion email";
+    public static final String LOG_ERR_FAILED_SEND_COMPLETION_EMAIL = "Failed to send completion email: {}";
+    public static final String LOG_INFO_INVOICE_ALREADY_EXISTS = "Invoice already exists for appointment: {}";
 
     // ============================
     // ✅ Success logs
@@ -59,6 +62,21 @@ public class MaintenanceManagementConstants {
     public static final String LOG_SUCCESS_UPDATING_MAINTENANCE_MANAGEMENT_NOTES = "Cập nhật ghi chú quản lý bảo dưỡng thành công: {}";
     public static final String LOG_SUCCESS_UPDATING_MAINTENANCE_MANAGEMENT_STATUS = "Cập nhật trạng thái quản lý bảo dưỡng thành công: {}";
     public static final String LOG_SUCCESS_CREATION_MAINTENANCE_MANAGEMENT_BY_APPOINTMENT = "Đã tạo MaintenanceManagement cho dịch vụ cha [{}] thuộc cuộc hẹn [{}]";
+    public static final String LOG_INFO_AUTO_CREATED_INVOICE_FOR_APPOINTMENT = "Auto-created invoice for appointment: {}";
+    public static final String LOG_INFO_SENT_COMPLETION_EMAIL = "Sent completion email to customer: {}";
+
+    // ============================
+    // 📧 Email Content
+    // ============================
+    public static final String EMAIL_SUBJECT_COMPLETION = "Thông báo hoàn thành dịch vụ bảo dưỡng xe điện";
+    public static final String EMAIL_BODY_COMPLETION_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_COMPLETION_CONTENT = "Chúng tôi xin thông báo rằng dịch vụ bảo dưỡng xe điện của bạn đã hoàn thành thành công.\n\n";
+    public static final String EMAIL_BODY_COMPLETION_APPOINTMENT_INFO = "Thông tin cuộc hẹn:\n";
+    public static final String EMAIL_BODY_COMPLETION_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_COMPLETION_VEHICLE = "- Biển số xe: %s\n";
+    public static final String EMAIL_BODY_COMPLETION_COST = "- Tổng chi phí: %s VNĐ\n\n";
+    public static final String EMAIL_BODY_COMPLETION_PAYMENT = "Vui lòng thanh toán theo hóa đơn đính kèm.\n\n";
+    public static final String EMAIL_BODY_COMPLETION_FOOTER = "Trân trọng,\nEV Care Team";
 
     // ============================
     // 🌐 Endpoint constants

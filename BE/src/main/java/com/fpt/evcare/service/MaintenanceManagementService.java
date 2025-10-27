@@ -13,6 +13,9 @@ public interface MaintenanceManagementService {
     MaintenanceManagementResponse getMaintenanceManagementEntityById(String keyword, Pageable pageable, UUID id);
     List<String> getMaintenanceManagementStatuses();
     PageResponse<MaintenanceManagementResponse> searchMaintenanceManagement(String keyword, Pageable pageable);
+    PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementWithFilters(String keyword, String status, 
+                                                                                     String vehicleId, String fromDate, 
+                                                                                     String toDate, Pageable pageable);
     PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementForTechnicians(UUID technicianId, String keyword, Pageable pageable);
     void addMaintenanceManagement(CreationMaintenanceManagementRequest request);
     boolean updateStartEndStartMaintenanceManagement(UUID id, UpdationMaintenanceManagementRequest updationMaintenanceManagementRequest);

@@ -14,15 +14,23 @@ import com.fpt.evcare.exception.AppointmentValidationException;
 import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.mapper.AppointmentMapper;
+import com.fpt.evcare.mapper.InvoiceMapper;
 import com.fpt.evcare.mapper.MaintenanceManagementMapper;
 import com.fpt.evcare.repository.AppointmentRepository;
+import com.fpt.evcare.repository.InvoiceRepository;
 import com.fpt.evcare.repository.MaintenanceManagementRepository;
+import com.fpt.evcare.repository.PaymentMethodRepository;
 import com.fpt.evcare.repository.ServiceTypeRepository;
 import com.fpt.evcare.repository.UserRepository;
+import com.fpt.evcare.service.EmailService;
 import com.fpt.evcare.service.MaintenanceCostService;
 import com.fpt.evcare.service.MaintenanceManagementService;
 import com.fpt.evcare.service.MaintenanceRecordService;
 import com.fpt.evcare.service.VehiclePartService;
+import com.fpt.evcare.dto.request.EmailRequestDTO;
+import com.fpt.evcare.entity.InvoiceEntity;
+import com.fpt.evcare.entity.PaymentMethodEntity;
+import com.fpt.evcare.enums.InvoiceStatusEnum;
 import com.fpt.evcare.utils.UtilFunction;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -33,6 +41,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +62,10 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
     AppointmentRepository appointmentRepository;
     VehiclePartService vehiclePartService;
     ServiceTypeRepository serviceTypeRepository;
+    EmailService emailService;
+    InvoiceRepository invoiceRepository;
+    InvoiceMapper invoiceMapper;
+    PaymentMethodRepository paymentMethodRepository;
 
     @Override
     public List<String> getMaintenanceManagementStatuses(){
@@ -111,6 +125,56 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
         } else {
             maintenanceManagementEntityPage = maintenanceManagementRepository.findAllBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
         }
+
+        if(maintenanceManagementEntityPage.getTotalElements() < 0){
+            log.info(MaintenanceManagementConstants.LOG_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
+            throw new ResourceNotFoundException(MaintenanceManagementConstants.MESSAGE_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
+        }
+
+        List<MaintenanceManagementResponse> maintenanceManagementResponses = maintenanceManagementEntityPage.map(maintenanceManagement -> {
+            MaintenanceManagementResponse maintenanceManagementResponse =  maintenanceManagementMapper.toResponse(maintenanceManagement);
+
+            AppointmentEntity appointment = maintenanceManagement.getAppointment();
+            if(appointment != null){
+                AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointment);
+
+                VehicleTypeEntity vehicleType = appointment.getVehicleTypeEntity();
+                if(vehicleType != null){
+                    VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+                    vehicleTypeResponse.setVehicleTypeId(vehicleType.getVehicleTypeId());
+                    vehicleTypeResponse.setVehicleTypeName(vehicleType.getVehicleTypeName());
+                    vehicleTypeResponse.setModelYear(vehicleType.getModelYear());
+                    vehicleTypeResponse.setManufacturer(vehicleType.getManufacturer());
+
+                    appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
+                }
+                maintenanceManagementResponse.setAppointmentResponse(appointmentResponse);
+            }
+
+            ServiceTypeEntity serviceTypeEntity = maintenanceManagement.getServiceType();
+            ServiceTypeResponse serviceTypeResponse = new ServiceTypeResponse();
+            serviceTypeResponse.setServiceTypeId(serviceTypeEntity.getServiceTypeId());
+            serviceTypeResponse.setServiceName(serviceTypeEntity.getServiceName());
+            maintenanceManagementResponse.setServiceTypeResponse(serviceTypeResponse);
+
+            return maintenanceManagementResponse;
+        }).getContent();
+
+        log.info(MaintenanceManagementConstants.LOG_SUCCESS_SHOWING_MAINTENANCE_MANAGEMENT_LIST_FOR_ADMIN);
+        return PageResponse.<MaintenanceManagementResponse>builder()
+                .data(maintenanceManagementResponses)
+                .page(maintenanceManagementEntityPage.getNumber())
+                .totalElements(maintenanceManagementEntityPage.getTotalElements())
+                .totalPages(maintenanceManagementEntityPage.getTotalPages())
+                .build();
+    }
+
+    @Override
+    public PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementWithFilters(String keyword, String status, 
+                                                                                              String vehicleId, String fromDate, 
+                                                                                              String toDate, Pageable pageable) {
+        Page<MaintenanceManagementEntity> maintenanceManagementEntityPage = maintenanceManagementRepository.findAllMaintenanceManagementsWithFilters(
+                keyword, status, vehicleId, fromDate, toDate, pageable);
 
         if(maintenanceManagementEntityPage.getTotalElements() < 0){
             log.info(MaintenanceManagementConstants.LOG_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
@@ -377,6 +441,9 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 appointmentRepository.save(appointment);
                 log.info(AppointmentConstants.LOG_INFO_APPOINTMENT_STATUS_AUTO_COMPLETED,
                         appointment.getAppointmentId(), AppointmentStatusEnum.COMPLETED);
+                
+                // Tự động tạo Invoice khi appointment chuyển sang COMPLETED
+                createInvoiceForAppointment(appointment);
             }
             return true;
         }
@@ -477,6 +544,102 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
         } catch (IllegalArgumentException e) {
             log.warn(MaintenanceManagementConstants.LOG_ERR_INVALID_STATUS + status);
             throw new EntityValidationException(MaintenanceManagementConstants.LOG_ERR_INVALID_STATUS);
+        }
+    }
+
+    /**
+     * Tự động tạo Invoice khi appointment chuyển sang COMPLETED
+     */
+    private void createInvoiceForAppointment(AppointmentEntity appointment) {
+        // Kiểm tra xem đã có invoice cho appointment này chưa
+        List<InvoiceEntity> existingInvoices = invoiceRepository.findByAppointmentAndIsDeletedFalse(appointment);
+        if (!existingInvoices.isEmpty()) {
+            log.info(MaintenanceManagementConstants.LOG_INFO_INVOICE_ALREADY_EXISTS, appointment.getAppointmentId());
+            return;
+        }
+
+        // Tính tổng total_cost từ tất cả maintenance managements
+        List<MaintenanceManagementEntity> maintenanceManagements = maintenanceManagementRepository
+                .findByAppointmentIdAndIsDeletedFalse(appointment.getAppointmentId());
+        
+        BigDecimal totalAmount = maintenanceManagements.stream()
+                .filter(mm -> mm.getTotalCost() != null)
+                .map(MaintenanceManagementEntity::getTotalCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Lấy payment method mặc định của customer (nếu có)
+        PaymentMethodEntity defaultPaymentMethod = null;
+        if (appointment.getCustomer() != null) {
+            defaultPaymentMethod = paymentMethodRepository
+                    .findByUserAndIsDefaultTrueAndIsDeletedFalse(appointment.getCustomer())
+                    .orElse(null);
+        }
+
+        // Tạo invoice mới
+        InvoiceEntity invoiceEntity = new InvoiceEntity();
+        invoiceEntity.setAppointment(appointment);
+        invoiceEntity.setPaymentMethod(defaultPaymentMethod);
+        invoiceEntity.setTotalAmount(totalAmount);
+        invoiceEntity.setPaidAmount(BigDecimal.ZERO);
+        invoiceEntity.setStatus(InvoiceStatusEnum.PENDING);
+        invoiceEntity.setInvoiceDate(LocalDateTime.now());
+        
+        // Set due_date = 7 ngày sau invoice_date
+        invoiceEntity.setDueDate(LocalDateTime.now().plusDays(7));
+        
+        // Tạo search field
+        String search = UtilFunction.concatenateSearchField(
+                appointment.getCustomerEmail(),
+                appointment.getCustomerFullName(),
+                "invoice"
+        );
+        invoiceEntity.setSearch(search);
+
+        invoiceRepository.save(invoiceEntity);
+        log.info(MaintenanceManagementConstants.LOG_INFO_AUTO_CREATED_INVOICE_FOR_APPOINTMENT, appointment.getAppointmentId());
+
+        // Gửi email thông báo hoàn thành và hóa đơn cho khách hàng
+        sendCompletionEmail(appointment, totalAmount);
+    }
+
+    /**
+     * Gửi email thông báo appointment hoàn thành và gửi hóa đơn
+     */
+    private void sendCompletionEmail(AppointmentEntity appointment, BigDecimal totalAmount) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(MaintenanceManagementConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = MaintenanceManagementConstants.EMAIL_SUBJECT_COMPLETION;
+            String emailBody = String.format(
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_GREETING +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_CONTENT +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_APPOINTMENT_INFO +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_APPOINTMENT_ID +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_VEHICLE +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_COST +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_PAYMENT +
+                MaintenanceManagementConstants.EMAIL_BODY_COMPLETION_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate(),
+                totalAmount.toString()
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(MaintenanceManagementConstants.LOG_INFO_SENT_COMPLETION_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(MaintenanceManagementConstants.LOG_ERR_FAILED_SEND_COMPLETION_EMAIL, e.getMessage());
         }
     }
 }

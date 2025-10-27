@@ -6,6 +6,7 @@ import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.TechnicianResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.UserService;
 import jakarta.validation.Valid;
@@ -118,6 +119,19 @@ public class UserController {
                         .success(true)
                         .message(UserConstants.MESSAGE_SUCCESS_SHOWING_USER_PROFILE)
                         .data(userResponse)
+                        .build()
+                );
+    }
+
+    @GetMapping(UserConstants.TECHNICIANS)
+    public ResponseEntity<ApiResponse<java.util.List<TechnicianResponse>>> getTechnicians() {
+        java.util.List<TechnicianResponse> technicians = userService.getTechnicians();
+        
+        return ResponseEntity
+                .ok(ApiResponse.<java.util.List<TechnicianResponse>>builder()
+                        .success(true)
+                        .message("Lấy danh sách kỹ thuật viên thành công")
+                        .data(technicians)
                         .build()
                 );
     }

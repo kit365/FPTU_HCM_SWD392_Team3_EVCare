@@ -174,6 +174,57 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     }
 
     @Override
+    public PageResponse<VehiclePartResponse> searchVehiclePartWithFilters(String keyword, String vehicleTypeId, 
+                                                                          String categoryId, String status, 
+                                                                          Boolean minStock, Pageable pageable) {
+        Page<VehiclePartEntity> vehiclePartEntityPage = vehiclePartRepository.findVehiclePartsWithFilters(
+                keyword, vehicleTypeId, categoryId, status, minStock, pageable);
+
+        if(vehiclePartEntityPage == null || vehiclePartEntityPage.getTotalElements() == 0) {
+            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_LIST_NOT_FOUND + keyword);
+            throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_LIST_NOT_FOUND);
+        }
+
+        List<VehiclePartResponse> vehiclePartEntityList = vehiclePartEntityPage.map(vehiclePartEntity -> {
+            VehiclePartResponse vehiclePartResponse = vehiclePartMapper.toResponse(vehiclePartEntity);
+
+            if(vehiclePartEntity.getVehicleType() != null) {
+                VehicleTypeResponse vehicleTypeResponse = vehicleTypeMapper.toResponse(vehiclePartEntity.getVehicleType());
+                VehicleTypeResponse parsedVehicleTypeResponse = new VehicleTypeResponse();
+
+                parsedVehicleTypeResponse.setVehicleTypeId(vehicleTypeResponse.getVehicleTypeId());
+                parsedVehicleTypeResponse.setVehicleTypeName(vehicleTypeResponse.getVehicleTypeName());
+
+                vehiclePartResponse.setVehicleType(parsedVehicleTypeResponse);
+            } else {
+                vehiclePartResponse.setVehicleType(null);
+            }
+
+            if(vehiclePartEntity.getVehiclePartCategories() != null) {
+                VehiclePartCategoryResponse vehiclePartCategoryResponse = vehiclePartCategoryMapper.toResponse(vehiclePartEntity.getVehiclePartCategories());
+                VehiclePartCategoryResponse parsedVehiclePartCategoryResponse = new VehiclePartCategoryResponse();
+
+                parsedVehiclePartCategoryResponse.setVehiclePartCategoryId(vehiclePartCategoryResponse.getVehiclePartCategoryId());
+                parsedVehiclePartCategoryResponse.setPartCategoryName(vehiclePartCategoryResponse.getPartCategoryName());
+
+                vehiclePartResponse.setVehiclePartCategory(parsedVehiclePartCategoryResponse);
+            } else {
+                vehiclePartResponse.setVehiclePartCategory(null);
+            }
+
+            return vehiclePartResponse;
+        }).getContent();
+
+        log.info(VehiclePartConstants.LOG_INFO_SHOWING_VEHICLE_PART_LIST + keyword);
+        return PageResponse.<VehiclePartResponse>builder()
+                .data(vehiclePartEntityList)
+                .page(vehiclePartEntityPage.getNumber())
+                .totalElements(vehiclePartEntityPage.getTotalElements())
+                .totalPages(vehiclePartEntityPage.getTotalPages())
+                .build();
+    }
+
+    @Override
     @Transactional
     public boolean addVehiclePart(CreationVehiclePartRequest creationVehiclePartRequest) {
         checkDuplicatedPartName(creationVehiclePartRequest.getVehiclePartName());
