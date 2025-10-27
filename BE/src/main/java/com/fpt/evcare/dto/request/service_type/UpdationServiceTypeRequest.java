@@ -22,10 +22,7 @@ public class UpdationServiceTypeRequest {
 
     @Nullable
     String isActive;
-
-    @Nullable
-    Boolean isDeleted;
-
+    
     @Nullable
     String createdBy;
 

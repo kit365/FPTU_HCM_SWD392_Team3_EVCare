@@ -160,47 +160,59 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     }
 
     @Override
-    public PageResponse<ServiceTypeResponse> searchServiceType(String search, UUID vehicleTypeId, Pageable pageable) {
-        // Bước 1: Lấy tất cả bản ghi từ DB (1 query)
+    public PageResponse<ServiceTypeResponse> searchServiceType(String search, UUID vehicleTypeId, Boolean isActive, Pageable pageable) {
+        // Bước 1: Lấy tất cả bản ghi từ DB với filter isActive
         Page<ServiceTypeEntity> entities;
+        log.info("Filtering services - vehicleTypeId: {}, isActive: {}", vehicleTypeId, isActive);
 
         if (search.isEmpty()) {
-            entities = serviceTypeRepository.findByVehicleTypeEntityVehicleTypeIdAndIsDeletedFalse(vehicleTypeId, pageable);
+            entities = serviceTypeRepository.findByVehicleTypeIdAndIsActive(vehicleTypeId, isActive, pageable);
         } else {
-            entities = serviceTypeRepository.findByVehicleTypeEntityVehicleTypeIdAndServiceNameContainingIgnoreCaseAndIsDeletedFalse(vehicleTypeId, search, pageable);
+            entities = serviceTypeRepository.findByVehicleTypeIdAndSearchAndIsActive(vehicleTypeId, search, isActive, pageable);
         }
 
+        // Nếu không có kết quả sau khi filter, trả về empty list (không throw exception)
         if (entities.isEmpty()) {
-            log.warn(ServiceTypeConstants.LOG_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND + vehicleTypeId);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_SERVICE_TYPE_FOR_VEHICLE_TYPE_NOT_FOUND);
+            log.info("No services found for vehicleTypeId: {} with isActive: {}", vehicleTypeId, isActive);
+            return PageResponse.<ServiceTypeResponse>builder()
+                    .data(List.of())
+                    .page(entities.getNumber())
+                    .size(entities.getSize())
+                    .totalElements(0L)
+                    .totalPages(0)
+                    .build();
         }
 
-        // Bước 2: Tạo Map<id, Response> để lưu tất cả node
-        Map<UUID, ServiceTypeResponse> nodeMap = new HashMap<>();
-        for (ServiceTypeEntity entity : entities) {
-            ServiceTypeResponse response = serviceTypeMapper.toResponse(entity);
-
-            //Lấy danh sách vehicle part trong bảng trung gian
-            List<ServiceTypeVehiclePartResponse> serviceTypeVehiclePartResponses = serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(entity.getServiceTypeId());
-            response.setServiceTypeVehiclePartResponses(serviceTypeVehiclePartResponses.isEmpty() ? null : serviceTypeVehiclePartResponses);
-
-            nodeMap.put(response.getServiceTypeId(), response);
-        }
-
-        // Bước 3: Xây cây lồng nhau
+        // Bước 2: Build parent services và load children cho mỗi parent
         List<ServiceTypeResponse> rootNodes = new ArrayList<>();
-        for (ServiceTypeResponse node : nodeMap.values()) {
-            if (node.getParentId() == null) {
-                rootNodes.add(node);
-            } else {
-                ServiceTypeResponse parent = nodeMap.get(node.getParentId());
-                if (parent != null) {
-                    if (parent.getChildren() == null) {
-                        parent.setChildren(new ArrayList<>());
-                    }
-                    parent.getChildren().add(node);
+        for (ServiceTypeEntity parentEntity : entities) {
+            ServiceTypeResponse parentResponse = serviceTypeMapper.toResponse(parentEntity);
+
+            //Lấy danh sách vehicle part trong bảng trung gian cho parent
+            List<ServiceTypeVehiclePartResponse> parentVehicleParts = serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(parentEntity.getServiceTypeId());
+            parentResponse.setServiceTypeVehiclePartResponses(parentVehicleParts.isEmpty() ? null : parentVehicleParts);
+
+            // Load children cho parent này
+            List<ServiceTypeEntity> childrenEntities = serviceTypeRepository.findByParentServiceTypeIdAndIsDeletedFalse(parentEntity.getServiceTypeId());
+            List<ServiceTypeResponse> childrenResponses = new ArrayList<>();
+            
+            for (ServiceTypeEntity childEntity : childrenEntities) {
+                // Filter children theo isActive nếu cần
+                if (isActive != null && !childEntity.getIsActive().equals(isActive)) {
+                    continue;
                 }
+                
+                ServiceTypeResponse childResponse = serviceTypeMapper.toResponse(childEntity);
+                
+                //Lấy vehicle parts cho child
+                List<ServiceTypeVehiclePartResponse> childVehicleParts = serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(childEntity.getServiceTypeId());
+                childResponse.setServiceTypeVehiclePartResponses(childVehicleParts.isEmpty() ? null : childVehicleParts);
+                
+                childrenResponses.add(childResponse);
             }
+            
+            parentResponse.setChildren(childrenResponses.isEmpty() ? null : childrenResponses);
+            rootNodes.add(parentResponse);
         }
 
         log.info(ServiceTypeConstants.LOG_INFO_SHOWING_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE + vehicleTypeId);
@@ -213,22 +225,23 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
                 .build();
     }
 
+
     @Override
     @Transactional
     public boolean createServiceType(CreationServiceTypeRequest creationServiceTypeRequest) {
         checkDuplicateCreationServiceName(creationServiceTypeRequest.getServiceName(), creationServiceTypeRequest.getVehicleTypeId());
         ServiceTypeEntity serviceTypeEntity = serviceTypeMapper.toEntity(creationServiceTypeRequest);
 
-        // Kiểm tra và gán parent (nếu có)
-        if (creationServiceTypeRequest.getParentId() != null) {
-            ServiceTypeEntity parent = validateAndGetParent(creationServiceTypeRequest.getParentId(), serviceTypeEntity.getServiceTypeId());
-            serviceTypeEntity.setParent(parent);
-            serviceTypeEntity.setParentId(parent.getServiceTypeId());
-        }
-
         // Gán vehicle type
         VehicleTypeEntity vehicleType = validateAndGetVehicleType(creationServiceTypeRequest.getVehicleTypeId());
         serviceTypeEntity.setVehicleTypeEntity(vehicleType);
+
+        // Kiểm tra và gán parent (nếu có)
+        if (creationServiceTypeRequest.getParentId() != null) {
+            ServiceTypeEntity parent = validateAndGetParent(creationServiceTypeRequest.getParentId(), serviceTypeEntity.getServiceTypeId(), vehicleType.getVehicleTypeId());
+            serviceTypeEntity.setParent(parent);
+            serviceTypeEntity.setParentId(parent.getServiceTypeId());
+        }
 
         String search = UtilFunction.concatenateSearchField(creationServiceTypeRequest.getServiceName(),
                 vehicleType.getVehicleTypeName(),
@@ -385,22 +398,32 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
         return hasCycle(parent.getParentId(), currentId);
     }
 
-    private ServiceTypeEntity validateAndGetParent(UUID parentId, UUID currentId) {
+    private ServiceTypeEntity validateAndGetParent(UUID parentId, UUID currentId, UUID vehicleTypeId) {
         ServiceTypeEntity parent = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(parentId);
         if(parent == null){
             log.warn(ServiceTypeConstants.LOG_ERR_PARENT_SERVICE_TYPE_NOT_FOUND);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_NOT_FOUND);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_NOT_FOUND);
         }
 
         if(parent.getIsDeleted() != null && parent.getIsDeleted()){
             log.warn(ServiceTypeConstants.LOG_ERR_PARENT_SERVICE_TYPE_IS_DELETED);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_DELETED);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_PARENT_SERVICE_TYPE_DELETED);
         }
 
         if(hasCycle(parentId, currentId)){
             log.warn(ServiceTypeConstants.LOG_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY);
-            throw new ResourceNotFoundException(ServiceTypeConstants.MESSAGE_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY);
+            throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_CYCLE_IN_SERVICE_TYPE_HIERARCHY);
         }
+
+        // 🚗 Kiểm tra loại xe của con và cha phải trùng nhau
+        if (parent.getVehicleTypeEntity() != null && vehicleTypeId != null) {
+            UUID parentVehicleTypeId = parent.getVehicleTypeEntity().getVehicleTypeId();
+            if (!parentVehicleTypeId.equals(vehicleTypeId)) {
+                log.warn(ServiceTypeConstants.LOG_ERR_VEHICLE_TYPE_DOES_NOT_MATCH_BETWEEN_BOTH_SERVICES, vehicleTypeId);
+                throw new EntityValidationException(ServiceTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_DOES_NOT_MATCH_BETWEEN_BOTH_SERVICES);
+            }
+        }
+
         return parent;
     }
 

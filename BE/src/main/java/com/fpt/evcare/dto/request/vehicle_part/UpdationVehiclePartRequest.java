@@ -50,7 +50,6 @@ public class UpdationVehiclePartRequest implements Serializable {
 
     boolean isActive;
 
-    boolean isDeleted;
 
     String createdBy;
 

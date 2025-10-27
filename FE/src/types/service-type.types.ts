@@ -26,7 +26,6 @@ export interface CreationServiceTypeRequest {
 export interface UpdationServiceTypeRequest {
   serviceName: string;
   description?: string;
-  vehicleTypeId?: string;
   isActive?: string;
   isDeleted?: boolean;
   createdBy?: string;

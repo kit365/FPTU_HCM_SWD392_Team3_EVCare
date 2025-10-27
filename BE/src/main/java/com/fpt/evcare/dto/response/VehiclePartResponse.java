@@ -2,10 +2,7 @@ package com.fpt.evcare.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fpt.evcare.enums.VehiclePartStatusEnum;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
@@ -18,6 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Builder
 public class VehiclePartResponse implements Serializable {
 
     UUID vehiclePartId;
@@ -28,9 +26,9 @@ public class VehiclePartResponse implements Serializable {
 
     VehiclePartCategoryResponse vehiclePartCategory;
 
-    int currentQuantity;
+    Integer currentQuantity;
 
-    int minStock;
+    Integer minStock;
 
     BigDecimal unitPrice;
 

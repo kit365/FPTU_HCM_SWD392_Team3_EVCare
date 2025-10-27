@@ -1,75 +1,75 @@
 import { useCallback, useState } from "react";
 import { toast } from "react-toastify";
-import { vehiclePartService } from "../service/serviceTypeVehiclePartService";
+import { serviceTypeVehiclePartService } from "../service/serviceTypeVehiclePartService";
 import type {
-  VehiclePartResponse,
+  ServiceTypeVehiclePartResponse,
+  CreationServiceTypeVehiclePartRequest,
+  UpdationServiceTypeVehiclePartRequest
 } from "../types/service-type-vehicle-part.types";
 
-export const useVehiclePart = () => {
-  const [list, setList] = useState<VehiclePartResponse[]>([]);
-  const [detail, setDetail] = useState<VehiclePartResponse | null>(null);
+export const useServiceTypeVehiclePart = () => {
+  const [detail, setDetail] = useState<ServiceTypeVehiclePartResponse | null>(null);
+  const [list, setList] = useState<ServiceTypeVehiclePartResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-
-  const search = useCallback(async (params: { page: number; pageSize: number; keyword?: string }) => {
-    setLoading(true);
-    try {
-      const data = await vehiclePartService.search(params);
-      setList(data.data);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể tải danh sách phụ tùng!");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const getById = useCallback(async (id: string) => {
     setLoading(true);
     try {
-      const data = await vehiclePartService.getById(id);
+      const data = await serviceTypeVehiclePartService.getById(id);
       setDetail(data);
       return data;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể tải phụ tùng!");
+      toast.error(error?.response?.data?.message || "Không thể tải thông tin phụ tùng dịch vụ!");
       return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const create = useCallback(async (payload: any) => {
+  const getByServiceTypeId = useCallback(async (serviceTypeId: string) => {
     setLoading(true);
     try {
-      const ok = await vehiclePartService.create(payload);
+      const data = await serviceTypeVehiclePartService.getByServiceTypeId(serviceTypeId);
+      setList(data);
+      return data;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Không thể tải danh sách phụ tùng!");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const create = useCallback(async (payload: CreationServiceTypeVehiclePartRequest) => {
+    setLoading(true);
+    try {
+      const ok = await serviceTypeVehiclePartService.create(payload);
       if (ok) {
-        toast.success("Tạo phụ tùng thành công");
+        toast.success("Thêm phụ tùng cho dịch vụ thành công");
         return true;
       }
-      toast.error("Tạo phụ tùng thất bại");
+      toast.error("Thêm phụ tùng cho dịch vụ thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi tạo phụ tùng!");
+      toast.error(error?.response?.data?.message || "Lỗi khi thêm phụ tùng cho dịch vụ!");
       return false;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const update = useCallback(async (id: string, payload: any) => {
+  const update = useCallback(async (id: string, payload: UpdationServiceTypeVehiclePartRequest) => {
     setLoading(true);
     try {
-      const ok = await vehiclePartService.update(id, payload);
+      const ok = await serviceTypeVehiclePartService.update(id, payload);
       if (ok) {
-        toast.success("Cập nhật phụ tùng thành công");
+        toast.success("Cập nhật phụ tùng dịch vụ thành công");
         return true;
       }
-      toast.error("Cập nhật phụ tùng thất bại");
+      toast.error("Cập nhật phụ tùng dịch vụ thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi cập nhật phụ tùng!");
+      toast.error(error?.response?.data?.message || "Lỗi khi cập nhật phụ tùng dịch vụ!");
       return false;
     } finally {
       setLoading(false);
@@ -79,15 +79,15 @@ export const useVehiclePart = () => {
   const remove = useCallback(async (id: string) => {
     setLoading(true);
     try {
-      const ok = await vehiclePartService.remove(id);
+      const ok = await serviceTypeVehiclePartService.remove(id);
       if (ok) {
-        toast.success("Xóa phụ tùng thành công");
+        toast.success("Xóa phụ tùng khỏi dịch vụ thành công");
         return true;
       }
-      toast.error("Xóa phụ tùng thất bại");
+      toast.error("Xóa phụ tùng khỏi dịch vụ thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi xóa phụ tùng!");
+      toast.error(error?.response?.data?.message || "Lỗi khi xóa phụ tùng khỏi dịch vụ!");
       return false;
     } finally {
       setLoading(false);
@@ -97,15 +97,15 @@ export const useVehiclePart = () => {
   const restore = useCallback(async (id: string) => {
     setLoading(true);
     try {
-      const ok = await vehiclePartService.restore(id);
+      const ok = await serviceTypeVehiclePartService.restore(id);
       if (ok) {
-        toast.success("Khôi phục phụ tùng thành công");
+        toast.success("Khôi phục phụ tùng dịch vụ thành công");
         return true;
       }
-      toast.error("Khôi phục phụ tùng thất bại");
+      toast.error("Khôi phục phụ tùng dịch vụ thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi khôi phục phụ tùng!");
+      toast.error(error?.response?.data?.message || "Lỗi khi khôi phục phụ tùng dịch vụ!");
       return false;
     } finally {
       setLoading(false);
@@ -113,18 +113,14 @@ export const useVehiclePart = () => {
   }, []);
 
   return {
-    list,
     detail,
+    list,
     loading,
-    totalPages,
-    totalElements,
-    search,
     getById,
+    getByServiceTypeId,
     create,
     update,
     remove,
     restore,
   };
 };
-
-

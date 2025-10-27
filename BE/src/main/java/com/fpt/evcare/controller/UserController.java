@@ -106,4 +106,19 @@ public class UserController {
                         .build()
                 );
     }
+
+    @GetMapping(UserConstants.USER_PROFILE)
+    public ResponseEntity<ApiResponse<UserResponse>> getUserProfile(
+            @RequestParam(value = "userInformation") String userInformation
+    ) {
+        UserResponse userResponse = userService.getUserByUserInformation(userInformation);
+
+        return ResponseEntity
+                .ok(ApiResponse.<UserResponse>builder()
+                        .success(true)
+                        .message(UserConstants.MESSAGE_SUCCESS_SHOWING_USER_PROFILE)
+                        .data(userResponse)
+                        .build()
+                );
+    }
 }

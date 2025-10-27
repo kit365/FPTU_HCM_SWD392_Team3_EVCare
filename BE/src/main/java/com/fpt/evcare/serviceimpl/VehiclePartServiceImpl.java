@@ -30,6 +30,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -284,6 +285,55 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         log.info(VehiclePartConstants.LOG_INFO_RESTORING_VEHICLE_PART + uuid);
         vehiclePartRepository.save(vehiclePartEntity);
         return true;
+    }
+
+    @Override
+    @Transactional
+    public void subtractQuantity(UUID vehiclePartId, Integer quantityUsed){
+        if(quantityUsed <= 0) {
+            log.warn(VehiclePartConstants.LOG_ERR_NEGATIVE_QUANTITY + quantityUsed);
+            throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_NEGATIVE_QUANTITY);
+        }
+
+        VehiclePartEntity vehiclePart = vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(vehiclePartId);
+        if(vehiclePart == null) {
+            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_NOT_FOUND + vehiclePartId);
+            throw  new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_NOT_FOUND);
+        }
+
+        if (vehiclePart.getCurrentQuantity() < quantityUsed) {
+            log.warn(VehiclePartConstants.LOG_ERR_INSUFFICIENT_VEHICLE_PART_STOCK + quantityUsed);
+            throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_INSUFFICIENT_VEHICLE_PART_STOCK);
+        }
+
+        // Trừ số lượng
+        log.info(VehiclePartConstants.LOG_INFO_SUBTRACTING_QUANTITY, quantityUsed, vehiclePartId);
+        vehiclePart.setCurrentQuantity(vehiclePart.getCurrentQuantity() - quantityUsed);
+        vehiclePartRepository.save(vehiclePart);
+
+        log.info(VehiclePartConstants.LOG_SUCCESS_SUBTRACTING_QUANTITY, quantityUsed, vehiclePart.getCurrentQuantity());
+    }
+
+    @Override
+    @Transactional
+    public void restoreQuantity(UUID vehiclePartId, Integer quantityToRestore) {
+        if(quantityToRestore <= 0) {
+            log.warn(VehiclePartConstants.LOG_ERR_NEGATIVE_QUANTITY + quantityToRestore);
+            throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_NEGATIVE_QUANTITY);
+        }
+
+        VehiclePartEntity vehiclePart = vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(vehiclePartId);
+        if(vehiclePart == null) {
+            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_NOT_FOUND + vehiclePartId);
+            throw  new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_NOT_FOUND);
+        }
+
+        // Hoàn lại số lượng
+        log.info(VehiclePartConstants.LOG_INFO_RESTORING_QUANTITY, quantityToRestore, vehiclePartId);
+        vehiclePart.setCurrentQuantity(vehiclePart.getCurrentQuantity() + quantityToRestore);
+        vehiclePartRepository.save(vehiclePart);
+
+        log.info(VehiclePartConstants.LOG_SUCCESS_RESTORING_QUANTITY, quantityToRestore, vehiclePart.getCurrentQuantity());
     }
 
     private void checkDuplicatedPartName(String name){

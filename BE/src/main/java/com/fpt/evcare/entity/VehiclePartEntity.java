@@ -65,4 +65,7 @@ public class VehiclePartEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "vehiclePart", fetch = FetchType.LAZY)
     List<ServiceTypeVehiclePartEntity> serviceTypeVehiclePartList;
+
+    @Version // 🔒 giúp kiểm soát version để tránh conflict khi update đồng thời
+    Long version;
 }

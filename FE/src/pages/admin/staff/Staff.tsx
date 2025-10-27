@@ -23,6 +23,37 @@ export const StaffPage = () => {
     ]
 
     // Fake data
+    interface StaffProps {
+        userId: string;
+        name: string;
+        email: string;
+        status: string;
+        lastLogin: string;
+    }
+
+    const staffList: StaffProps[] = [
+        {
+            userId: "1",
+            name: "Nguyễn Văn A",
+            email: "nguyenvana@evcare.com",
+            status: "Hoạt động",
+            lastLogin: "2025-10-26 10:30:00",
+        },
+        {
+            userId: "2",
+            name: "Trần Thị B",
+            email: "tranthib@evcare.com",
+            status: "Hoạt động",
+            lastLogin: "2025-10-26 09:15:00",
+        },
+        {
+            userId: "3",
+            name: "Lê Văn C",
+            email: "levanc@evcare.com",
+            status: "Không hoạt động",
+            lastLogin: "2025-10-20 14:20:00",
+        },
+    ];
 
     interface TableColumn {
         title: string;

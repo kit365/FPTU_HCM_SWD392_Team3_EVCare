@@ -149,6 +149,49 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserEntity getUserByUsername(String username) {
+        UserEntity userEntity = userRepository.findByUsernameAndIsDeletedFalse(username);
+        if (userEntity == null) {
+            if (log.isErrorEnabled()) {
+                log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, username);
+            }
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER, username);
+        return userEntity;
+    }
+
+    @Override
+    public UserEntity getUserByPhoneNumber(String phoneNumber) {
+        UserEntity userEntity = userRepository.findByNumberPhoneAndIsDeletedFalse(phoneNumber);
+        if (userEntity == null) {
+            if (log.isErrorEnabled()) {
+                log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, phoneNumber);
+            }
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER, phoneNumber);
+        return userEntity;
+    }
+
+    @Override
+    public UserResponse getUserByUserInformation(String userInformation) {
+
+        UserEntity user = userRepository.findByUsernameOrEmailOrNumberPhoneAndIsDeletedFalse(userInformation, userInformation, userInformation);
+
+        if (user == null) {
+            if (log.isErrorEnabled()) {
+                log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, userInformation);
+            }
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
     @Transactional
     public boolean createUser(CreationUserRequest creationUserRequest) {
         checkExistCreationUserInput(creationUserRequest);

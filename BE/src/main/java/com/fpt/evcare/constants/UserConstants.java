@@ -7,9 +7,11 @@ public class UserConstants {
     public static final String MESSAGE_SUCCESS_CREATING_USER = "Tạo người dùng thành công";
     public static final String MESSAGE_SUCCESS_UPDATING_USER = "Cập nhật người dùng thành công";
     public static final String MESSAGE_SUCCESS_DELETING_USER = "Xóa người dùng thành công";
+    public static final String MESSAGE_SUCCESS_SHOWING_USER_PROFILE = "Lấy thông tin cá nhân người dùng thành công";
 
     //Failed message
     public static final String MESSAGE_ERR_USER_NOT_FOUND = "Không tìm thấy người dùng";
+    public static final String MESSAGE_ERR_USER_ROLE_NOT_MATCH = "Người dùng có vai trò không phù hợp";
     public static final String MESSAGE_ERR_USER_LIST_NOT_FOUND = "Danh sách người dùng trống";
     public static final String MESSAGE_ERR_DUPLICATED_USER_EMAIL = "Email này đã tồn tại";
     public static final String MESSAGE_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại";
@@ -22,6 +24,7 @@ public class UserConstants {
 
     //Error log
     public static final String LOG_ERR_USER_NOT_FOUND = "Người dùng không tồn tại: {}";
+    public static final String LOG_ERR_USER_ROLE_NOT_MATCH = "Người dùng có vai trò không phù hợp: {}";
     public static final String LOG_ERR_USER_LIST_NOT_FOUND = "Danh sách người dùng trống: {}";
     public static final String LOG_ERR_DUPLICATED_USER_EMAIL = "Email này đã tồn tại: {}";
     public static final String LOG_ERR_DUPLICATED_USERNAME = "Username này đã tồn tại: {}";
@@ -49,4 +52,5 @@ public class UserConstants {
     public static final String USER_DELETE = "/{id}";
     public static final String USER_RESTORE = "/restore/{id}";
     public static final String USER_CREATION = "/";
+    public static final String USER_PROFILE = "/profile";
 }

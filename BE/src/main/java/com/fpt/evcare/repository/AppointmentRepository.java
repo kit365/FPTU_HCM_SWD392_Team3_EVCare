@@ -2,12 +2,14 @@ package com.fpt.evcare.repository;
 
 
 import com.fpt.evcare.entity.AppointmentEntity;
+import com.fpt.evcare.entity.MaintenanceManagementEntity;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<AppointmentEntity, UUID> {
@@ -35,5 +37,23 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             @Param("userId") UUID userId,
             @Param("keyword") String keyword,
             Pageable pageable);
+
+    @Query("""
+    SELECT mm
+    FROM MaintenanceManagementEntity mm
+    JOIN mm.appointment a
+    WHERE mm.status IN ('IN_PROGRESS')
+      AND mm.isDeleted = false
+      AND a.isDeleted = false
+      AND a.appointmentId = :appointmentId
+    ORDER BY mm.createdAt DESC
+""")
+    List<MaintenanceManagementEntity> findAllInProgressMaintenanceManagementsByAppointmentId(
+            @Param("appointmentId") UUID appointmentId
+    );
+
+    Page<AppointmentEntity> findAllBySearchContainingIgnoreCaseAndCustomerIsNull(String keyword, Pageable pageable);
+
+    Page<AppointmentEntity> findAllBySearchContainingIgnoreCaseAndCustomerIsNotNull(String keyword, Pageable pageable);
 
 }
