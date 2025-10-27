@@ -10,11 +10,14 @@ export interface RegisterUserRequest {
     username: string;
     password: string;
     email: string;
+    fullName: string;
     numberPhone: string;
 }
 export interface RegisterUserResponse {
     userId: string;
     email: string;
+    fullName: string;
     token: string;
+    refreshToken: string;
 }
 

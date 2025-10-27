@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -25,7 +26,8 @@ public class MaintenanceRecordController {
     MaintenanceRecordService maintenanceRecordService;
 
     @PostMapping(MaintenanceRecordConstants.MAINTENANCE_RECORD_CREATION)
-    @Operation(summary = "Tạo phiếu bảo dưỡng mới", description = "Tạo mới phiếu bảo dưỡng gắn với một Maintenance Management")
+    @Operation(summary = "Tạo phiếu bảo dưỡng mới", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Tạo mới phiếu bảo dưỡng gắn với một Maintenance Management")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<String>> addMaintenanceRecord(@PathVariable("maintenance_management_id") UUID maintenanceManagementId, @RequestBody CreationMaintenanceRecordRequest creationRequest) {
 
         maintenanceRecordService.addMaintenanceRecords(maintenanceManagementId, creationRequest);
@@ -40,7 +42,8 @@ public class MaintenanceRecordController {
     }
 
     @PatchMapping(MaintenanceRecordConstants.MAINTENANCE_RECORD_UPDATE)
-    @Operation(summary = "Cập nhật phiếu bảo dưỡng", description = "Cập nhật thông tin hoặc số lượng phụ tùng sử dụng trong phiếu bảo dưỡng")
+    @Operation(summary = "Cập nhật phiếu bảo dưỡng", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Cập nhật thông tin hoặc số lượng phụ tùng sử dụng trong phiếu bảo dưỡng")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<String>> updateMaintenanceRecord(@PathVariable("id") UUID id, @RequestBody UpdationMaintenanceRecordRequest updateRequest) {
 
         boolean result = maintenanceRecordService.updateMaintenanceRecord(id, updateRequest);
@@ -55,7 +58,8 @@ public class MaintenanceRecordController {
     }
 
     @DeleteMapping(MaintenanceRecordConstants.MAINTENANCE_RECORD_DELETE)
-    @Operation(summary = "Xóa phiếu bảo dưỡng", description = "Xóa một phiếu bảo dưỡng và hoàn lại phụ tùng đã dùng vào kho")
+    @Operation(summary = "Xóa phiếu bảo dưỡng", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Xóa một phiếu bảo dưỡng và hoàn lại phụ tùng đã dùng vào kho")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<String>> deleteMaintenanceRecord(@PathVariable("id") UUID id) {
 
         boolean result = maintenanceRecordService.deleteMaintenanceRecord(id);

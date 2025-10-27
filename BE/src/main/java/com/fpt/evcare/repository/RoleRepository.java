@@ -13,4 +13,5 @@ public interface RoleRepository extends JpaRepository<RoleEntity, UUID> {
     RoleEntity findRoleByRoleId(UUID roleId);
     List<RoleEntity> findAllByIsDeletedFalse();
     RoleEntity findByRoleName(RoleEnum roleEnum);
+    boolean existsByRoleName(RoleEnum roleEnum);
 }

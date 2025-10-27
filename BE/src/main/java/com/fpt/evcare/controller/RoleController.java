@@ -5,11 +5,13 @@ import com.fpt.evcare.constants.RoleConstants;
 import com.fpt.evcare.dto.request.RoleRequest;
 import com.fpt.evcare.dto.response.RoleResponse;
 import com.fpt.evcare.service.RoleService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,8 @@ public class RoleController {
     RoleService roleService;
 
     @PostMapping(RoleConstants.CREATE_ROLE)
+    @Operation(summary = "Tạo role mới", description = "👑 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createRole(@RequestBody RoleRequest roleRequest) {
         roleService.createRole(roleRequest);
         return ResponseEntity
@@ -35,6 +39,8 @@ public class RoleController {
     }
 
     @GetMapping(RoleConstants.GET_ALL_ROLE)
+    @Operation(summary = "Lấy danh sách tất cả roles", description = "👑 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRole() {
         List<RoleResponse> roleResponses = roleService.getAllRoles();
         return ResponseEntity
@@ -47,6 +53,8 @@ public class RoleController {
     }
 
     @GetMapping(RoleConstants.GET_ROLE_BY_ID)
+    @Operation(summary = "Lấy role theo ID", description = "👑 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable UUID roleId) {
         RoleResponse roleResponse = roleService.getRoleByIdResponse(roleId);
         return ResponseEntity
@@ -59,6 +67,8 @@ public class RoleController {
     }
 
     @PutMapping(RoleConstants.UPDATE_ROLE)
+    @Operation(summary = "Cập nhật role", description = "👑 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateRole(@PathVariable UUID roleId, @RequestBody RoleRequest roleRequest) {
         roleService.updateRole(roleId, roleRequest);
         return ResponseEntity
@@ -69,6 +79,8 @@ public class RoleController {
                 );
     }
     @DeleteMapping(RoleConstants.DELETE_ROLE)
+    @Operation(summary = "Xóa role", description = "👑 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID roleId) {
         roleService.deleteRole(roleId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()

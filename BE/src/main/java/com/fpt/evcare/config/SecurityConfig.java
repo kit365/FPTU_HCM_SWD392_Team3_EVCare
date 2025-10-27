@@ -1,15 +1,25 @@
 package com.fpt.evcare.config;
 
 import com.fpt.evcare.constants.AuthConstants;
+import com.fpt.evcare.security.NimbusJwtAuthenticationFilter;
+import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@AllArgsConstructor
 public class SecurityConfig {
+
+    private final NimbusJwtAuthenticationFilter nimbusJwtAuthenticationFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -19,19 +29,65 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable()
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger endpoints - MUST be first
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/configuration/**"
+                        ).permitAll()
+                        // OAuth2 flow endpoints
+                        .requestMatchers(
+                                "/oauth2/**",
+                                "/login/oauth2/**"
+                        ).permitAll()
+                        // Public auth endpoints (không cần đăng nhập)
+                        .requestMatchers(
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/auth/validate",
+                                "/api/v1/auth/validate-google-token",
+                                "/api/v1/auth/redis-tokens/**"
+                        ).permitAll()
+                        // Protected auth endpoints (cần đăng nhập)
+                        .requestMatchers(
+                                "/api/v1/auth/logout",
+                                "/api/v1/auth/user-token"
+                        ).authenticated()
+                        // OAuth2 user info endpoint (cần OAuth2 authentication)
                         .requestMatchers(AuthConstants.GET_USER_INFO).authenticated()
-                        .anyRequest().permitAll()
+                        // All other requests need authentication
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .loginPage(AuthConstants.LOGIN_GOOGLE) // Trang login Google
-                        .defaultSuccessUrl(AuthConstants.GET_USER_INFO, true) // Sau login thì redirect về user info
+                        .loginPage(AuthConstants.LOGIN_GOOGLE)
+                        .defaultSuccessUrl(AuthConstants.GET_USER_INFO, true)
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // Nếu chưa login → chuyển hướng sang Google login
-                            response.sendRedirect(AuthConstants.LOGIN_GOOGLE);
+                            String path = request.getServletPath();
+                            // Don't redirect Swagger/API endpoints to Google login
+                            if (path.startsWith("/api/") || 
+                                path.startsWith("/v3/api-docs") ||
+                                path.startsWith("/api-docs") ||
+                                path.startsWith("/swagger-ui") ||
+                                path.startsWith("/swagger-resources") ||
+                                path.startsWith("/webjars") ||
+                                path.startsWith("/configuration")) {
+                                response.setStatus(401);
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.setCharacterEncoding("UTF-8");
+                                response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Không có quyền truy cập\"}");
+                            } else {
+                                // Only redirect browser requests to Google login
+                                response.sendRedirect(AuthConstants.LOGIN_GOOGLE);
+                            }
                         })
                 )
                 .logout(logout -> logout
@@ -41,6 +97,8 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
                 );
+        http.addFilterBefore(nimbusJwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

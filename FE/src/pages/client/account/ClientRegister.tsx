@@ -39,6 +39,22 @@ const ClientRegister = () => {
               />
               {errors.email && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.email.message}</div>}
             </div>
+
+            {/* Full Name */}
+            <div className="ant-form-item">
+              <label className="ant-form-item-label block mb-1 font-medium">Họ và tên</label>
+              <input
+                type="text"
+                className={`ant-input w-full px-3 py-2 rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
+                placeholder="Nhập họ và tên của bạn"
+                {...register('fullName', {
+                  required: 'Vui lòng nhập họ và tên',
+                  minLength: { value: 2, message: 'Họ và tên phải có ít nhất 2 ký tự' }
+                })}
+              />
+              {errors.fullName && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.fullName.message}</div>}
+            </div>
+
             {/* Password */}
             <div className="ant-form-item">
               <label className="ant-form-item-label block mb-1 font-medium">Mật khẩu</label>

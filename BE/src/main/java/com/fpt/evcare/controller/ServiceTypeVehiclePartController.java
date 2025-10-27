@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +26,9 @@ import java.util.UUID;
 public class ServiceTypeVehiclePartController {
     ServiceTypeVehiclePartService serviceTypeVehiclePartService;
 
-    @Operation(summary = "Lấy thông tin dịch vụ - phụ tùng theo ID")
+    @Operation(summary = "Lấy thông tin dịch vụ - phụ tùng theo ID", description = "🔐 **Roles:** Authenticated (All roles)")
     @GetMapping(ServiceTypeVehiclePartConstants.STVP)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ServiceTypeVehiclePartResponse>> getServiceTypeVehiclePartById(@PathVariable(name = "id") UUID id) {
         ServiceTypeVehiclePartResponse response = serviceTypeVehiclePartService.getServiceTypeVehiclePartById(id);
 
@@ -38,8 +40,9 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
-    @Operation(summary = "Lấy danh sách phụ tùng theo Service Type ID")
+    @Operation(summary = "Lấy danh sách phụ tùng theo Service Type ID", description = "🔐 **Roles:** Authenticated (All roles)")
     @GetMapping("/service-type/{serviceTypeId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<ServiceTypeVehiclePartResponse>>> getVehiclePartsByServiceTypeId(
             @PathVariable(name = "serviceTypeId") UUID serviceTypeId) {
         List<ServiceTypeVehiclePartResponse> responses = serviceTypeVehiclePartService.getVehiclePartResponseByServiceTypeId(serviceTypeId);
@@ -52,8 +55,9 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
-    @Operation(summary = "Tạo thông tin dịch vụ - phụ tùng theo dịch vụ ID")
+    @Operation(summary = "Tạo thông tin dịch vụ - phụ tùng theo dịch vụ ID", description = "👑 **Roles:** ADMIN only")
     @PostMapping(ServiceTypeVehiclePartConstants.STVP_CREATION)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> createServiceTypeVehiclePart(
             @Valid @RequestBody CreationServiceTypeVehiclePartRequest request) {
 
@@ -66,8 +70,9 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
-    @Operation(summary = "Cập nhật dịch vụ - phụ tùng")
+    @Operation(summary = "Cập nhật dịch vụ - phụ tùng", description = "👑 **Roles:** ADMIN only")
     @PatchMapping(ServiceTypeVehiclePartConstants.STVP_UPDATE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> updateServiceTypeVehiclePart(
             @PathVariable UUID id,
             @Valid @RequestBody UpdationServiceTypeVehiclePartRequest request) {
@@ -81,8 +86,9 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
-    @Operation(summary = "Xóa thông tin dịch vụ - phụ tùng theo ID")
+    @Operation(summary = "Xóa thông tin dịch vụ - phụ tùng theo ID", description = "👑 **Roles:** ADMIN only")
     @DeleteMapping(ServiceTypeVehiclePartConstants.STVP_DELETE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteServiceTypeVehiclePart(@PathVariable UUID id) {
         boolean result = serviceTypeVehiclePartService.deleteServiceTypeVehiclePart(id);
 
@@ -93,8 +99,9 @@ public class ServiceTypeVehiclePartController {
                 .build());
     }
 
-    @Operation(summary = "Khôi phục thông tin dịch vụ - phụ tùng theo ID")
+    @Operation(summary = "Khôi phục thông tin dịch vụ - phụ tùng theo ID", description = "👑 **Roles:** ADMIN only")
     @PatchMapping(ServiceTypeVehiclePartConstants.STVP_RESTORE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> restoreServiceTypeVehiclePart(@PathVariable UUID id) {
 
         boolean result = serviceTypeVehiclePartService.restoreServiceTypeVehiclePart(id);
