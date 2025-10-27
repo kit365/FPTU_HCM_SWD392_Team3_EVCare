@@ -25,6 +25,13 @@ import { ServiceTypeEdit } from "../pages/admin/service-type/ServiceTypeEdit";
 import { ServiceTypeDetail } from "../pages/admin/service-type/ServiceTypeDetail";
 import { Profile } from "../pages/admin/profile/Profile";
 import { VehicleService } from "../pages/admin/vehicle/VehicleService";
+import AppointmentManage from "../pages/admin/appointment/AppointmentManage";
+import { VehicleProfileList } from "../pages/admin/vehicle-profile/VehicleProfileList";
+import { VehicleProfileCreate } from "../pages/admin/vehicle-profile/VehicleProfileCreate";
+import { VehicleProfileEdit } from "../pages/admin/vehicle-profile/VehicleProfileEdit";
+import { VehicleProfileDetail } from "../pages/admin/vehicle-profile/VehicleProfileDetail";
+import Shift from "../pages/admin/warranty_and_shift/Shift";
+import Warranty from "../pages/admin/warranty_and_shift/Warranty";
 
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
@@ -36,6 +43,10 @@ export const AdminRoutes: RouteObject[] = [
     { path: "vehicle/edit/:id", element: <VehicleEdit /> },
     { path: "vehicle/view/:id", element: <VehicleDetail /> },
     { path: "vehicle/service/:id", element: <VehicleService /> },
+    { path: "vehicle-profile", element: <VehicleProfileList /> },
+    { path: "vehicle-profile/create", element: <VehicleProfileCreate /> },
+    { path: "vehicle-profile/edit/:id", element: <VehicleProfileEdit /> },
+    { path: "vehicle-profile/view/:id", element: <VehicleProfileDetail /> },
     { path: "car-file-management", element: <CarFileManagement /> },
     { path: "car-file-create", element: <CarFileCreate /> },
     { path: "car-file-edit/:id", element: <CarFileEdit /> },
@@ -53,6 +64,10 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/edit/:id", element: <ServiceTypeEdit /> },
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
+    { path: "appointment-manage", element: <AppointmentManage/> },
+    { path: "shift", element: <Shift/> },
+    { path: "warranty", element: <Warranty/> },
+
 ];
 
 export const AuthAdminRoutes = [

@@ -25,8 +25,8 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: Car,
     },
     {
-        href: `/${pathAdmin}/car-file-management`,
-        label: "Hồ sơ xe",
+        href: `/${pathAdmin}/vehicle-profile`,
+        label: "Hồ sơ xe người dùng",
         icon: UserBadgeCheck,
     },
     {
@@ -46,8 +46,24 @@ export const adminMenuItems: AdminMenuItem[] = [
         ],
     },
     {
-        label: "Loại dịch vụ",
+        href: `/${pathAdmin}/appointment-manage`,
+        label: "Quản lý lịch hẹn",
         icon: DownloadDataWindow,
-        children: []
+    },
+    {
+        label: "Ca làm và bảo hành",
+        icon: Codepen,
+        children: [
+            {
+                href: `/${pathAdmin}/shift`,
+                label: "Ca làm",
+                icon: Menu
+            },
+            {
+                href: `/${pathAdmin}/warranty`,
+                label: "Bảo hành",
+                icon: Erase
+            },
+        ],
     },
 ]

@@ -14,9 +14,10 @@ interface SelectAdminProps {
     disabled?: boolean | null;
     register?: UseFormRegisterReturn;
     error?: string;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
-export const SelectAdmin = ({ name, id, options, placeholder, disabled, register, error }: SelectAdminProps) => {
+export const SelectAdmin = ({ name, id, options, placeholder, disabled, register, error, onChange }: SelectAdminProps) => {
     return (
         <div className="relative">
             <select
@@ -24,6 +25,7 @@ export const SelectAdmin = ({ name, id, options, placeholder, disabled, register
                 name={name}
                 id={id}
                 disabled={disabled || false}
+                onChange={onChange}
                 className={`
                     appearance-none border rounded-[0.64rem] text-admin-secondary font-[400] text-[1.3rem] 
                     py-[0.827rem] pr-[4.56rem] pl-[1.52rem] outline-none focus:outline-none w-full

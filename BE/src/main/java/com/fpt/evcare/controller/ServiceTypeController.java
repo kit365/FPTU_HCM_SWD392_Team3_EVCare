@@ -85,10 +85,11 @@ public class ServiceTypeController {
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_SIZE) int pageSize,
             @RequestParam(name = PaginationConstants.KEYWORD_KEY, defaultValue = "", required = false) String keyword,
+            @RequestParam(name = "isActive", required = false, defaultValue = "true") Boolean isActive,
             @PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, vehicleTypeId, pageable);
+        PageResponse<ServiceTypeResponse> responses = serviceTypeService.searchServiceType(keyword, vehicleTypeId, isActive, pageable);
 
         return ResponseEntity.ok(ApiResponse.<PageResponse<ServiceTypeResponse>>builder()
                 .success(true)
