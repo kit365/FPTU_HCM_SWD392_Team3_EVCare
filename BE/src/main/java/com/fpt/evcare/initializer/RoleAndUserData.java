@@ -1,4 +1,4 @@
-package com.fpt.evcare.Initializer;
+package com.fpt.evcare.initializer;
 
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
@@ -47,8 +47,8 @@ public class RoleAndUserData implements CommandLineRunner {
 
         UserEntity adminUser = createUser(
                 "admin123A",
-                "admin@evcare.com",
-                "Admin@123",
+                "admin@gmail.com",
+                "123456",
                 "Admin EVcare",
                 "Hà Nội, Việt Nam",
                 "0900000000",

@@ -1,11 +1,11 @@
 package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.dto.request.EmailRequestDTO;
+import com.fpt.evcare.exception.BusinessException;
 import com.fpt.evcare.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -20,11 +20,13 @@ import java.io.UnsupportedEncodingException;
 @Service
 public class EmailServiceImpl implements EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
 
-    @Autowired
-    private TemplateEngine templateEngine;
+    public EmailServiceImpl(JavaMailSender mailSender, TemplateEngine templateEngine) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+    }
 
     // Lấy config từ application.yml
     @Value("${spring.mail.username}")
@@ -62,7 +64,8 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(mimeMessage);
             log.info("Gửi email thành công tới {}", emailDetail.getTo());
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+            log.error("Lỗi khi gửi email: Encoding không được hỗ trợ", e);
+            throw new BusinessException("Lỗi khi gửi email: Encoding không được hỗ trợ");
         }
     }
 }
