@@ -8,8 +8,6 @@ import com.fpt.evcare.dto.request.appointment.UpdationAppointmentRequest;
 import com.fpt.evcare.dto.request.appointment.UpdationCustomerAppointmentRequest;
 import com.fpt.evcare.dto.response.AppointmentResponse;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.entity.ServiceTypeEntity;
-import com.fpt.evcare.enums.AppointmentStatusEnum;
 import com.fpt.evcare.service.AppointmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Nullable;
@@ -21,9 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +35,8 @@ public class AppointmentController {
     AppointmentService appointmentService;
 
     @GetMapping(AppointmentConstants.SERVICE_MODE)
-    @Operation(summary = "Lấy danh sách Service Mode", description = "Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
+    @Operation(summary = "Lấy danh sách Service Mode", description = "🔐 **Roles:** Authenticated (All roles) - Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<String>>> getAllServiceModes() {
         List<String> serviceModes = appointmentService.getAllServiceMode();
 
@@ -52,7 +51,8 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.CANCEL_STATUS)
-    @Operation(summary = "Lấy Cancel Appointment Status (dùng cho khách và admin nếu muốn hủy)", description = "Hiển thị giá trị của enum Cancel Appointment Status")
+    @Operation(summary = "Lấy Cancel Appointment Status (dùng cho khách và admin nếu muốn hủy)", description = "🔐 **Roles:** Authenticated (All roles) - Hiển thị giá trị của enum Cancel Appointment Status")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> getCancelStatus() {
         String status = appointmentService.getCancelStatus();
 
@@ -67,7 +67,8 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.IN_PROGRESS_STATUS)
-    @Operation(summary = "Lấy In Progress Appointment Status (dùng cho admin khi chuyển trạng thái)", description = "Hiển thị giá trị của enum In Progress Appointment Status")
+    @Operation(summary = "Lấy In Progress Appointment Status (dùng cho admin khi chuyển trạng thái)", description = "👨‍💼 **Roles:** ADMIN, STAFF - Hiển thị giá trị của enum In Progress Appointment Status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> getInProgressStatus() {
         String status = appointmentService.getInProgressStatus();
 
@@ -82,7 +83,8 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.SEARCH_BY_CUSTOMER)
-    @Operation(summary = "Tra cứu danh sách cuộc hẹn cho khách hàng bằng email hoặc sđt", description = "Tra cứu danh sách cuộc hẹn cho khách hàng")
+    @Operation(summary = "Tra cứu danh sách cuộc hẹn cho khách hàng bằng email hoặc sđt", description = "🔐 **Roles:** Authenticated (All roles) - Tra cứu danh sách cuộc hẹn cho khách hàng")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> getAllAppointmentsByEmailOrPhoneForCustomer(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
@@ -102,7 +104,7 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.SEARCH_BY_GUEST)
-    @Operation(summary = "Tra cứu danh sách cuộc hẹn cho khách vãng lai bằng email hoặc sđt", description = "Tra cứu danh sách cuộc hẹn cho khách vãng lai")
+    @Operation(summary = "Tra cứu danh sách cuộc hẹn cho khách vãng lai bằng email hoặc sđt", description = "🔓 **Public** - Tra cứu danh sách cuộc hẹn cho khách vãng lai")
     public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> getAllAppointmentsByEmailOrPhoneForGuest(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
@@ -122,7 +124,8 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.APPOINTMENT)
-    @Operation(summary = "Lấy thông tin cụ thể 1 cuộc hẹn ", description = "Từ id của cuộc hẹn, show toàn bộ thông tin của cuộc hẹn đó")
+    @Operation(summary = "Lấy thông tin cụ thể 1 cuộc hẹn ", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Từ id của cuộc hẹn, show toàn bộ thông tin của cuộc hẹn đó")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<AppointmentResponse>> getAppointmentById(@PathVariable UUID id) {
         AppointmentResponse response = appointmentService.getAppointmentById(id);
 
@@ -160,6 +163,7 @@ public class AppointmentController {
             - Lọc kết hợp: GET /api/appointment/?keyword=Nguyen&status=IN_PROGRESS&fromDate=2024-01-01
             """
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> searchAppointment(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
@@ -192,7 +196,8 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.APPOINTMENT_BY_USER_ID)
-    @Operation(summary = "Lấy thông tin cuộc hẹn của người dùng ", description = "Show thông tin cụ thể 1 cuộc hẹn của người dùng đó")
+    @Operation(summary = "Lấy thông tin cuộc hẹn của người dùng ", description = "👨‍💼 **Roles:** ADMIN, STAFF - Show thông tin cụ thể 1 cuộc hẹn của người dùng đó")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> getAppointmentByUserId(
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = "10") int pageSize,
@@ -213,7 +218,8 @@ public class AppointmentController {
     }
 
     @PostMapping(AppointmentConstants.APPOINTMENT_CREATION)
-    @Operation(summary = "Tạo 1 cuộc hẹn ", description = "Tạo cuộc hẹn cho người dùng")
+    @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔐 **Roles:** Authenticated (All roles) - Tạo cuộc hẹn cho người dùng")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> createAppointment(@Valid @RequestBody CreationAppointmentRequest creationAppointmentRequest) {
         boolean response = appointmentService.addAppointment(creationAppointmentRequest);
 
@@ -227,7 +233,8 @@ public class AppointmentController {
     }
 
     @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_CUSTOMER)
-    @Operation(summary = "Cập nhật 1 cuộc hẹn cho người dùng ", description = "Câp nhật thông tin cuộc hẹn của người dùng đó")
+    @Operation(summary = "Cập nhật 1 cuộc hẹn cho người dùng ", description = "🔐 **Roles:** Authenticated (All roles) - Câp nhật thông tin cuộc hẹn của người dùng đó")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> updateAppointmentForCustomer(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationCustomerAppointmentRequest updationCustomerAppointmentRequest) {
         boolean response = appointmentService.updateAppointmentForCustomer(id, updationCustomerAppointmentRequest) ;
 
@@ -241,7 +248,8 @@ public class AppointmentController {
     }
 
     @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_ADMIN)
-    @Operation(summary = "Cập nhật 1 cuộc hẹn bên phía admin ", description = "Câp nhật thông tin cuộc hẹn bên phía admin")
+    @Operation(summary = "Cập nhật 1 cuộc hẹn bên phía admin ", description = "👨‍💼 **Roles:** ADMIN, STAFF - Câp nhật thông tin cuộc hẹn bên phía admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> updateAppointmentForStaff(@PathVariable(name = "id") UUID id, @Valid @RequestBody UpdationAppointmentRequest updationAppointmentRequest) {
         boolean response = appointmentService.updateAppointmentForStaff(id, updationAppointmentRequest);
 
@@ -255,7 +263,8 @@ public class AppointmentController {
     }
 
     @PatchMapping(AppointmentConstants.APPOINTMENT_UPDATE_STATUS)
-    @Operation(summary = "Cập nhật 1 trạng thái cuộc hẹn ", description = "Câp nhật trạng thái cuộc hẹn (chỉ admin được phép xài)")
+    @Operation(summary = "Cập nhật 1 trạng thái cuộc hẹn ", description = "👨‍💼 **Roles:** ADMIN, STAFF - Câp nhật trạng thái cuộc hẹn (chỉ admin được phép xài)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> updateAppointmentStatus(@PathVariable(name = "id") UUID id, @RequestBody String status) {
         appointmentService.updateAppointmentStatus(id, status);
 

@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -28,8 +29,9 @@ import java.util.UUID;
 public class PaymentMethodController {
     PaymentMethodService paymentMethodService;
 
-    @Operation(summary = "Lấy danh sách phương thức thanh toán của user")
+    @Operation(summary = "Lấy danh sách phương thức thanh toán của user", description = "🔐 **Roles:** Authenticated (All roles) - User có thể xem payment methods của chính họ, ADMIN/STAFF có thể xem của bất kỳ user nào")
     @GetMapping("/user/{userId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<PaymentMethodResponse>>> getUserPaymentMethods(
             @PathVariable("userId") UUID userId,
             @RequestParam(value = "page", defaultValue = "0") int page,
@@ -45,8 +47,9 @@ public class PaymentMethodController {
                 );
     }
 
-    @Operation(summary = "Lấy thông tin phương thức thanh toán theo ID")
+    @Operation(summary = "Lấy thông tin phương thức thanh toán theo ID", description = "🔐 **Roles:** Authenticated (All roles) - User có thể xem payment method của chính họ")
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PaymentMethodResponse>> getPaymentMethodById(@PathVariable("id") UUID id) {
         PaymentMethodResponse response = paymentMethodService.getPaymentMethodById(id);
         return ResponseEntity
@@ -58,8 +61,9 @@ public class PaymentMethodController {
                 );
     }
 
-    @Operation(summary = "Tạo mới phương thức thanh toán")
+    @Operation(summary = "Tạo mới phương thức thanh toán", description = "🔐 **Roles:** Authenticated (All roles) - User tạo payment method cho chính họ")
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PaymentMethodResponse>> createPaymentMethod(
             @Valid @RequestBody CreationPaymentMethodRequest request) {
         PaymentMethodResponse response = paymentMethodService.addPaymentMethod(request);
@@ -72,8 +76,9 @@ public class PaymentMethodController {
                 );
     }
 
-    @Operation(summary = "Cập nhật phương thức thanh toán")
+    @Operation(summary = "Cập nhật phương thức thanh toán", description = "🔐 **Roles:** Authenticated (All roles) - User cập nhật payment method của chính họ")
     @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> updatePaymentMethod(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UpdationPaymentMethodRequest request) {
@@ -87,8 +92,9 @@ public class PaymentMethodController {
                 );
     }
 
-    @Operation(summary = "Xóa phương thức thanh toán")
+    @Operation(summary = "Xóa phương thức thanh toán", description = "🔐 **Roles:** Authenticated (All roles) - User xóa payment method của chính họ")
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deletePaymentMethod(@PathVariable("id") UUID id) {
         paymentMethodService.deletePaymentMethod(id);
         return ResponseEntity

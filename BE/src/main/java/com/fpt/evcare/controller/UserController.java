@@ -9,6 +9,7 @@ import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.TechnicianResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -29,6 +31,8 @@ public class UserController {
     UserService userService;
 
     @GetMapping(UserConstants.USER)
+    @Operation(summary = "Lấy thông tin user theo ID", description = "🔐 **Roles:** ADMIN, STAFF")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
         UserResponse userResponse = userService.getUserById(id);
 
@@ -42,6 +46,8 @@ public class UserController {
     }
 
     @GetMapping(UserConstants.USER_LIST)
+    @Operation(summary = "Lấy danh sách tất cả users", description = "🔐 **Roles:** ADMIN, STAFF")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAllUsers(
             @RequestParam(name = PaginationConstants.PAGE_KEY,
                     defaultValue = UserConstants.DEFAULT_PAGE_NUMBER) int page,
@@ -61,6 +67,8 @@ public class UserController {
     }
 
     @PostMapping(UserConstants.USER_CREATION)
+    @Operation(summary = "Tạo user mới", description = "🔐 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> createUser(@Valid @RequestBody CreationUserRequest creationUserRequest) {
        boolean result = userService.createUser(creationUserRequest);
 
@@ -73,6 +81,8 @@ public class UserController {
     }
 
     @PatchMapping(UserConstants.USER_UPDATE)
+    @Operation(summary = "Cập nhật thông tin user", description = "🔐 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> updateUser(@PathVariable UUID id,@Valid @RequestBody UpdationUserRequest updationUserRequest) {
         boolean result = userService.updateUser(updationUserRequest, id);
 
@@ -85,6 +95,8 @@ public class UserController {
     }
 
     @DeleteMapping(UserConstants.USER_DELETE)
+    @Operation(summary = "Xóa user", description = "🔐 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable UUID id) {
         boolean result = userService.deleteUser(id);
 
@@ -97,6 +109,8 @@ public class UserController {
     }
 
     @PatchMapping(UserConstants.USER_RESTORE)
+    @Operation(summary = "Khôi phục user đã xóa", description = "🔐 **Roles:** ADMIN only")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> restoreUser(@PathVariable UUID id) {
         boolean result = userService.restoreUser(id);
 
@@ -109,6 +123,8 @@ public class UserController {
     }
 
     @GetMapping(UserConstants.USER_PROFILE)
+    @Operation(summary = "Lấy profile của user hiện tại", description = "🔐 **Roles:** Authenticated (All roles)")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<UserResponse>> getUserProfile(
             @RequestParam(value = "userInformation") String userInformation
     ) {

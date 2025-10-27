@@ -123,7 +123,7 @@ class AuthServiceTest {
         when(customJWTDecode.getMacSigner()).thenReturn(macSigner);
 
         // Generate token với key mock
-        String tokenValue = authService.generateAccessToken(userId);
+        String tokenValue = tokenService.generateAccessToken(userId);
 
         TokenRequest tokenRequest = new TokenRequest();
         tokenRequest.setToken(tokenValue);
@@ -132,7 +132,7 @@ class AuthServiceTest {
         when(redisService.getValue(TokenConstants.ACCESS_PREFIX + userId)).thenReturn(tokenValue);
 
         // Validate token
-        TokenResponse response = authService.validateToken(tokenRequest);
+        TokenResponse response = tokenService.validateToken(tokenRequest);
 
         assertNotNull(response);
         assertTrue(response.getAuthorized());
@@ -149,7 +149,7 @@ class AuthServiceTest {
         tokenRequest.setToken("invalid.token.value");
 
         assertThrows(IllegalArgumentException.class,  // <— dùng custom exception
-                () -> authService.validateToken(tokenRequest));
+                () -> tokenService.validateToken(tokenRequest));
 
     }
 

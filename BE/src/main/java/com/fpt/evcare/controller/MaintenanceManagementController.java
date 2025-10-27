@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,7 +30,8 @@ public class MaintenanceManagementController {
     MaintenanceManagementService maintenanceManagementService;
 
     @GetMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT)
-    @Operation(summary = "Lấy Maintenance Management ID", description = "Lấy danh sách Maintenance Management của 1 cuộc hẹn cụ thể")
+    @Operation(summary = "Lấy Maintenance Management ID", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Lấy danh sách Maintenance Management của 1 cuộc hẹn cụ thể")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<MaintenanceManagementResponse>> getMaintenanceManagementEntityById(
             @PathVariable(name = "id") UUID id,
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
@@ -51,8 +53,10 @@ public class MaintenanceManagementController {
 
     @GetMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_SEARCH_FOR_ADMIN)
     @Operation(
-        summary = "Hiển thị danh sách maintenance management cho admin với bộ lọc", 
+        summary = "Hiển thị danh sách maintenance management cho admin với bộ lọc",
         description = """
+            👨‍💼 **Roles:** ADMIN, STAFF
+            
             Hiển thị danh sách Maintenance Management cho admin với các bộ lọc tùy chọn.
             
             Parameters:
@@ -71,6 +75,7 @@ public class MaintenanceManagementController {
             - Lọc kết hợp: GET /api/maintenance-management/?status=COMPLETED&fromDate=2024-01-01&toDate=2024-12-31
             """
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<MaintenanceManagementResponse>>> searchMaintenanceManagement(
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = "10") int pageSize,
@@ -81,10 +86,10 @@ public class MaintenanceManagementController {
             @Nullable @RequestParam(name = "toDate") String toDate
     ) {
         Pageable pageable = PageRequest.of(page, pageSize);
-        
+
         // Nếu có filter thì dùng method có filter
         boolean hasFilters = status != null || vehicleId != null || fromDate != null || toDate != null;
-        
+
         PageResponse<MaintenanceManagementResponse> response;
         if (hasFilters) {
             response = maintenanceManagementService.searchMaintenanceManagementWithFilters(keyword, status, vehicleId, fromDate, toDate, pageable);
@@ -103,7 +108,8 @@ public class MaintenanceManagementController {
     }
 
     @GetMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_SEARCH_FOR_TECHNICIAN)
-    @Operation(summary = "Hiển thị danh sách maintenance management cho kỹ thuật viên", description = "Hiển thị danh sách Maintenance Management cho kỹ thuật viên có phân trang và tìm kiếm theo keyword")
+    @Operation(summary = "Hiển thị danh sách maintenance management cho kỹ thuật viên", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Hiển thị danh sách Maintenance Management cho kỹ thuật viên có phân trang và tìm kiếm theo keyword")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<PageResponse<MaintenanceManagementResponse>>> searchMaintenanceManagementForTechnician(
             @PathVariable(name = "technician_id") UUID technicianId,
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
@@ -124,7 +130,8 @@ public class MaintenanceManagementController {
     }
 
     @GetMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_STATUS_LIST)
-    @Operation(summary = "Hiển thị danh sách trạng thái maintenance management" , description = "Hiển thị danh sách trạng thái maintenance management")
+    @Operation(summary = "Hiển thị danh sách trạng thái maintenance management", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Hiển thị danh sách trạng thái maintenance management")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<String>>> getMaintenanceManagementStatus(
     ) {
         List<String> response = maintenanceManagementService.getMaintenanceManagementStatuses();
@@ -139,7 +146,8 @@ public class MaintenanceManagementController {
         );
     }
     @PatchMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_UPDATE_NOTES)
-    @Operation(summary = "Cập nhật ghi chú maintenance management" , description = "Cập nhật ghi chú maintenance management")
+    @Operation(summary = "Cập nhật ghi chú maintenance management", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Cập nhật ghi chú maintenance management")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<String>>> updateNotesMaintenanceManagement( @PathVariable("id") UUID id, @RequestBody String notes) {
         boolean result = maintenanceManagementService.updateNotesMaintenanceManagement(id, notes);
 
@@ -153,7 +161,8 @@ public class MaintenanceManagementController {
     }
 
     @PatchMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_STATUS)
-    @Operation(summary = "Cập nhật trạng thái maintenance management" , description = "Cập nhật trạng thái maintenance management")
+    @Operation(summary = "Cập nhật trạng thái maintenance management", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Cập nhật trạng thái maintenance management")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<String>>> updateStatusMaintenanceManagement( @PathVariable("id") UUID id, @RequestBody String status) {
         boolean result = maintenanceManagementService.updateMaintenanceManagementStatus(id, status);
 

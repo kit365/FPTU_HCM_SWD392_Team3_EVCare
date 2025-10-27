@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,8 +32,9 @@ import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 public class VehiclePartCategoryController {
     VehiclePartCategoryService vehiclePartCategoryService;
 
-    @Operation(summary = "Lấy thông tin danh mục phụ tùng theo ID")
+    @Operation(summary = "Lấy thông tin danh mục phụ tùng theo ID", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN")
     @GetMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY)
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<VehiclePartCategoryResponse>> getVehiclePartCategoryById(@PathVariable UUID id) {
         log.info(VehiclePartCategoryConstants.LOG_SUCCESS_SHOWING_VEHICLE_PART_CATEGORY, id);
         VehiclePartCategoryResponse response = vehiclePartCategoryService.getVehiclePartCategoryById(id);
@@ -45,8 +47,9 @@ public class VehiclePartCategoryController {
         );
     }
 
-    @Operation(summary = "Lấy danh sách danh mục phụ tùng theo")
+    @Operation(summary = "Lấy danh sách danh mục phụ tùng", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN")
     @GetMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_LIST)
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<VehiclePartCategoryResponse>>> getVehiclePartCategoryList() {
         List<VehiclePartCategoryResponse> response = vehiclePartCategoryService.getvehiclePartCategoryResponseList();
 
@@ -58,8 +61,9 @@ public class VehiclePartCategoryController {
 
     }
 
-    @Operation(summary = "Tìm kiếm loại phụ tùng")
+    @Operation(summary = "Tìm kiếm loại phụ tùng", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN")
     @GetMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_SEARCH_LIST)
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<PageResponse<VehiclePartCategoryResponse>>> searchVehiclePartCategory(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
@@ -78,8 +82,9 @@ public class VehiclePartCategoryController {
         );
     }
 
-    @Operation(summary = "Tạo mới loại phụ tùng")
+    @Operation(summary = "Tạo mới loại phụ tùng", description = "👑 **Roles:** ADMIN only")
     @PostMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_CREATION)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> createVehiclePartCategory(@Valid @RequestBody CreationVehiclePartCategoryRequest request) {
 
         log.info(VehiclePartCategoryConstants.LOG_SUCCESS_CREATING_VEHICLE_PART_CATEGORY, request);
@@ -92,8 +97,9 @@ public class VehiclePartCategoryController {
         );
     }
 
-    @Operation(summary = "Cập nhật loại phụ tùng")
+    @Operation(summary = "Cập nhật loại phụ tùng", description = "👑 **Roles:** ADMIN only")
     @PatchMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_UPDATE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> updateVehiclePartCategory(
             @PathVariable UUID id,
             @Valid @RequestBody UpdationVehiclePartCategoryRequest request) {
@@ -108,8 +114,9 @@ public class VehiclePartCategoryController {
         );
     }
 
-    @Operation(summary = "Xóa loại phụ tùng")
+    @Operation(summary = "Xóa loại phụ tùng", description = "👑 **Roles:** ADMIN only")
     @DeleteMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_DELETE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteVehiclePartCategory(@PathVariable UUID id) {
         log.info(VehiclePartCategoryConstants.LOG_SUCCESS_DELETING_VEHICLE_PART_CATEGORY, id);
         boolean result = vehiclePartCategoryService.deleteVehiclePartCategory(id);
@@ -121,8 +128,9 @@ public class VehiclePartCategoryController {
         );
     }
 
-    @Operation(summary = "Khôi phục loại phụ tùng đã xóa")
+    @Operation(summary = "Khôi phục loại phụ tùng đã xóa", description = "👑 **Roles:** ADMIN only")
     @PatchMapping(VehiclePartCategoryConstants.VEHICLE_PART_CATEGORY_RESTORING)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> restoreVehiclePartCategory(@PathVariable UUID id) {
         log.info(VehiclePartCategoryConstants.LOG_SUCCESS_RESTORING_VEHICLE_PART_CATEGORY, id);
         boolean result = vehiclePartCategoryService.restoreVehiclePartCategory(id);
