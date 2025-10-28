@@ -14,17 +14,17 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: HomeSimple,
     },
     {
-        label: "Quản lý người dùng",
+        label: "Quản lý",
         icon: UserCircle,
         children: [
             {
                 href: `/${pathAdmin}/users/customers`,
-                label: "Quản lý Customer",
+                label: "Quản lý khách hàng",
                 icon: UserScan
             },
             {
                 href: `/${pathAdmin}/users/staff`,
-                label: "Quản lý Staff & Technician",
+                label: "Quản lý nhân viên & kĩ thuật viên",
                 icon: UserBadgeCheck
             },
         ],
