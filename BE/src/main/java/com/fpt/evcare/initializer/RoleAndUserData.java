@@ -47,8 +47,8 @@ public class RoleAndUserData implements CommandLineRunner {
 
         UserEntity adminUser = createUser(
                 "admin123A",
-                "admin@gmail.com",
-                "123456",
+                "admin@evcare.com",
+                "Admin@123",
                 "Admin EVcare",
                 "Hà Nội, Việt Nam",
                 "0900000000",
@@ -135,7 +135,7 @@ public class RoleAndUserData implements CommandLineRunner {
                 .fullName(fullName)
                 .address(address)
                 .numberPhone(phone)
-                .roles(List.of(role))
+                .role(role)
                 .build();
     }
 

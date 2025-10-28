@@ -9,6 +9,7 @@ public class VehicleConstants {
     public static final String MESSAGE_SUCCESS_UPDATING_VEHICLE = "Cập nhật xe thành công";
     public static final String MESSAGE_SUCCESS_DELETING_VEHICLE = "Xóa xe thành công";
     public static final String MESSAGE_SUCCESS_RESTORING_VEHICLE = "Khôi phục xe thành công";
+    public static final String MESSAGE_SUCCESS_SHOWING_VEHICLE_BY_USER = "Lấy danh sách xe theo người dùng thành công";
 
 
 
@@ -28,4 +29,5 @@ public class VehicleConstants {
     public static final String VEHICLE_DELETE = "/{id}";
     public static final String VEHICLE_CREATION = "/";
     public static final String VEHICLE_RESTORE = "/restore/{id}";
+    public static final String VEHICLE_BY_USER = "/user/{userId}";
 }

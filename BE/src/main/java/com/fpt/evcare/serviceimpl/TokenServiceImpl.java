@@ -98,8 +98,7 @@ public class TokenServiceImpl implements TokenService {
         }
         
         // Lấy role đầu tiên (giả định user chỉ có 1 role chính)
-        String role = user.getRoles() != null && !user.getRoles().isEmpty() 
-                ? user.getRoles().get(0).getRoleName().name() 
+        String role = user.getRole() != null ? user.getRole().getRoleName().name() 
                 : "CUSTOMER";
         
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);

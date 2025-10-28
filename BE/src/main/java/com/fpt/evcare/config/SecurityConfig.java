@@ -2,6 +2,7 @@ package com.fpt.evcare.config;
 
 import com.fpt.evcare.constants.AuthConstants;
 import com.fpt.evcare.security.NimbusJwtAuthenticationFilter;
+import com.fpt.evcare.security.OAuth2SuccessHandler;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final NimbusJwtAuthenticationFilter nimbusJwtAuthenticationFilter;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -64,7 +66,7 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage(AuthConstants.LOGIN_GOOGLE)
-                        .defaultSuccessUrl(AuthConstants.GET_USER_INFO, true)
+                        .successHandler(oAuth2SuccessHandler)
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {

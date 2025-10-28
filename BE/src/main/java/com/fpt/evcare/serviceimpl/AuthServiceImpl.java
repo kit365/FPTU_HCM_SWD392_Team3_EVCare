@@ -71,19 +71,15 @@ public class AuthServiceImpl implements AuthService {
         tokenService.saveAccessToken(user.getUserId(), accessToken, 3600); // 1h
         tokenService.saveRefreshToken(user.getUserId(), refreshToken, 604800);   // 7 ngày
 
-        // Check if user has admin-level roles (not CUSTOMER)
-        boolean isAdmin = user.getRoles() != null && user.getRoles().stream()
-                .anyMatch(role -> !role.getRoleName().toString().equals("CUSTOMER"));
+        // Check if user has admin-level role (not CUSTOMER)
+        boolean isAdmin = user.getRole() != null && !user.getRole().getRoleName().toString().equals("CUSTOMER");
 
-        // Debug: Log user roles and isAdmin status
+        // Debug: Log user role and isAdmin status
         if (log.isInfoEnabled()) {
-            String roles = user.getRoles() != null 
-                ? user.getRoles().stream()
-                    .map(r -> r.getRoleName().toString())
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse("NO_ROLES")
-                : "NULL_ROLES";
-            log.info("Login - User: {}, Roles: {}, isAdmin: {}", loginRequest.getEmail(), roles, isAdmin);
+            String role = user.getRole() != null 
+                ? user.getRole().getRoleName().toString()
+                : "NULL_ROLE";
+            log.info("Login - User: {}, Role: {}, isAdmin: {}", loginRequest.getEmail(), role, isAdmin);
             log.info(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
         }
 
@@ -124,10 +120,8 @@ public class AuthServiceImpl implements AuthService {
             }
 
             List<String> roleNames = new ArrayList<>();
-            if (userEntity.getRoles() != null) {
-                for (com.fpt.evcare.entity.RoleEntity role : userEntity.getRoles()) {
-                    roleNames.add(role.getRoleName().toString());
-                }
+            if (userEntity.getRole() != null) {
+                roleNames.add(userEntity.getRole().getRoleName().toString());
             }
 
             UserResponse response = userMapper.toResponse(userEntity);
@@ -180,7 +174,7 @@ public class AuthServiceImpl implements AuthService {
         // Tạo user mới
         UserEntity userEntity = userMapper.toEntity(registerUserRequest);
         userEntity.setPassword(passwordEncoder.encode(registerUserRequest.getPassword()));
-        userEntity.setRoles(List.of(roleRepository.findByRoleName(RoleEnum.CUSTOMER)));
+        userEntity.setRole(roleRepository.findByRoleName(RoleEnum.CUSTOMER));
         userRepository.save(userEntity);
         
         // Sử dụng TokenService để generate tokens
@@ -212,13 +206,12 @@ public class AuthServiceImpl implements AuthService {
         String name = principal.getAttribute("name");
 
         UserEntity userEntity = userRepository.findByEmailAndIsDeletedFalse(email);
-        List<RoleEntity> role = new ArrayList<>();
-        role.add(roleRepository.findByRoleName(RoleEnum.CUSTOMER));
+        RoleEntity customerRole = roleRepository.findByRoleName(RoleEnum.CUSTOMER);
 
         if (userEntity == null) {
             String search = concatenateSearchField(name, "", email, email);
             UserEntity user = new UserEntity();
-            user.setRoles(role);
+            user.setRole(customerRole);
             user.setPassword(UUID.randomUUID().toString());
             user.setSearch(search);
             user.setUsername(email); // Sử dụng email làm username

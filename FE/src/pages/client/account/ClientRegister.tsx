@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { Divider } from 'antd';
 import { useAuth } from '../../../hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import type { RegisterUserRequest } from '../../../types/admin/auth';
+import { GoogleLoginButton } from '../../../components/client/GoogleLoginButton';
 const ClientRegister = () => {
   const { registerUser, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -105,7 +107,15 @@ const ClientRegister = () => {
               </button>
             </div>
           </form>
-          <div className="text-center mt-4">
+
+          <Divider className="my-6">Hoặc</Divider>
+
+          <GoogleLoginButton 
+            text="Đăng ký với Google" 
+            fullWidth={true}
+          />
+
+          <div className="text-center mt-6">
             Đã có tài khoản? <Link to="/client/login" className="text-blue-600 hover:text-blue-800">Đăng nhập tại đây</Link>
           </div>
         </div>

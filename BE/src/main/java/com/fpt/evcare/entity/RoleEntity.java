@@ -22,7 +22,7 @@ public class RoleEntity extends BaseEntity {
     @Column(name = "role_id", updatable = false, nullable = false)
     UUID roleId;
 
-    @Column(name = "role_name", nullable = false, length = 50)
+    @Column(name = "role_name", nullable = false, unique = true, length = 50)
     @Enumerated(EnumType.STRING)
     RoleEnum roleName;
 
@@ -34,7 +34,7 @@ public class RoleEntity extends BaseEntity {
     @Column(name = "Permissions")
     List<String> permissions = new ArrayList<>();
 
-    @ManyToMany(mappedBy = "roles")
+    @OneToMany(mappedBy = "role")
     private List<UserEntity> users = new ArrayList<>();
 
 }

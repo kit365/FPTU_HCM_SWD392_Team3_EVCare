@@ -1,5 +1,5 @@
 import './App.css'
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './layouts/Layout';
 import { LayoutAdmin } from './layouts/LayoutAdmin';
 import { AdminRoutes, ClientRoutes } from './routes';
@@ -7,6 +7,7 @@ import { Toast } from './components/admin/common/Toast';
 import { LoginPage } from './pages/admin/login/Login';
 import ClientLogin from './pages/client/account/ClientLogin';
 import ClientRegister from './pages/client/account/ClientRegister';
+import GoogleCallback from './pages/client/account/GoogleCallback';
 import { AuthProvider } from './context/AuthContext.tsx';
 import RoleProtectedRoute from './components/common/RoleProtectedRoute';
 import { RootRedirect } from './components/common/RootRedirect';
@@ -25,6 +26,7 @@ function App() {
             {/* Client routes */}
             <Route path="/client/login" element={<ClientLogin />} />
             <Route path="/client/register" element={<ClientRegister />} />
+            <Route path="/oauth2/callback" element={<GoogleCallback />} />
 
             <Route path="/client" element={<Layout />}>
               {ClientRoutes.map(({ path, element }) => (

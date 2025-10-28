@@ -25,13 +25,9 @@ public class UserEntity extends BaseEntity {
     @Column(name = "id")
     UUID userId;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_role",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name ="role_id")
-    )
-    List<RoleEntity> roles = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    RoleEntity role;
 
     @Column(name = "username", unique = true, nullable = false)
     String username;

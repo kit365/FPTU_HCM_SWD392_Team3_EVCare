@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -29,7 +30,8 @@ public class MessageController {
     MessageService messageService;
 
     @PostMapping(MessageConstants.MESSAGE_SEND)
-    @Operation(summary = "Gửi tin nhắn", description = "Gửi tin nhắn đến người dùng khác")
+    @Operation(summary = "Gửi tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Gửi tin nhắn đến người dùng khác")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<MessageResponse>> sendMessage(
             @RequestHeader("user-id") UUID senderId,
             @Valid @RequestBody CreationMessageRequest request) {
@@ -46,7 +48,8 @@ public class MessageController {
     }
 
     @GetMapping(MessageConstants.MESSAGE_DETAIL)
-    @Operation(summary = "Lấy chi tiết tin nhắn", description = "Lấy thông tin chi tiết của một tin nhắn cụ thể")
+    @Operation(summary = "Lấy chi tiết tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy thông tin chi tiết của một tin nhắn cụ thể")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<MessageResponse>> getMessage(
             @PathVariable("id") UUID messageId,
             @RequestHeader("user-id") UUID userId) {
@@ -63,7 +66,8 @@ public class MessageController {
     }
 
     @GetMapping(MessageConstants.MESSAGE_CONVERSATION)
-    @Operation(summary = "Lấy cuộc trò chuyện", description = "Lấy tất cả tin nhắn giữa 2 người dùng")
+    @Operation(summary = "Lấy cuộc trò chuyện", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tất cả tin nhắn giữa 2 người dùng")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getConversation(
             @RequestHeader("user-id") UUID currentUserId,
             @PathVariable("userId") UUID otherUserId,
@@ -83,7 +87,8 @@ public class MessageController {
     }
 
     @PutMapping(MessageConstants.MESSAGE_MARK_READ)
-    @Operation(summary = "Đánh dấu tin nhắn đã đọc", description = "Đánh dấu một tin nhắn là đã đọc")
+    @Operation(summary = "Đánh dấu tin nhắn đã đọc", description = "🔐 **Roles:** Authenticated (All roles) - Đánh dấu một tin nhắn là đã đọc")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> markMessageAsRead(
             @PathVariable("id") UUID messageId,
             @RequestHeader("user-id") UUID userId) {
@@ -99,7 +104,8 @@ public class MessageController {
     }
 
     @GetMapping(MessageConstants.MESSAGE_UNREAD_COUNT)
-    @Operation(summary = "Lấy số tin nhắn chưa đọc", description = "Lấy tổng số tin nhắn chưa đọc của người dùng")
+    @Operation(summary = "Lấy số tin nhắn chưa đọc", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tổng số tin nhắn chưa đọc của người dùng")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(@RequestHeader("user-id") UUID userId) {
         
         Long count = messageService.getUnreadCount(userId);
@@ -113,7 +119,8 @@ public class MessageController {
     }
 
     @DeleteMapping(MessageConstants.MESSAGE_DELETE)
-    @Operation(summary = "Xóa tin nhắn", description = "Xóa một tin nhắn (soft delete)")
+    @Operation(summary = "Xóa tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Xóa một tin nhắn (soft delete)")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteMessage(
             @PathVariable("id") UUID messageId,
             @RequestHeader("user-id") UUID userId) {
@@ -129,7 +136,8 @@ public class MessageController {
     }
 
     @GetMapping(MessageConstants.MESSAGE_LIST)
-    @Operation(summary = "Lấy tất cả tin nhắn", description = "Lấy tất cả tin nhắn liên quan đến người dùng hiện tại")
+    @Operation(summary = "Lấy tất cả tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tất cả tin nhắn liên quan đến người dùng hiện tại")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getAllMessages(
             @RequestHeader("user-id") UUID userId,
             @RequestParam(name = "page", defaultValue = "0") int page,

@@ -51,8 +51,8 @@ public class UserServiceImpl implements UserService {
         }
 
         List<String> roleNames = new ArrayList<>();
-        for(RoleEntity role : user.getRoles()){
-                roleNames.add(role.getRoleName().toString());
+        if (user.getRole() != null) {
+            roleNames.add(user.getRole().getRoleName().toString());
         }
 
         UserResponse response = userMapper.toResponse(user);
@@ -80,10 +80,8 @@ public class UserServiceImpl implements UserService {
         List<UserResponse> userResponses = usersPage.map(user -> {
             UserResponse response = userMapper.toResponse(user);
             List<String> roleNames = new ArrayList<>();
-            if (user.getRoles() != null) {
-                for (RoleEntity role : user.getRoles()) {
-                    roleNames.add(role.getRoleName().toString());
-                }
+            if (user.getRole() != null) {
+                roleNames.add(user.getRole().getRoleName().toString());
             }
             response.setRoleName(roleNames);
             response.setIsAdmin(isAdminRole(roleNames));
@@ -169,18 +167,14 @@ public class UserServiceImpl implements UserService {
         checkExistCreationUserInput(creationUserRequest);
         UserEntity user = userMapper.toEntity(creationUserRequest);
 
-        List<RoleEntity> roleIdList = new ArrayList<>();
-
+        // Set single role (take first role from list if provided)
         if(creationUserRequest.getRoleIds() != null && !creationUserRequest.getRoleIds().isEmpty()){
-            for(UUID roleId : creationUserRequest.getRoleIds()){
-                RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
-                if( roleEntity != null) {
-                    roleIdList.add(roleEntity);
-                }
+            UUID roleId = creationUserRequest.getRoleIds().get(0); // Take first role
+            RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
+            if(roleEntity != null) {
+                user.setRole(roleEntity);
             }
         }
-
-        user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(creationUserRequest.getPassword()));
 
         String search = UtilFunction.concatenateSearchField(creationUserRequest.getFullName(),
@@ -205,18 +199,14 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
 
-        List<RoleEntity> roleIdList = new ArrayList<>();
-
+        // Set single role (take first role from list if provided)
         if(updationUserRequest.getRoleIds() != null && !updationUserRequest.getRoleIds().isEmpty()){
-            for(UUID roleId : updationUserRequest.getRoleIds()){
-                RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
-                if( roleEntity != null) {
-                    roleIdList.add(roleEntity);
-                }
+            UUID roleId = updationUserRequest.getRoleIds().get(0); // Take first role
+            RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
+            if(roleEntity != null) {
+                user.setRole(roleEntity);
             }
         }
-
-        user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
 
         if(Objects.equals(user.getEmail(), updationUserRequest.getEmail())){
@@ -303,10 +293,8 @@ public class UserServiceImpl implements UserService {
             for (UserEntity user : users) {
                 UserResponse response = userMapper.toResponse(user);
                 List<String> roleNames = new ArrayList<>();
-                if (user.getRoles() != null) {
-                    for (RoleEntity role : user.getRoles()) {
-                        roleNames.add(role.getRoleName().toString());
-                    }
+                if (user.getRole() != null) {
+                    roleNames.add(user.getRole().getRoleName().toString());
                 }
                 response.setRoleName(roleNames);
                 userResponses.add(response);

@@ -140,6 +140,8 @@ public class UserController {
     }
 
     @GetMapping(UserConstants.USER_BY_ROLE)
+    @Operation(summary = "Lấy danh sách users theo role", description = "👨‍💼 **Roles:** ADMIN, STAFF")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getUsersByRole(
             @RequestParam(value = "roleName") String roleName
     ) {
@@ -155,6 +157,8 @@ public class UserController {
     }
 
     @GetMapping(UserConstants.TECHNICIANS)
+    @Operation(summary = "Lấy danh sách kỹ thuật viên", description = "👨‍💼 **Roles:** ADMIN, STAFF")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<java.util.List<TechnicianResponse>>> getTechnicians() {
         java.util.List<TechnicianResponse> technicians = userService.getTechnicians();
 
