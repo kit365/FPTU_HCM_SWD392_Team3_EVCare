@@ -220,6 +220,7 @@ public class UserServiceImpl implements UserService {
             user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
         }
 
+        // Validate email duplication
         if(Objects.equals(user.getEmail(), updationUserRequest.getEmail())){
             user.setEmail(updationUserRequest.getEmail());
         } else {
@@ -228,6 +229,16 @@ public class UserServiceImpl implements UserService {
                 throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
             }
             user.setEmail(updationUserRequest.getEmail());
+        }
+
+        // Validate phone number duplication
+        if(updationUserRequest.getNumberPhone() != null && !updationUserRequest.getNumberPhone().isEmpty()){
+            if(!Objects.equals(user.getNumberPhone(), updationUserRequest.getNumberPhone())){
+                if(userRepository.existsByNumberPhone(updationUserRequest.getNumberPhone())){
+                    log.error(UserConstants.LOG_ERR_DUPLICATED_USER_PHONE, "Phone: " + updationUserRequest.getNumberPhone());
+                    throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+                }
+            }
         }
 
         String search = UtilFunction.concatenateSearchField(updationUserRequest.getFullName(),
