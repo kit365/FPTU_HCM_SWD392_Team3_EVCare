@@ -1,50 +1,63 @@
 package com.fpt.evcare.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fpt.evcare.enums.InvoiceStatusEnum;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@Builder
-public class InvoiceResponse implements Serializable {
-
+public class InvoiceResponse {
     UUID invoiceId;
-
-    AppointmentResponse appointment;
-
-    PaymentMethodResponse paymentMethod;
-
+    UUID appointmentId;
+    String customerName;
+    String customerEmail;
+    String customerPhone;
+    UUID paymentMethodId;
+    String paymentMethodName;
     BigDecimal totalAmount;
-
     BigDecimal paidAmount;
-
-    InvoiceStatusEnum status;
-
+    String status;
     LocalDateTime invoiceDate;
-
     LocalDateTime dueDate;
-
     String notes;
-
-    Boolean isActive;
-
-    Boolean isDeleted;
-
     LocalDateTime createdAt;
-
     LocalDateTime updatedAt;
-
-    String createdBy;
-
-    String updatedBy;
+    
+    // Appointment details
+    String vehicleNumberPlate;
+    String vehicleTypeName;
+    String vehicleManufacturer;
+    String serviceMode;
+    LocalDateTime scheduledAt;
+    
+    // Services and maintenance records summary
+    List<MaintenanceManagementSummary> maintenanceDetails;
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MaintenanceManagementSummary {
+        String serviceName;
+        BigDecimal serviceCost;
+        List<PartUsed> partsUsed;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PartUsed {
+        String partName;
+        Integer quantity;
+        BigDecimal unitPrice;
+        BigDecimal totalPrice;
+    }
 }

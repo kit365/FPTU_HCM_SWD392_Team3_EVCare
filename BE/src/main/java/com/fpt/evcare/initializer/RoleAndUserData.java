@@ -47,8 +47,8 @@ public class RoleAndUserData implements CommandLineRunner {
 
         UserEntity adminUser = createUser(
                 "admin123A",
-                "admin@evcare.com",
-                "Admin@123",
+                "admin@gmail.com",
+                "1",
                 "Admin EVcare",
                 "Hà Nội, Việt Nam",
                 "0900000000",
@@ -66,8 +66,8 @@ public class RoleAndUserData implements CommandLineRunner {
 
         UserEntity staffUser = createUser(
                 "staff123A",
-                "staff@evcare.com",
-                "Staff@123",
+                "staff@gmail.com",
+                "123456",
                 "Nhân viên EVcare",
                 "Đà Nẵng, Việt Nam",
                 "0901111111",
@@ -85,8 +85,8 @@ public class RoleAndUserData implements CommandLineRunner {
 
         UserEntity customerUser = createUser(
                 "customer123A",
-                "customer@evcare.com",
-                "@Customer123",
+                "customer@gmail.com",
+                "123456",
                 "Khách hàng EVcare",
                 "TP.HCM, Việt Nam",
                 "0902222222",
@@ -104,8 +104,8 @@ public class RoleAndUserData implements CommandLineRunner {
 
         UserEntity technicianUser = createUser(
                 "technician123A",
-                "technician@evcare.com",
-                "@Technician123",
+                "technician@gmail.com",
+                "123456",
                 "Kỹ thuật viên EVcare",
                 "Cần Thơ, Việt Nam",
                 "0903333333",

@@ -50,13 +50,40 @@ export const useShift = () => {
       const response = await shiftService.search(params);
       const pageData = response.data.data;
       
-      setList(Array.isArray(pageData.data) ? pageData.data : []);
+      // BE trả về "data" chứa array, fallback to "content" for backward compatibility
+      const dataArray = pageData.data || pageData.content || [];
+      setList(Array.isArray(dataArray) ? dataArray : []);
       setTotalPages(pageData.totalPages || 0);
       setTotalElements(pageData.totalElements || 0);
       
       return response;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Không thể tải danh sách ca làm việc!');
+      setList([]);
+      setTotalPages(0);
+      setTotalElements(0);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Search shifts by technician - CA LÀM CỦA TÔI
+  const searchByTechnician = useCallback(async (technicianId: string, params: ShiftSearchRequest) => {
+    setLoading(true);
+    try {
+      const response = await shiftService.searchByTechnician(technicianId, params);
+      const pageData = response.data.data;
+      
+      // BE trả về "data" chứa array, fallback to "content" for backward compatibility
+      const dataArray = pageData.data || pageData.content || [];
+      setList(Array.isArray(dataArray) ? dataArray : []);
+      setTotalPages(pageData.totalPages || 0);
+      setTotalElements(pageData.totalElements || 0);
+      
+      return response;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể tải ca làm việc của bạn!');
       setList([]);
       setTotalPages(0);
       setTotalElements(0);
@@ -175,6 +202,7 @@ export const useShift = () => {
     getAllTypes,
     getAllStatuses,
     search,
+    searchByTechnician,
     getById,
     // getByAppointmentId, // TODO: Uncomment when implemented
     create,

@@ -18,8 +18,12 @@ public interface InvoiceMapper {
     @Mapping(target = "search", ignore = true)
     InvoiceEntity toEntity(CreationInvoiceRequest creationInvoiceRequest);
 
-    @Mapping(target = "appointment", ignore = true)
-    @Mapping(target = "paymentMethod", ignore = true)
+    @Mapping(source = "appointment.appointmentId", target = "appointmentId")
+    @Mapping(source = "appointment.customerFullName", target = "customerName")
+    @Mapping(source = "appointment.customerEmail", target = "customerEmail")
+    @Mapping(source = "appointment.customerPhoneNumber", target = "customerPhone")
+    @Mapping(source = "paymentMethod.paymentMethodId", target = "paymentMethodId")
+    @Mapping(target = "paymentMethodName", expression = "java(invoiceEntity.getPaymentMethod() != null && invoiceEntity.getPaymentMethod().getMethodType() != null ? invoiceEntity.getPaymentMethod().getMethodType().name() : null)")
     InvoiceResponse toResponse(InvoiceEntity invoiceEntity);
 
     @Mapping(target = "appointment", ignore = true)

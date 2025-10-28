@@ -5,22 +5,36 @@ import { useShift } from "../../../hooks/useShift";
 import { useEffect, useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import BuildIcon from "@mui/icons-material/Build";
 import { toast } from "react-toastify";
 import type { ShiftResponse } from "../../../types/shift.types";
+import type { MaintenanceManagementResponse } from "../../../types/maintenance-management.types";
+import { useAuthContext } from "../../../context/useAuthContext";
+import { maintenanceManagementService } from "../../../service/maintenanceManagementService";
+
 
 export const ShiftDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { getById: getShiftById } = useShift();
+  const { user } = useAuthContext();
   
   const [shift, setShift] = useState<ShiftResponse | null>(null);
+  const [tasks, setTasks] = useState<MaintenanceManagementResponse[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Phân biệt role
+  const isTechnician = user?.roleName?.includes("TECHNICIAN");
+  const isStaffOrAdmin = user?.roleName?.includes("ADMIN") || user?.roleName?.includes("STAFF");
 
   useEffect(() => {
     const loadData = async () => {
       if (!id) {
         toast.error("Không tìm thấy ID ca làm việc!");
-        navigate(`/${pathAdmin}/shift`);
+        // Navigate về trang tương ứng theo role
+        navigate(isTechnician ? `/${pathAdmin}/schedule` : `/${pathAdmin}/shift`);
         return;
       }
 
@@ -28,14 +42,35 @@ export const ShiftDetail = () => {
       const shiftData = await getShiftById(id);
       if (shiftData) {
         setShift(shiftData);
+        
+        // CHỈ fetch tasks nếu là TECHNICIAN và có appointment
+        if (isTechnician && shiftData.appointment?.appointmentId && user?.userId) {
+          try {
+            // Fetch MaintenanceManagements theo appointmentId
+            const response = await maintenanceManagementService.searchByTechnician(
+              user.userId,
+              {
+                appointmentId: shiftData.appointment.appointmentId,
+                page: 0,
+                pageSize: 100
+              }
+            );
+            setTasks(response.data || []);
+          } catch (error) {
+            console.error("Failed to fetch maintenance tasks:", error);
+            toast.error("Không thể tải danh sách công việc!");
+            setTasks([]);
+          }
+        }
       } else {
-        navigate(`/${pathAdmin}/shift`);
+        // Navigate về trang tương ứng theo role
+        navigate(isTechnician ? `/${pathAdmin}/schedule` : `/${pathAdmin}/shift`);
       }
       setLoading(false);
     };
 
     loadData();
-  }, [id, getShiftById, navigate]);
+  }, [id, getShiftById, navigate, isTechnician, user?.userId]);
 
   // Format shift type to Vietnamese
   const formatShiftType = (type: string) => {
@@ -77,7 +112,12 @@ export const ShiftDetail = () => {
   };
 
   const handleBack = () => {
-    navigate(`/${pathAdmin}/shift`);
+    // Technician back về "Ca làm của tôi", Staff/Admin back về "Quản lý ca làm"
+    if (isTechnician) {
+      navigate(`/${pathAdmin}/schedule`);
+    } else {
+      navigate(`/${pathAdmin}/shift`);
+    }
   };
 
   const handleEdit = () => {
@@ -122,13 +162,16 @@ export const ShiftDetail = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleEdit}
-              className="flex items-center gap-2 px-[1.6rem] py-[1rem] text-[1.3rem] font-[500] text-white bg-blue-500 rounded-[0.64rem] hover:bg-blue-600 transition-colors"
-            >
-              <EditIcon sx={{ fontSize: "1.8rem" }} />
-              Chỉnh sửa
-            </button>
+            {/* Nút Chỉnh sửa - CHỈ cho ADMIN/STAFF */}
+            {isStaffOrAdmin && (
+              <button
+                onClick={handleEdit}
+                className="flex items-center gap-2 px-[1.6rem] py-[1rem] text-[1.3rem] font-[500] text-white bg-blue-500 rounded-[0.64rem] hover:bg-blue-600 transition-colors"
+              >
+                <EditIcon sx={{ fontSize: "1.8rem" }} />
+                Chỉnh sửa
+              </button>
+            )}
           </div>
 
           {/* Shift Information */}
@@ -166,8 +209,8 @@ export const ShiftDetail = () => {
                 </div>
               </div>
 
-              {/* Service Types & Quote Price */}
-              {shift.appointment?.serviceTypeResponses && shift.appointment.serviceTypeResponses.length > 0 && (
+              {/* Service Types & Quote Price - HIDDEN */}
+              {/* {shift.appointment?.serviceTypeResponses && shift.appointment.serviceTypeResponses.length > 0 && (
                 <div className="mt-[1.6rem] pt-[1.6rem] border-t border-gray-200">
                   <p className="text-[1.2rem] text-gray-500 mb-[0.8rem]">Dịch vụ yêu cầu</p>
                   <div className="flex flex-wrap gap-2 mb-[1.2rem]">
@@ -189,7 +232,7 @@ export const ShiftDetail = () => {
                     </div>
                   )}
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Shift Details */}
@@ -343,6 +386,137 @@ export const ShiftDetail = () => {
                 </div>
               </div>
             </div>
+
+            {/* Tasks / Maintenance Managements - CHỈ hiển thị cho TECHNICIAN */}
+            {isTechnician && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-[2rem] rounded-[0.8rem] border-2 border-blue-200">
+              <div className="flex items-center justify-between mb-[1.6rem]">
+                <div>
+                  <h3 className="text-[1.6rem] font-[700] text-blue-900 flex items-center gap-2">
+                    <BuildIcon sx={{ fontSize: "2rem" }} />
+                    Công việc phải làm
+                  </h3>
+                  <p className="text-[1.2rem] text-blue-700 mt-[0.4rem]">
+                    Danh sách bảo dưỡng trong ca làm này
+                  </p>
+                </div>
+                {tasks.length > 0 && (
+                  <div className="px-[1.6rem] py-[0.8rem] bg-blue-600 text-white rounded-full text-[1.4rem] font-[600]">
+                    {tasks.length} công việc
+                  </div>
+                )}
+              </div>
+
+              {tasks.length === 0 ? (
+                <div className="bg-white p-[2.4rem] rounded-[0.8rem] text-center border border-blue-200">
+                  <BuildIcon sx={{ fontSize: "4rem", color: "#cbd5e1" }} />
+                  <p className="text-[1.4rem] text-gray-500 mt-[1.2rem]">
+                    Chưa có công việc nào trong ca này
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-[1.2rem]">
+                  {tasks.map((task) => {
+                    const getStatusStyles = (status: string) => {
+                      switch (status) {
+                        case "PENDING":
+                          return {
+                            bg: "bg-orange-50",
+                            border: "border-orange-300",
+                            badge: "bg-orange-500 text-white",
+                            button: "bg-orange-500 hover:bg-orange-600",
+                            icon: <PlayArrowIcon />,
+                            label: "Bắt đầu"
+                          };
+                        case "IN_PROGRESS":
+                          return {
+                            bg: "bg-blue-50",
+                            border: "border-blue-300",
+                            badge: "bg-blue-500 text-white",
+                            button: "bg-blue-500 hover:bg-blue-600",
+                            icon: <BuildIcon />,
+                            label: "Tiếp tục"
+                          };
+                        case "COMPLETED":
+                          return {
+                            bg: "bg-green-50",
+                            border: "border-green-300",
+                            badge: "bg-green-500 text-white",
+                            button: "bg-gray-400 hover:bg-gray-500",
+                            icon: <VisibilityIcon />,
+                            label: "Xem"
+                          };
+                        default:
+                          return {
+                            bg: "bg-gray-50",
+                            border: "border-gray-300",
+                            badge: "bg-gray-500 text-white",
+                            button: "bg-gray-500 hover:bg-gray-600",
+                            icon: <VisibilityIcon />,
+                            label: "Xem"
+                          };
+                      }
+                    };
+
+                    const styles = getStatusStyles(task.status);
+
+                    return (
+                      <div
+                        key={task.maintenanceManagementId}
+                        className={`${styles.bg} border-2 ${styles.border} p-[1.6rem] rounded-[0.8rem] hover:shadow-md transition-shadow`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-[1.2rem] mb-[1.2rem]">
+                              <h4 className="text-[1.5rem] font-[600] text-gray-800">
+                                {task.serviceTypeResponse?.serviceName || "Dịch vụ"}
+                              </h4>
+                              <span className={`px-[1.2rem] py-[0.4rem] ${styles.badge} rounded-full text-[1.2rem] font-[500]`}>
+                                {task.status === "PENDING" ? "Chờ bắt đầu" :
+                                 task.status === "IN_PROGRESS" ? "Đang làm" :
+                                 task.status === "COMPLETED" ? "Hoàn thành" : task.status}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-[1.2rem] text-[1.3rem] text-gray-700">
+                              <div>
+                                <span className="text-gray-500">Khách hàng: </span>
+                                <span className="font-[500]">
+                                  {task.appointmentResponse?.customerFullName || "N/A"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Xe: </span>
+                                <span className="font-[500]">
+                                  {task.appointmentResponse?.vehicleNumberPlate || "N/A"}
+                                </span>
+                              </div>
+                              {task.totalCost && (
+                                <div className="md:col-span-2">
+                                  <span className="text-gray-500">Chi phí: </span>
+                                  <span className="font-[600] text-green-600">
+                                    {task.totalCost.toLocaleString("vi-VN")} ₫
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => navigate(`/${pathAdmin}/maintenance/${task.maintenanceManagementId}`)}
+                            className={`${styles.button} text-white px-[2rem] py-[1rem] rounded-[0.8rem] font-[500] text-[1.3rem] transition-colors flex items-center gap-2 ml-[1.6rem]`}
+                          >
+                            {styles.icon}
+                            {styles.label}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            )}
           </div>
         </div>
       </Card>

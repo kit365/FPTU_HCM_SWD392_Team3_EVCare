@@ -17,6 +17,7 @@ public class AppointmentConstants {
     public static final String MESSAGE_SUCCESS_SHOWING_APPOINTMENT_IN_PROGRESS_STATUS = "Lấy trạng thái IN_PROGRESS của cuộc hẹn thành công";
     public static final String MESSAGE_ERR_CAN_NOT_TRANSFER_FROM_IN_PROGRESS_TO_PENDING = "Không thể chuyển trạng thái từ IN_PROGRESS về lại PENDING";
     public static final String LOG_INFO_APPOINTMENT_STATUS_AUTO_COMPLETED = "Cuộc hẹn có ID [{}] đã được tự động chuyển sang trạng thái COMPLETED (trạng thái trước đó: {}).";
+    public static final String LOG_INFO_APPOINTMENT_STATUS_AUTO_UPDATED = "Cuộc hẹn có ID [{}] đã được tự động chuyển từ {} sang {}.";
     public static final String LOG_WARN_APPOINTMENT_NOT_IN_PROGRESS_FOR_COMPLETION = "Cuộc hẹn có ID [{}] không thể tự động chuyển sang COMPLETED vì trạng thái hiện tại là {}.";
 
     // Failed message

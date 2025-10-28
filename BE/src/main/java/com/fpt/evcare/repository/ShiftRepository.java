@@ -38,6 +38,31 @@ public interface ShiftRepository extends JpaRepository<ShiftEntity, UUID> {
             @Param("appointmentId") UUID appointmentId,
             Pageable pageable);
 
+    // Tìm shifts theo technician ID (cho trang "Ca làm của tôi")
+    @Query("""
+        SELECT s FROM ShiftEntity s JOIN s.technicians t
+        WHERE t.userId = :technicianId
+        AND s.isDeleted = false
+    """)
+    Page<ShiftEntity> findByTechnicianIdAndIsDeletedFalse(
+            @Param("technicianId") UUID technicianId,
+            Pageable pageable);
+
+    // Tìm shifts theo technician ID với keyword
+    @Query("""
+        SELECT s FROM ShiftEntity s JOIN s.technicians t
+        WHERE t.userId = :technicianId
+        AND s.isDeleted = false
+        AND (
+            LOWER(s.search) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(s.notes) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        )
+    """)
+    Page<ShiftEntity> findByTechnicianIdAndSearchContainingIgnoreCaseAndIsDeletedFalse(
+            @Param("technicianId") UUID technicianId,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
     // Tìm shifts của 1 technician trong khoảng thời gian
     @Query("""
         SELECT s FROM ShiftEntity s JOIN s.technicians t

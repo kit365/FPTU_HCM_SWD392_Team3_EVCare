@@ -42,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -219,16 +220,19 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 .build();
     }
 
-    // Show toàn bộ các maintenance management thuộc về kỹ thuật viên (TECHNICIAN) đó
+    // Show toàn bộ các maintenance management thuộc về kỹ thuật viên (TECHNICIAN) đó với các bộ lọc
     @Override
-    public PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementForTechnicians(UUID technicianId, String keyword, Pageable pageable) {
+    public PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementForTechnicians(
+            UUID technicianId, String keyword, String date, String status, UUID appointmentId, Pageable pageable) {
+        
+        // Validate technician
         UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(technicianId);
         if(technician == null) {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND + technicianId);
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
 
-        //Kiểm tra user có phải role technician không
+        // Kiểm tra user có phải role technician không
         boolean isTechnician = technician.getRole() != null 
                 && technician.getRole().getRoleName().equals(RoleEnum.TECHNICIAN);
 
@@ -237,13 +241,16 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_ROLE_NOT_MATCH);
         }
 
-        Page<MaintenanceManagementEntity> maintenanceManagementEntityPage;
+        // Log filters
+        log.info("Searching maintenance for technician {} with filters - keyword: {}, date: {}, status: {}, appointmentId: {}", 
+                 technicianId, keyword, date, status, appointmentId);
 
-        if(keyword == null || keyword.isEmpty()){
-            maintenanceManagementEntityPage = maintenanceManagementRepository.findAllMaintenanceManagementForTechnician(technicianId, pageable);
-        } else {
-            maintenanceManagementEntityPage = maintenanceManagementRepository.findAllMaintenanceManagementForTechnicianByKeyword(technicianId, keyword, pageable);
-        }
+        // Convert appointmentId to String for query (vì native query cần String)
+        String appointmentIdStr = (appointmentId != null) ? appointmentId.toString() : null;
+
+        // Fetch với filters
+        Page<MaintenanceManagementEntity> maintenanceManagementEntityPage = maintenanceManagementRepository
+            .findByTechnicianWithFilters(technicianId, keyword, date, status, appointmentIdStr, pageable);
 
         if(maintenanceManagementEntityPage.getTotalElements() < 0){
             log.info(MaintenanceManagementConstants.LOG_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
@@ -285,6 +292,91 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 .page(maintenanceManagementEntityPage.getNumber())
                 .totalElements(maintenanceManagementEntityPage.getTotalElements())
                 .totalPages(maintenanceManagementEntityPage.getTotalPages())
+                .build();
+    }
+
+    @Override
+    public PageResponse<MaintenanceManagementResponse> getMyTasks(String username, String date, String status, Pageable pageable) {
+        // 1. Tìm technician bằng username
+        UserEntity technician = userRepository.findByUsernameAndIsDeletedFalse(username);
+        if (technician == null) {
+            log.warn("Technician not found with username: {}", username);
+            throw new ResourceNotFoundException("Không tìm thấy kỹ thuật viên");
+        }
+
+        // 2. Kiểm tra role
+        boolean isTechnician = technician.getRole() != null 
+                && technician.getRole().getRoleName().equals(RoleEnum.TECHNICIAN);
+        if (!isTechnician) {
+            log.warn("User {} is not a technician", username);
+            throw new ResourceNotFoundException("Người dùng không phải kỹ thuật viên");
+        }
+
+        UUID technicianId = technician.getUserId();
+
+        // 3. Parse date (default = hôm nay)
+        LocalDate targetDate;
+        if (date != null && !date.isEmpty()) {
+            try {
+                targetDate = LocalDate.parse(date);
+            } catch (Exception e) {
+                log.warn("Invalid date format: {}", date);
+                throw new EntityValidationException("Định dạng ngày không hợp lệ. Sử dụng yyyy-MM-dd");
+            }
+        } else {
+            targetDate = LocalDate.now();
+        }
+
+        // 4. Query maintenance managements
+        Page<MaintenanceManagementEntity> maintenanceManagementPage;
+        
+        if (status != null && !status.isEmpty()) {
+            // Lọc theo status
+            maintenanceManagementPage = maintenanceManagementRepository
+                .findByTechnicianAndDateAndStatus(technicianId, targetDate, status, pageable);
+        } else {
+            // Lấy tất cả (mọi status) theo ngày
+            maintenanceManagementPage = maintenanceManagementRepository
+                .findByTechnicianAndDate(technicianId, targetDate, pageable);
+        }
+
+        // 5. Map to response
+        List<MaintenanceManagementResponse> responses = maintenanceManagementPage.map(mm -> {
+            MaintenanceManagementResponse response = maintenanceManagementMapper.toResponse(mm);
+
+            // Add appointment info
+            AppointmentEntity appointment = mm.getAppointment();
+            if (appointment != null) {
+                AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointment);
+                
+                // Add vehicle type info
+                if (appointment.getVehicleTypeEntity() != null) {
+                    VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+                    vehicleTypeResponse.setVehicleTypeId(appointment.getVehicleTypeEntity().getVehicleTypeId());
+                    vehicleTypeResponse.setVehicleTypeName(appointment.getVehicleTypeEntity().getVehicleTypeName());
+                    appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
+                }
+                
+                response.setAppointmentResponse(appointmentResponse);
+            }
+
+            // Add service type info
+            if (mm.getServiceType() != null) {
+                ServiceTypeResponse serviceTypeResponse = new ServiceTypeResponse();
+                serviceTypeResponse.setServiceTypeId(mm.getServiceType().getServiceTypeId());
+                serviceTypeResponse.setServiceName(mm.getServiceType().getServiceName());
+                response.setServiceTypeResponse(serviceTypeResponse);
+            }
+
+            return response;
+        }).getContent();
+
+        log.info("Found {} tasks for technician {} on date {}", responses.size(), username, targetDate);
+        return PageResponse.<MaintenanceManagementResponse>builder()
+                .data(responses)
+                .page(maintenanceManagementPage.getNumber())
+                .totalElements(maintenanceManagementPage.getTotalElements())
+                .totalPages(maintenanceManagementPage.getTotalPages())
                 .build();
     }
 
@@ -384,6 +476,12 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
 
         // ====== CASE 1: Khi chuyển sang IN_PROGRESS ======
         if (newStatus == MaintenanceManagementStatusEnum.IN_PROGRESS) {
+            // Tự động set startTime khi bắt đầu thực hiện
+            if (maintenanceManagement.getStartTime() == null) {
+                maintenanceManagement.setStartTime(LocalDateTime.now());
+                log.info("Auto-set startTime for maintenance management: {}", id);
+            }
+
             List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
 
             if (!maintenanceRecords.isEmpty()) {
@@ -403,6 +501,14 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 // Cập nhật lại tổng chi phí bảo trì
                 maintenanceManagementRepository.flush();
                 maintenanceCostService.updateTotalCost(maintenanceManagement);
+            }
+            
+            // ====== Tự động chuyển appointment sang IN_PROGRESS khi bắt đầu maintenance đầu tiên ======
+            if (appointment.getStatus() == AppointmentStatusEnum.CONFIRMED) {
+                appointment.setStatus(AppointmentStatusEnum.IN_PROGRESS);
+                appointmentRepository.save(appointment);
+                log.info(AppointmentConstants.LOG_INFO_APPOINTMENT_STATUS_AUTO_UPDATED,
+                        appointment.getAppointmentId(), AppointmentStatusEnum.CONFIRMED, AppointmentStatusEnum.IN_PROGRESS);
             }
         }
 
@@ -424,24 +530,30 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 throw new EntityValidationException(MaintenanceManagementConstants.MESSAGE_ERR_NOT_ALL_RECORDS_APPROVED_BY_USER);
             }
 
+            // Tự động set endTime khi hoàn thành
+            if (maintenanceManagement.getEndTime() == null) {
+                maintenanceManagement.setEndTime(LocalDateTime.now());
+                log.info("Auto-set endTime for maintenance management: {}", id);
+            }
+
             // Cập nhật trạng thái maintenance management
             maintenanceManagement.setStatus(MaintenanceManagementStatusEnum.COMPLETED);
             maintenanceManagementRepository.save(maintenanceManagement);
             log.info(MaintenanceManagementConstants.LOG_INFO_UPDATING_MAINTENANCE_MANAGEMENT_STATUS, id);
 
-            // Nếu tất cả maintenance management trong appointment đã COMPLETED => tự động cập nhật appointment sang COMPLETED
+            // Nếu tất cả maintenance management trong appointment đã COMPLETED => tự động cập nhật appointment sang PENDING_PAYMENT
             boolean allCompleted = maintenanceManagementRepository
                     .findByAppointmentIdAndIsDeletedFalse(appointment.getAppointmentId())
                     .stream()
                     .allMatch(m -> m.getStatus() == MaintenanceManagementStatusEnum.COMPLETED);
 
             if (allCompleted && appointment.getStatus() == AppointmentStatusEnum.IN_PROGRESS) {
-                appointment.setStatus(AppointmentStatusEnum.COMPLETED);
+                appointment.setStatus(AppointmentStatusEnum.PENDING_PAYMENT);
                 appointmentRepository.save(appointment);
                 log.info(AppointmentConstants.LOG_INFO_APPOINTMENT_STATUS_AUTO_COMPLETED,
-                        appointment.getAppointmentId(), AppointmentStatusEnum.COMPLETED);
+                        appointment.getAppointmentId(), AppointmentStatusEnum.PENDING_PAYMENT);
                 
-                // Tự động tạo Invoice khi appointment chuyển sang COMPLETED
+                // Tự động tạo Invoice khi appointment chuyển sang PENDING_PAYMENT (chờ thanh toán)
                 createInvoiceForAppointment(appointment);
             }
             return true;

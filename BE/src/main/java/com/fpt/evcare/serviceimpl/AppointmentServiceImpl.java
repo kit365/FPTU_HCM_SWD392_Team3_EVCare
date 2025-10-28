@@ -734,6 +734,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
         appointmentEntity.setSearch(search);
 
+        // Tự động chuyển PENDING → CONFIRMED sau khi phân công thành công
+        if (appointmentEntity.getStatus() == AppointmentStatusEnum.PENDING && 
+            !technicians.isEmpty() && assignee != null) {
+            appointmentEntity.setStatus(AppointmentStatusEnum.CONFIRMED);
+            log.info("Appointment {} automatically changed to CONFIRMED after assignment", id);
+        }
+
         log.info(AppointmentConstants.LOG_INFO_UPDATING_APPOINTMENT, id);
         appointmentRepository.save(appointmentEntity);
         return true;
@@ -777,17 +784,11 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_CAN_NOT_TRANSFER_FROM_IN_PROGRESS_TO_PENDING);
         }
 
-        // Chỉ cho phép chuyển sang IN_PROGRESS khi đang ở PENDING
+        // Chỉ cho phép chuyển sang IN_PROGRESS khi đang ở CONFIRMED
         if (newStatus == AppointmentStatusEnum.IN_PROGRESS) {
-            if (currentStatus != AppointmentStatusEnum.PENDING) {
+            if (currentStatus != AppointmentStatusEnum.CONFIRMED) {
                 log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_INVALID_TRANSITION_TO_IN_PROGRESS);
                 throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_INVALID_STATUS_TRANSITION_TO_IN_PROGRESS);
-            }
-
-            // Đảm bảo đã có kỹ thuật viên và người được phân công
-            if (appointmentEntity.getTechnicianEntities().isEmpty() || appointmentEntity.getAssignee() == null) {
-                log.warn(AppointmentConstants.LOG_ERR_THIS_APPOINTMENT_IS_NOT_ASSIGNED);
-                throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_THIS_APPOINTMENT_IS_NOT_ASSIGNED);
             }
 
             // Khi chuyển sang IN_PROGRESS → tạo Maintenance Management
@@ -795,6 +796,20 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             // Gửi email thông báo bắt đầu dịch vụ
             sendInProgressEmail(appointmentEntity);
+        }
+
+        // Chỉ cho phép chuyển sang CONFIRMED khi đang ở PENDING
+        if (newStatus == AppointmentStatusEnum.CONFIRMED) {
+            if (currentStatus != AppointmentStatusEnum.PENDING) {
+                log.warn("Cannot transition to CONFIRMED from status: {}", currentStatus);
+                throw new EntityValidationException("Chỉ có thể chuyển sang CONFIRMED từ trạng thái PENDING");
+            }
+
+            // Đảm bảo đã có kỹ thuật viên và người được phân công
+            if (appointmentEntity.getTechnicianEntities().isEmpty() || appointmentEntity.getAssignee() == null) {
+                log.warn(AppointmentConstants.LOG_ERR_THIS_APPOINTMENT_IS_NOT_ASSIGNED);
+                throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_THIS_APPOINTMENT_IS_NOT_ASSIGNED);
+            }
         }
 
         // Khi chuyển sang CANCELLED → kiểm tra maintenance

@@ -102,6 +102,29 @@ public class ShiftController {
         );
     }
 
+    @GetMapping(ShiftConstants.SHIFT_SEARCH_FOR_TECHNICIAN)
+    @Operation(
+        summary = "Lấy danh sách ca làm việc của kỹ thuật viên", 
+        description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Hiển thị danh sách ca làm việc được phân công cho kỹ thuật viên cụ thể với phân trang và tìm kiếm theo keyword"
+    )
+    public ResponseEntity<ApiResponse<PageResponse<ShiftResponse>>> searchShiftForTechnician(
+            @PathVariable("technician_id") UUID technicianId,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize
+    ) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        PageResponse<ShiftResponse> response = shiftService.searchShiftForTechnician(technicianId, keyword, pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<ShiftResponse>>builder()
+                        .success(true)
+                        .message(ShiftConstants.MESSAGE_SUCCESS_SHOWING_SHIFT_LIST)
+                        .data(response)
+                        .build()
+        );
+    }
+
     @GetMapping(ShiftConstants.SHIFT_GET_BY_APPOINTMENT)
     @Operation(summary = "Lấy danh sách ca làm việc theo lịch hẹn", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Từ ID của lịch hẹn, hiển thị danh sách các ca làm việc")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
