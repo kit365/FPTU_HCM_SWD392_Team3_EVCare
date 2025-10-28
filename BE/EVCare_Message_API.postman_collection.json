@@ -1,0 +1,373 @@
+{
+	"info": {
+		"_postman_id": "evcare-message-api",
+		"name": "EVCare - Message API",
+		"description": "Collection để test các API nhắn tin của hệ thống EVCare",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "senderId",
+			"value": "",
+			"type": "string",
+			"description": "UUID của người gửi"
+		},
+		{
+			"key": "receiverId",
+			"value": "",
+			"type": "string",
+			"description": "UUID của người nhận"
+		},
+		{
+			"key": "messageId",
+			"value": "",
+			"type": "string",
+			"description": "UUID của tin nhắn"
+		}
+	],
+	"item": [
+		{
+			"name": "1. GET - Lấy danh sách Technicians",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/user/technicians",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"user",
+						"technicians"
+					]
+				},
+				"description": "Lấy danh sách technician để chọn người nhận tin nhắn"
+			}
+		},
+		{
+			"name": "2. POST - Gửi tin nhắn",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Lưu messageId từ response",
+							"if (pm.response.code === 200) {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.data && jsonData.data.messageId) {",
+							"        pm.collectionVariables.set('messageId', jsonData.data.messageId);",
+							"        console.log('Đã lưu messageId:', jsonData.data.messageId);",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{senderId}}",
+						"type": "text",
+						"description": "UUID của người gửi"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"receiverId\": \"{{receiverId}}\",\n    \"content\": \"Xin chào, tôi muốn đặt lịch bảo dưỡng xe điện của tôi.\\n\\nBạn có thể liên hệ lại với tôi không?\",\n    \"attachmentUrl\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/messages",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				},
+				"description": "Gửi tin nhắn từ sender đến receiver"
+			}
+		},
+		{
+			"name": "3. GET - Lấy tất cả tin nhắn (của tôi)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{senderId}}",
+						"type": "text",
+						"description": "UUID của người dùng hiện tại"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages?page=0&pageSize=20",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0",
+							"description": "Số trang"
+						},
+						{
+							"key": "pageSize",
+							"value": "20",
+							"description": "Số lượng tin nhắn mỗi trang"
+						}
+					]
+				},
+				"description": "Lấy tất cả tin nhắn liên quan đến người dùng hiện tại (sender hoặc receiver)"
+			}
+		},
+		{
+			"name": "4. GET - Lấy cuộc trò chuyện",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{senderId}}",
+						"type": "text",
+						"description": "UUID của người dùng hiện tại"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages/conversation/{{receiverId}}?page=0&pageSize=50",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages",
+						"conversation",
+						"{{receiverId}}"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "pageSize",
+							"value": "50"
+						}
+					]
+				},
+				"description": "Lấy tất cả tin nhắn giữa 2 người dùng"
+			}
+		},
+		{
+			"name": "5. GET - Lấy chi tiết tin nhắn",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{senderId}}",
+						"type": "text",
+						"description": "UUID của người dùng hiện tại"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages/{{messageId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages",
+						"{{messageId}}"
+					]
+				},
+				"description": "Lấy thông tin chi tiết của một tin nhắn cụ thể"
+			}
+		},
+		{
+			"name": "6. GET - Lấy số tin nhắn chưa đọc (Receiver)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{receiverId}}",
+						"type": "text",
+						"description": "UUID của receiver"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages/unread-count",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages",
+						"unread-count"
+					]
+				},
+				"description": "Lấy tổng số tin nhắn chưa đọc của receiver"
+			}
+		},
+		{
+			"name": "7. PUT - Đánh dấu tin nhắn đã đọc",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{receiverId}}",
+						"type": "text",
+						"description": "UUID của receiver (người đọc)"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages/{{messageId}}/read",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages",
+						"{{messageId}}",
+						"read"
+					]
+				},
+				"description": "Đánh dấu tin nhắn là đã đọc (chỉ receiver mới có quyền)"
+			}
+		},
+		{
+			"name": "8. DELETE - Xóa tin nhắn",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{senderId}}",
+						"type": "text",
+						"description": "UUID của sender hoặc receiver"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages/{{messageId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages",
+						"{{messageId}}"
+					]
+				},
+				"description": "Xóa tin nhắn (soft delete, chỉ sender hoặc receiver mới có quyền)"
+			}
+		},
+		{
+			"name": "9. POST - Gửi reply (Receiver trả lời)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Lưu messageId từ response",
+							"if (pm.response.code === 200) {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.data && jsonData.data.messageId) {",
+							"        pm.collectionVariables.set('messageId', jsonData.data.messageId);",
+							"        console.log('Đã lưu messageId:', jsonData.data.messageId);",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{receiverId}}",
+						"type": "text",
+						"description": "UUID của receiver (người trả lời)"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"receiverId\": \"{{senderId}}\",\n    \"content\": \"Cảm ơn bạn đã liên hệ! Tôi sẽ kiểm tra lịch và phản hồi lại sớm nhất có thể.\",\n    \"attachmentUrl\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/messages",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages"
+					]
+				},
+				"description": "Receiver trả lời lại tin nhắn"
+			}
+		},
+		{
+			"name": "10. GET - Lấy tất cả tin nhắn (Receiver)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "user-id",
+						"value": "{{receiverId}}",
+						"type": "text",
+						"description": "UUID của receiver"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/messages?page=0&pageSize=20",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"messages"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "pageSize",
+							"value": "20"
+						}
+					]
+				},
+				"description": "Receiver xem tất cả tin nhắn của mình"
+			}
+		}
+	]
+}
+

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="dc65e994-3e8b-4837-87a9-87cfaf3e0a92" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/MaintenanceManagementConstants.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/MaintenanceRecordConstants.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/controller/MaintenanceManagementController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/controller/MaintenanceRecordController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/appointment/UpdationCustomerAppointmentRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/maintain_record/CreationMaintenanceRecordRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/maintain_record/UpdationMaintenanceRecordRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/maintenance_management/CreationMaintenanceManagementRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/maintenance_management/UpdationMaintenanceManagementRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/response/MaintenanceManagementResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/response/MaintenanceRecordResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/MaintenanceManagementEntity.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/MaintenanceRecordEntity.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/enums/MaintenanceManagementStatusEnum.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/exception/OptimisticLockException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/mapper/MaintenanceManagementMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/mapper/MaintenanceRecordMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/repository/MaintenanceManagementRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/repository/MaintenanceRecordRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/MaintenanceCostService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/MaintenanceManagementService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/MaintenanceRecordService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/MaintenanceCostServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/MaintenanceManagementServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/MaintenanceRecordServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/AppointmentConstants.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/AppointmentConstants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/ServiceTypeConstants.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/ServiceTypeConstants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/UserConstants.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/UserConstants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/VehiclePartConstants.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/constants/VehiclePartConstants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/controller/AppointmentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/controller/AppointmentController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/controller/ServiceTypeController.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/controller/ServiceTypeController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/appointment/UpdationAppointmentRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/request/appointment/UpdationAppointmentRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/response/VehiclePartResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/dto/response/VehiclePartResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/AppointmentEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/AppointmentEntity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/ServiceTypeEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/ServiceTypeEntity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/VehiclePartEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/entity/VehiclePartEntity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/exception/GlobalExceptionHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/mapper/AppointmentMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/mapper/AppointmentMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/repository/AppointmentRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/repository/AppointmentRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/repository/ServiceTypeRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/repository/ServiceTypeRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/AppointmentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/AppointmentService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/ServiceTypeService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/ServiceTypeService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/VehiclePartService.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/service/VehiclePartService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/AppointmentServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/AppointmentServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/ServiceTypeServiceimpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/ServiceTypeServiceimpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/VehiclePartServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/BE/src/main/java/com/fpt/evcare/serviceimpl/VehiclePartServiceImpl.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;PhuJs412&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/kit365/FPTU_HCM_SWD392_Team3_EVCare.git&quot;,
+    &quot;accountId&quot;: &quot;4943668a-1cf0-4507-93a6-b3f5b12f34a3&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="32jAtmXFd469euJg9rFrrZNQ0JB" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "feature/service",
+    "last_opened_file_path": "C:/EVCare - Electric Vehicle Care Project - SWD",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.25410.129" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-IU-251.25410.129" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="dc65e994-3e8b-4837-87a9-87cfaf3e0a92" name="Changes" comment="" />
+      <created>1757923825665</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1757923825665</updated>
+      <workItem from="1757923827224" duration="28000" />
+      <workItem from="1761406936274" duration="12000" />
+      <workItem from="1761409822407" duration="14000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

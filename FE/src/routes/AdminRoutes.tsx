@@ -36,7 +36,7 @@ import { ShiftCreate } from "../pages/admin/shift/ShiftCreate";
 import ShiftEdit from "../pages/admin/shift/ShiftEdit";
 import ShiftDetail from "../pages/admin/shift/ShiftDetail";
 import Warranty from "../pages/admin/warranty_and_shift/Warranty";
-
+import { MessagePage } from "../pages/message/MessagePage";
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "setting", element: <SettingPage /> },
@@ -75,9 +75,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "shift/edit/:id", element: <ShiftEdit/> },
     { path: "shift/view/:id", element: <ShiftDetail/> },
     { path: "warranty", element: <Warranty/> },
-
+    { path: "message", element: <MessagePage /> },
 ];
-
 export const AuthAdminRoutes = [
     { path: "login", element: <LoginPage /> },
 ];

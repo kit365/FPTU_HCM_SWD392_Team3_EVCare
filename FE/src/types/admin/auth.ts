@@ -4,6 +4,7 @@ export interface LoginRequest {
 }
 export interface LoginResponse {
     token: string;
+    refreshToken: string;
     authenticated: boolean;
 }
 export interface RegisterUserRequest {
@@ -20,4 +21,3 @@ export interface RegisterUserResponse {
     token: string;
     refreshToken: string;
 }
-

@@ -30,8 +30,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf
+                        .disable() // Disable CSRF completely for WebSocket support
+                )
                 .authorizeHttpRequests(auth -> auth
+                        // WebSocket endpoints
+                        .requestMatchers("/ws/**", "/ws/info", "/app/**").permitAll()
                         // Swagger endpoints - MUST be first
                         .requestMatchers(
                                 "/v3/api-docs/**",
@@ -52,7 +56,6 @@ public class SecurityConfig {
                                 "/api/v1/auth/**",
                                 "/api/v1/forgot-password/**"
                         ).permitAll()
-                        // Protected auth endpoints (cần đăng nhập)
                         // OAuth2 user info endpoint (cần OAuth2 authentication)
                         .requestMatchers(AuthConstants.GET_USER_INFO).authenticated()
                         // All other requests need authentication
