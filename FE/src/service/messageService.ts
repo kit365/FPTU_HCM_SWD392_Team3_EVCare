@@ -5,6 +5,7 @@ import type {
   CreationMessageRequest,
   PageResponse
 } from "../types/message.types";
+import type { UserResponse } from "../types/user.types";
 import { apiClient } from "./api";
 const API_BASE = `${API_BASE_URL}/messages`;
 export const messageService = {
@@ -118,6 +119,15 @@ export const messageService = {
           "user-id": userId
         }
       }
+    );
+    return response;
+  },
+  /**
+   * Lấy danh sách nhân viên có sẵn
+   */
+  getAvailableStaff: async () => {
+    const response = await apiClient.get<ApiResponse<UserResponse[]>>(
+      `${API_BASE}/staff/available`
     );
     return response;
   }

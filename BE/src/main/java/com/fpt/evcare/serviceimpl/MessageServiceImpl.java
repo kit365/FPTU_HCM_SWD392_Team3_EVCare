@@ -3,12 +3,15 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.MessageEntity;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.MessageStatusEnum;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UnauthorizedException;
 import com.fpt.evcare.mapper.MessageMapper;
+import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.MessageRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.MessageService;
@@ -35,6 +38,7 @@ public class MessageServiceImpl implements MessageService {
     MessageRepository messageRepository;
     UserRepository userRepository;
     MessageMapper messageMapper;
+    UserMapper userMapper;
 
     @Override
     @Transactional
@@ -199,6 +203,28 @@ public class MessageServiceImpl implements MessageService {
                 .totalElements(messagePage.getTotalElements())
                 .totalPages(messagePage.getTotalPages())
                 .build();
+    }
+
+    @Override
+    public List<UserResponse> getAvailableStaff() {
+        log.info("Lấy danh sách nhân viên có sẵn");
+        
+        // Get all staff and admin users (excluding customers)
+        List<UserEntity> staffUsers = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.STAFF);
+        List<UserEntity> adminUsers = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.ADMIN);
+        
+        // Combine both lists
+        List<UserEntity> allStaff = new java.util.ArrayList<>();
+        allStaff.addAll(staffUsers);
+        allStaff.addAll(adminUsers);
+        
+        // Map to UserResponse
+        List<UserResponse> response = allStaff.stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
+        
+        log.info("Tìm thấy {} nhân viên có sẵn", response.size());
+        return response;
     }
 }
 

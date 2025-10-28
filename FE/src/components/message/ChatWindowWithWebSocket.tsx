@@ -1,65 +1,159 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useWebSocket } from '../../hooks/useWebSocket';
 import type { MessageResponse, WebSocketMessageRequest } from '../../types/message.types';
+import { messageService } from '../../service/messageService';
 import { notify } from '../admin/common/Toast';
+
 interface ChatWindowProps {
   currentUserId: string;
   otherUserId: string;
   otherUserName: string;
+  sendMessage?: (request: WebSocketMessageRequest) => void;
+  markAsRead?: (request: { messageId: string; userId: string }) => void;
+  isConnected?: boolean;
+  onWebSocketMessage?: MessageResponse | null;
 }
 export function ChatWindowWithWebSocket({
   currentUserId,
   otherUserId,
   otherUserName,
+  sendMessage,
+  markAsRead,
+  isConnected = false,
+  onWebSocketMessage,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { isConnected, sendMessage, markAsRead } = useWebSocket({
-    userId: currentUserId,
-    onMessage: (message: MessageResponse) => {
-      console.log('📨 New message received:', message);
-      // Only add if it's part of current conversation
-      if (
-        (message.senderId === otherUserId && message.receiverId === currentUserId) ||
-        (message.senderId === currentUserId && message.receiverId === otherUserId)
-      ) {
+  // Load conversation history when conversation changes
+  useEffect(() => {
+    if (otherUserId) {
+      loadConversationHistory();
+    }
+  }, [currentUserId, otherUserId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Listen for new messages from parent component's WebSocket
+  useEffect(() => {
+    if (onWebSocketMessage) {
+      console.log('📨 ====== ChatWindow: Received new message from WebSocket ======');
+      console.log('📨 Full message:', JSON.stringify(onWebSocketMessage, null, 2));
+      console.log('📨 Current userId:', currentUserId);
+      console.log('📨 Other userId:', otherUserId);
+      console.log('📨 Message senderId:', onWebSocketMessage.senderId);
+      console.log('📨 Message receiverId:', onWebSocketMessage.receiverId);
+      
+      // Check if message is part of current conversation
+      const isFromSelectedUser = onWebSocketMessage.senderId === otherUserId && onWebSocketMessage.receiverId === currentUserId;
+      const isToSelectedUser = onWebSocketMessage.senderId === currentUserId && onWebSocketMessage.receiverId === otherUserId;
+      
+      console.log('📨 isFromSelectedUser:', isFromSelectedUser);
+      console.log('📨 isToSelectedUser:', isToSelectedUser);
+      
+      if (isFromSelectedUser || isToSelectedUser) {
         setMessages(prev => {
-          // Check if message already exists
-          const exists = prev.some(m => m.messageId === message.messageId);
-          if (exists) return prev;
-          return [...prev, message];
+          // Check if this is a real message replacing a temporary one
+          const tempMessageIndex = prev.findIndex(m => 
+            m.messageId.startsWith('temp-') && 
+            m.senderId === onWebSocketMessage.senderId && 
+            m.content === onWebSocketMessage.content
+          );
+          
+          if (tempMessageIndex !== -1) {
+            console.log('✅ Found temporary message to replace at index:', tempMessageIndex);
+            const newMessages = [...prev];
+            newMessages[tempMessageIndex] = onWebSocketMessage;
+            console.log('✅ Replaced temporary message with real message');
+            return newMessages;
+          }
+          
+          // Check if message already exists (by real messageId)
+          const exists = prev.some(m => !m.messageId.startsWith('temp-') && m.messageId === onWebSocketMessage.messageId);
+          if (exists) {
+            console.log('⚠️ Message already exists, skipping duplicate');
+            return prev;
+          }
+          console.log('✅ Adding new message to conversation');
+          return [...prev, onWebSocketMessage];
         });
+        
         // Mark as read if I'm the receiver
-        if (message.receiverId === currentUserId && !message.isRead) {
+        if (onWebSocketMessage.receiverId === currentUserId && !onWebSocketMessage.isRead && markAsRead) {
           markAsRead({
-            messageId: message.messageId,
+            messageId: onWebSocketMessage.messageId,
             userId: currentUserId
           });
         }
       }
-    },
-    onError: (error) => {
-      console.error('WebSocket error:', error);
-      notify.error(error);
     }
-  });
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  }, [onWebSocketMessage, currentUserId, otherUserId, markAsRead]);
+
+  const loadConversationHistory = async () => {
+    try {
+      setLoadingMessages(true);
+      const response = await messageService.getConversation(currentUserId, otherUserId, 0, 100);
+      console.log('📦 ChatWindow - Load conversation response:', response);
+      
+      if (response?.data?.success) {
+        const data = response.data.data;
+        
+        // Check if data is directly an array or wrapped in PageResponse
+        let conversationMessages: MessageResponse[] = [];
+        if (Array.isArray(data)) {
+          conversationMessages = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          conversationMessages = data.data;
+        }
+        
+        console.log('📨 ChatWindow - Loaded messages:', conversationMessages.length);
+        
+        // Reverse messages so newest is at bottom (chronological order)
+        const sortedMessages = conversationMessages.reverse();
+        setMessages(sortedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+      notify.error('Không thể tải lịch sử tin nhắn');
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   const handleSend = async () => {
-    if (!inputMessage.trim() || sending || !isConnected) return;
+    if (!inputMessage.trim() || sending || !isConnected || !sendMessage) return;
     try {
       setSending(true);
+      
+      const messageContent = inputMessage.trim();
+      
+      // Add temporary message to UI immediately for better UX
+      const tempMessage: MessageResponse = {
+        messageId: `temp-${Date.now()}`,
+        senderId: currentUserId,
+        senderName: 'You',
+        receiverId: otherUserId,
+        receiverName: otherUserName,
+        content: messageContent,
+        isRead: false,
+        sentAt: new Date().toISOString(),
+        status: 'SENT' as any,
+        attachmentUrl: undefined
+      };
+      
+      console.log('📤 Adding temporary message to UI:', tempMessage);
+      setMessages(prev => [...prev, tempMessage]);
+      
       // Send via WebSocket
       const request: WebSocketMessageRequest = {
         senderId: currentUserId,
         receiverId: otherUserId,
-        content: inputMessage.trim(),
+        content: messageContent,
       };
       sendMessage(request);
       setInputMessage('');
