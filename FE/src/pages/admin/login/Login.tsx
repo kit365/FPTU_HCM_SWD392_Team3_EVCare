@@ -1,4 +1,4 @@
-import { useAuth } from "../../../hooks/useAuth";
+import { useRoleBasedAuth } from "../../../hooks/useRoleBasedAuth";
 import type { LoginRequest } from "../../../types/admin/auth";
 import { useForm } from "react-hook-form";
 import {
@@ -31,7 +31,12 @@ export const LoginPage = () => {
         formState: { errors },
     } = useForm<LoginRequest>({ mode: "onBlur" });
 
-    const { login, isLoading } = useAuth();
+    const { login, isLoading } = useRoleBasedAuth({
+        allowedRoles: ['ADMIN', 'STAFF', 'TECHNICIAN'],
+        redirectPath: '/admin',
+        errorMessage: 'Tài khoản khách hàng không thể đăng nhập vào trang quản trị. Vui lòng đăng nhập qua trang khách hàng.'
+    });
+    
     const [showPassword, setShowPassword] = useState(false);
     const theme = useTheme();
     const isMdUp = useMediaQuery(theme.breakpoints.up("md"));

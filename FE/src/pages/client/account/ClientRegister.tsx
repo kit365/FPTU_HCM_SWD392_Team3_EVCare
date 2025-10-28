@@ -1,16 +1,17 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
+import { Link } from 'react-router-dom';
+import { useRoleBasedRegister } from '../../../hooks/useRoleBasedRegister';
 import { useForm } from 'react-hook-form';
 import type { RegisterUserRequest } from '../../../types/admin/auth';
 const ClientRegister = () => {
-  const { registerUser, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const { registerAndLogin, isLoading } = useRoleBasedRegister({
+    allowedRoles: ['CUSTOMER', 'CLIENT'],
+    redirectPath: '/client',
+    errorMessage: 'Tài khoản quản trị không thể đăng ký qua trang khách hàng. Vui lòng đăng ký qua trang quản trị.'
+  });
+  
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterUserRequest>();
   const onSubmit = async (values: RegisterUserRequest) => {
-    const response = await registerUser(values);
-    if (response.data.success === true) {
-      navigate("/client/login");
-    }
+    await registerAndLogin(values);
   };
 
   return (
@@ -101,7 +102,7 @@ const ClientRegister = () => {
             {/* Submit Button */}
             <div className="ant-form-item">
               <button type="submit" className="ant-btn ant-btn-primary w-full text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-base font-medium" style={{height: 40, fontSize: 16}} disabled={isLoading}>
-                {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
+                {isLoading ? 'Đang đăng ký và đăng nhập...' : 'Đăng ký và đăng nhập'}
               </button>
             </div>
           </form>
