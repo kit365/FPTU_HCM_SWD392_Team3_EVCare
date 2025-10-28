@@ -1,7 +1,6 @@
 package com.fpt.evcare.initializer;
 import com.fpt.evcare.entity.*;
 import com.fpt.evcare.repository.*;
-import com.fpt.evcare.enums.AppointmentStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -33,12 +32,12 @@ public class ServiceTypeVehiclePartData implements CommandLineRunner {
         List<ServiceTypeEntity> serviceTypes = serviceTypeRepository.findAll()
                 .stream()
                 .filter(s -> s.getParentId() != null && !s.getIsDeleted())
-                .collect(Collectors.toList());
+                .toList();
 
         List<VehiclePartEntity> allParts = vehiclePartRepository.findAll()
                 .stream()
                 .filter(p -> !p.getIsDeleted())
-                .collect(Collectors.toList());
+                .toList();
 
         if (serviceTypes.isEmpty() || allParts.isEmpty()) {
             log.warn("❌ Không có service type hoặc vehicle part để khởi tạo ServiceTypeVehiclePart.");
@@ -61,7 +60,7 @@ public class ServiceTypeVehiclePartData implements CommandLineRunner {
             Collections.shuffle(matchingParts);
             List<VehiclePartEntity> selectedParts = matchingParts.stream()
                     .limit(new Random().nextInt(2) + 2)
-                    .collect(Collectors.toList());
+                    .toList();
 
             for (VehiclePartEntity part : selectedParts) {
                 ServiceTypeVehiclePartEntity entity = ServiceTypeVehiclePartEntity.builder()

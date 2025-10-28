@@ -6,9 +6,13 @@ type User = {
     userId: string,
     username: string,
     email: string,
-    numberPhone: string,
-    isDeleted: boolean,
-    active: boolean,
+    fullName?: string,
+    numberPhone?: string,
+    address?: string,
+    roleName?: string[],
+    avatarUrl?: string,
+    isDeleted?: boolean,
+    isActive?: boolean,
 } | null;
 
 // Định nghĩa type cho context
@@ -39,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         try {
             const response = await apiClient.post('/auth/user/token', { token: token });
+            console.log("response", response);
             setUser(response?.data?.success ? response.data.data : null);
         } catch {
             setUser(null);

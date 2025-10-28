@@ -104,6 +104,14 @@ public class AppointmentConstants {
     public static final String LOG_SUCCESS_SHOWING_APPOINTMENT_CANCELLED_STATUS = "Lấy trạng thái CANCELLED của cuộc hẹn thành công: {}";
     public static final String LOG_SUCCESS_SHOWING_APPOINTMENT_IN_PROGRESS_STATUS = "Lấy trạng thái IN_PROGRESS của cuộc hẹn thành công: {}";
     public static final String LOG_SUCCESS_SHOWING_SERVICE_MODE_LIST = "Lấy danh sách chế độ dịch vụ cuộc hen thành công: {}";
+    
+    // Auto-create Shift Logs
+    public static final String LOG_INFO_AUTO_CREATING_SHIFT = "Auto-creating shift for appointment: {}";
+    public static final String LOG_INFO_TOTAL_SERVICE_DURATION = "Total service duration: {} minutes from {} services";
+    public static final String LOG_WARN_NO_SERVICES_DEFAULT_DURATION = "No services found, using default 120 minutes";
+    public static final String LOG_INFO_CALCULATED_SHIFT_TIME = "Calculated shift time: {} -> {} ({} hours)";
+    public static final String LOG_SUCCESS_AUTO_CREATED_SHIFT = "Successfully auto-created shift {} for appointment {} (endTime: {}, totalHours: {})";
+    public static final String LOG_ERR_AUTO_CREATING_SHIFT = "Error auto-creating shift for appointment {}: {}";
 
 
 

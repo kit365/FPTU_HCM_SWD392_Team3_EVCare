@@ -34,8 +34,12 @@ public class ServiceTypeVehiclePartConstants {
     public static final String LOG_SUCCESS_UPDATING_SERVICE_TYPE_VEHICLE_PART = "Cập nhật loại dịch vụ - phụ tùng thành công: {}";
     public static final String LOG_SUCCESS_SHOWING_SERVICE_TYPE_VEHICLE_PART = "Lấy loại dịch vụ - phụ tùng thành công: {}";
     public static final String LOG_SUCCESS_CREATING_SERVICE_TYPE_VEHICLE_PART = "Tạo loại dịch vụ - phụ tùng thành công: {}";
-    public static final String LOG_SUCCESS_DELETING_SERVICE_TYPE_VEHICLE_PART = "Xóa loại dịch vụ - phụ t ùng thành công: {}";
+    public static final String LOG_SUCCESS_DELETING_SERVICE_TYPE_VEHICLE_PART = "Xóa loại dịch vụ - phụ tùng thành công: {}";
     public static final String LOG_SUCCESS_RESTORING_SERVICE_TYPE_VEHICLE_PART = "Khôi phục loại dịch vụ - phụ tùng thành công: {}";
+    public static final String LOG_SUCCESS_RETRIEVED_VEHICLE_PARTS_BY_SERVICE_TYPE = "Successfully retrieved vehicle parts for service type: {}";
+    
+    //Success messages - Additional
+    public static final String MESSAGE_SUCCESS_RETRIEVED_VEHICLE_PARTS = "Lấy danh sách phụ tùng thành công";
 
     //Base URL
     public static final String BASE_URL = EndpointConstants.V1.API + "/service-type/vehicle-part";

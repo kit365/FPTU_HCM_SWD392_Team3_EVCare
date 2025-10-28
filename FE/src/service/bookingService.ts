@@ -7,6 +7,7 @@ import type {
   ServiceModeResponse,
   CreateAppointmentRequest,
   CreateAppointmentResponse,
+  UserAppointmentResponse,
 } from "../types/booking.types";
 import { apiClient } from "./api";
 
@@ -36,7 +37,7 @@ export const bookingService = {
   // Get service modes
   getServiceModes: async () => {
     const response = await apiClient.get<ServiceModeResponse>(
-      `${API_BASE}/appointment/status/{id}`
+      `${API_BASE}/appointment/service-mode/`
     );
     console.log("GET SERVICE MODES RESPONSE:", response);
     return response;
@@ -49,6 +50,16 @@ export const bookingService = {
       data
     );
     console.log("CREATE APPOINTMENT RESPONSE:", response);
+    return response;
+  },
+
+  // Get user appointments
+  getUserAppointments: async (userId: string, params: { page: number; pageSize: number; keyword?: string }) => {
+    const response = await apiClient.get<UserAppointmentResponse>(
+      `${API_BASE}/appointment/user/${userId}`,
+      { params }
+    );
+    console.log("GET USER APPOINTMENTS RESPONSE:", response);
     return response;
   },
 };

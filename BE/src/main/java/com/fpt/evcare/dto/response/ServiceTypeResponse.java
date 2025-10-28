@@ -23,6 +23,8 @@ public class ServiceTypeResponse implements Serializable {
     String serviceName;
 
     String description;
+    
+    Integer estimatedDurationMinutes; 
 
     UUID parentId;
 

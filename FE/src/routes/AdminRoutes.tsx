@@ -30,7 +30,11 @@ import { VehicleProfileList } from "../pages/admin/vehicle-profile/VehicleProfil
 import { VehicleProfileCreate } from "../pages/admin/vehicle-profile/VehicleProfileCreate";
 import { VehicleProfileEdit } from "../pages/admin/vehicle-profile/VehicleProfileEdit";
 import { VehicleProfileDetail } from "../pages/admin/vehicle-profile/VehicleProfileDetail";
-import Shift from "../pages/admin/warranty_and_shift/Shift";
+import ShiftList from "../pages/admin/shift/ShiftList";
+import { ShiftAssign } from "../pages/admin/shift/ShiftAssign";
+import { ShiftCreate } from "../pages/admin/shift/ShiftCreate";
+import ShiftEdit from "../pages/admin/shift/ShiftEdit";
+import ShiftDetail from "../pages/admin/shift/ShiftDetail";
 import Warranty from "../pages/admin/warranty_and_shift/Warranty";
 
 export const AdminRoutes: RouteObject[] = [
@@ -65,7 +69,11 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
     { path: "appointment-manage", element: <AppointmentManage/> },
-    { path: "shift", element: <Shift/> },
+    { path: "shift", element: <ShiftList/> },
+    { path: "shift/assign/:id", element: <ShiftAssign/> },
+    { path: "shift/create", element: <ShiftCreate/> },
+    { path: "shift/edit/:id", element: <ShiftEdit/> },
+    { path: "shift/view/:id", element: <ShiftDetail/> },
     { path: "warranty", element: <Warranty/> },
 
 ];

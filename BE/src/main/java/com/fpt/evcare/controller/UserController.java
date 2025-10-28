@@ -139,10 +139,25 @@ public class UserController {
                 );
     }
 
+    @GetMapping(UserConstants.USER_BY_ROLE)
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getUsersByRole(
+            @RequestParam(value = "roleName") String roleName
+    ) {
+        java.util.List<UserResponse> userResponses = userService.getUsersByRole(roleName);
+
+        return ResponseEntity
+                .ok(ApiResponse.<java.util.List<UserResponse>>builder()
+                        .success(true)
+                        .message(UserConstants.MESSAGE_SUCCESS_SHOWING_USER)
+                        .data(userResponses)
+                        .build()
+                );
+    }
+
     @GetMapping(UserConstants.TECHNICIANS)
     public ResponseEntity<ApiResponse<java.util.List<TechnicianResponse>>> getTechnicians() {
         java.util.List<TechnicianResponse> technicians = userService.getTechnicians();
-        
+
         return ResponseEntity
                 .ok(ApiResponse.<java.util.List<TechnicianResponse>>builder()
                         .success(true)

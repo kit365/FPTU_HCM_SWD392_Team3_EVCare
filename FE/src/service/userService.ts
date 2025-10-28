@@ -72,6 +72,14 @@ export const userService = {
       `/user/profile?userInformation=${encodeURIComponent(userInformation)}`
     );
     return response.data.data;
+  },
+
+  // Get users by role
+  getUsersByRole: async (roleName: string): Promise<UserResponse[]> => {
+    const response = await apiClient.get<ApiResponse<UserResponse[]>>(
+      `/user/by-role?roleName=${encodeURIComponent(roleName)}`
+    );
+    return response.data.data;
   }
 };
 

@@ -161,3 +161,67 @@ export interface CreateAppointmentResponse {
   timestamp: string;
   errorCode?: string;
 }
+
+// User Response
+export interface UserResponse {
+  userId: string;
+  username: string;
+  email: string;
+  address: string;
+  fullName: string;
+  numberPhone: string;
+  avatarUrl: string;
+  technicianSkills: string;
+  isActive: boolean;
+  lastLogin: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  roleName: string[];
+}
+
+// User Appointment Response
+export interface UserAppointment {
+  appointmentId: string;
+  customer: UserResponse;
+  customerFullName: string;
+  customerPhoneNumber: string;
+  customerEmail: string;
+  assignee: UserResponse;
+  serviceMode: "STATIONARY" | "MOBILE";
+  status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  vehicleTypeResponse: VehicleType;
+  vehicleNumberPlate: string;
+  vehicleKmDistances: string;
+  userAddress: string;
+  scheduledAt: string;
+  quotePrice: number;
+  notes: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  technicianResponses: UserResponse[];
+  serviceTypeResponses: ServiceType[];
+}
+
+export interface UserAppointmentListData {
+  data: UserAppointment[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+export interface UserAppointmentResponse {
+  success: boolean;
+  message: string;
+  data: UserAppointmentListData;
+  timestamp: string;
+  errorCode?: string;
+}
