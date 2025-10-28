@@ -5,6 +5,7 @@ import { notify } from '../admin/common/Toast';
 interface MessageListProps {
   userId: string;
   onSelectConversation: (otherUserId: string, otherUserName: string) => void;
+  refreshTrigger?: number; // Trigger to refresh the list
 }
 interface Conversation {
   otherUserId: string;
@@ -12,20 +13,62 @@ interface Conversation {
   lastMessage?: MessageResponse;
   unreadCount: number;
 }
-export function MessageList({ userId, onSelectConversation }: MessageListProps) {
+export function MessageList({ userId, onSelectConversation, refreshTrigger }: MessageListProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Load from localStorage on mount
+  useEffect(() => {
+    if (userId) {
+      const stored = localStorage.getItem(`conversations_${userId}`);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setConversations(parsed);
+          setLoading(false);
+          console.log('📦 MessageList - Restored from localStorage:', parsed.length);
+        } catch (error) {
+          console.error('Error parsing stored conversations:', error);
+        }
+      }
+    }
+  }, [userId]);
+  
+  // Save to localStorage whenever conversations change
+  useEffect(() => {
+    if (userId && conversations.length > 0) {
+      localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
+      console.log('💾 MessageList - Saved to localStorage:', conversations.length);
+    }
+  }, [conversations, userId]);
+  
   useEffect(() => {
     loadConversations();
-  }, [userId]);
+  }, [userId, refreshTrigger]); // Add refreshTrigger to dependencies
   const loadConversations = async () => {
     try {
       setLoading(true);
       const response = await messageService.getAllMessages(userId, 0, 100);
-      if (response?.data?.success && response?.data?.data?.content) {
+      
+      if (response?.data?.success) {
+        // ApiResponse structure: { success, data: PageResponse<T> }
+        // PageResponse structure: { data: MessageResponse[], page, size, totalElements, totalPages, last }
+        const data = response.data.data;
+        
+        // Check if data is directly an array or wrapped in PageResponse
+        let messages: MessageResponse[] = [];
+        if (Array.isArray(data)) {
+          messages = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          // PageResponse structure
+          messages = data.data;
+        }
+        
+        console.log('📨 MessageList - Loaded messages:', messages.length);
+        
         // Group messages by conversation
         const messagesByUser = new Map<string, Conversation>();
-        response.data.data.content.forEach((msg: MessageResponse) => {
+        messages.forEach((msg: MessageResponse) => {
           const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
           const otherUserName = msg.senderId === userId ? msg.receiverName : msg.senderName;
           if (!messagesByUser.has(otherUserId)) {

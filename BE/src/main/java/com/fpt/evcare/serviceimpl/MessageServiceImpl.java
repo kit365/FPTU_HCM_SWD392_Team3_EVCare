@@ -3,12 +3,15 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.MessageEntity;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.MessageStatusEnum;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UnauthorizedException;
 import com.fpt.evcare.mapper.MessageMapper;
+import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.MessageRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.MessageService;
@@ -35,6 +38,7 @@ public class MessageServiceImpl implements MessageService {
     MessageRepository messageRepository;
     UserRepository userRepository;
     MessageMapper messageMapper;
+    UserMapper userMapper;
 
     @Override
     @Transactional
@@ -199,6 +203,22 @@ public class MessageServiceImpl implements MessageService {
                 .totalElements(messagePage.getTotalElements())
                 .totalPages(messagePage.getTotalPages())
                 .build();
+    }
+
+    @Override
+    public List<UserResponse> getAvailableStaff() {
+        log.info("Lấy danh sách nhân viên có sẵn - chỉ lấy user có role STAFF");
+        
+        // Chỉ lấy user có role STAFF, không bao gồm ADMIN hay TECHNICIAN
+        List<UserEntity> staffUsers = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.STAFF);
+        
+        // Map to UserResponse
+        List<UserResponse> response = staffUsers.stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
+        
+        log.info("Tìm thấy {} nhân viên STAFF có sẵn", response.size());
+        return response;
     }
 }
 

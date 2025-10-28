@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../service/authService';
 import { notify } from '../components/admin/common/Toast';
@@ -16,10 +16,18 @@ export function useRoleBasedAuth({ allowedRoles, redirectPath, errorMessage }: U
   const [isLoading, setIsLoading] = useState(false);
   const { refreshUser, user } = useAuthContext();
   const navigate = useNavigate();
+  const hasShownNotification = useRef(false); // Flag to prevent multiple notifications
+
+  // Reset flag when user logs out
+  useEffect(() => {
+    if (!user) {
+      hasShownNotification.current = false;
+    }
+  }, [user]);
 
   // Kiểm tra role khi user thay đổi
   useEffect(() => {
-    if (user) {
+    if (user && !hasShownNotification.current) {
       const hasAllowedRole = user.roleName?.some((role: string) => allowedRoles.includes(role)) || 
                             (allowedRoles.includes('ADMIN') && user.isAdmin);
       
@@ -28,11 +36,13 @@ export function useRoleBasedAuth({ allowedRoles, redirectPath, errorMessage }: U
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        hasShownNotification.current = true; // Mark as shown
         notify.error(errorMessage);
         return;
       }
       
       // Role phù hợp, thông báo thành công và redirect
+      hasShownNotification.current = true; // Mark as shown
       notify.success('Đăng nhập thành công');
       navigate(redirectPath);
     }

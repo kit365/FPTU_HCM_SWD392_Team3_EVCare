@@ -5,6 +5,7 @@ import com.fpt.evcare.constants.MessageConstants;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -149,6 +150,22 @@ public class MessageController {
         return ResponseEntity.ok(
                 ApiResponse.<PageResponse<MessageResponse>>builder()
                         .success(true)
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping(MessageConstants.MESSAGE_AVAILABLE_STAFF)
+    @Operation(summary = "Lấy danh sách nhân viên có sẵn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy danh sách tất cả nhân viên có thể đường liên lạc")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAvailableStaff() {
+        
+        java.util.List<UserResponse> response = messageService.getAvailableStaff();
+        
+        return ResponseEntity.ok(
+                ApiResponse.<java.util.List<UserResponse>>builder()
+                        .success(true)
+                        .message("Lấy danh sách nhân viên thành công")
                         .data(response)
                         .build()
         );

@@ -37,6 +37,7 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = getJwtFromRequest(request);
+            log.info("🔐 Processing request: {} - JWT present: {}", request.getRequestURI(), jwt != null);
             if (StringUtils.hasText(jwt) && validateToken(jwt)) {
                 // Parse JWT và lấy claims
                 SignedJWT signedJWT = SignedJWT.parse(jwt);

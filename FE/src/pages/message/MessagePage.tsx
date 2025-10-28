@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { MessageList } from '../../components/message/MessageList';
 import { ChatWindowWithWebSocket } from '../../components/message/ChatWindowWithWebSocket';
@@ -6,6 +6,7 @@ import type { MessageResponse } from '../../types/message.types';
 import { messageService } from '../../service/messageService';
 import { notify } from '../../components/admin/common/Toast';
 import { useAuthContext } from '../../context/useAuthContext';
+
 export function MessagePage() {
   const { user } = useAuthContext();
   const userId = user?.userId || '';
@@ -13,37 +14,47 @@ export function MessagePage() {
   const [selectedOtherUserName, setSelectedOtherUserName] = useState<string>('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [isWebSocketReady, setIsWebSocketReady] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [latestMessage, setLatestMessage] = useState<MessageResponse | null>(null);
+  
+  // Create stable callbacks using useCallback
+  const handleWebSocketMessage = useCallback((message: MessageResponse) => {
+    console.log('🔔 MessagePage: WebSocket message received:', message);
+    
+    // Set latest message to trigger ChatWindow update
+    setLatestMessage(message);
+    
+    // Refresh message list when a new message is received
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+  
+  const handleUnreadCountUpdate = useCallback((count: number) => {
+    setUnreadCount(count);
+  }, []);
+  
+  const handleConnected = useCallback(() => {
+    console.log('WebSocket connected');
+    setIsWebSocketReady(true);
+  }, []);
+  
+  const handleDisconnected = useCallback(() => {
+    console.log('WebSocket disconnected');
+    setIsWebSocketReady(false);
+  }, []);
+  
+  const handleWebSocketError = useCallback((error: string) => {
+    console.error('WebSocket error:', error);
+    notify.error('Lỗi kết nối WebSocket');
+  }, []);
+  
   // WebSocket connection
   const { isConnected, error, sendMessage, markAsRead } = useWebSocket({
     userId,
-    onMessage: (message: MessageResponse) => {
-      console.log('New message received:', message);
-      // Handle real-time message updates
-      if (message.receiverId === userId) {
-        // Mark as read if it's the current conversation
-        if (message.senderId === selectedOtherUserId) {
-          markAsRead({
-            messageId: message.messageId,
-            userId
-          });
-        }
-      }
-    },
-    onUnreadCountUpdate: (count: number) => {
-      setUnreadCount(count);
-    },
-    onConnected: () => {
-      console.log('WebSocket connected');
-      setIsWebSocketReady(true);
-    },
-    onDisconnected: () => {
-      console.log('WebSocket disconnected');
-      setIsWebSocketReady(false);
-    },
-    onError: (error) => {
-      console.error('WebSocket error:', error);
-      notify.error('Lỗi kết nối WebSocket');
-    }
+    onMessage: handleWebSocketMessage,
+    onUnreadCountUpdate: handleUnreadCountUpdate,
+    onConnected: handleConnected,
+    onDisconnected: handleDisconnected,
+    onError: handleWebSocketError
   });
   useEffect(() => {
     loadUnreadCount();
@@ -101,7 +112,7 @@ export function MessagePage() {
           </div>
         </div>
         <div className="flex-1 overflow-hidden">
-          <MessageList userId={userId} onSelectConversation={handleSelectConversation} />
+          <MessageList userId={userId} onSelectConversation={handleSelectConversation} refreshTrigger={refreshTrigger} />
         </div>
       </div>
       {/* Chat window */}
@@ -111,6 +122,10 @@ export function MessagePage() {
             currentUserId={userId}
             otherUserId={selectedOtherUserId}
             otherUserName={selectedOtherUserName}
+            sendMessage={sendMessage}
+            markAsRead={markAsRead}
+            isConnected={isConnected}
+            onWebSocketMessage={latestMessage}
           />
         </div>
       ) : (
