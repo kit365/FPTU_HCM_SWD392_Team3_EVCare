@@ -95,8 +95,8 @@ export function NotificationBell() {
 
   return (
     <>
-      {/* Notification Bell Button */}
-      <div className="fixed bottom-24 right-6 z-50">
+      {/* Notification Bell Button - Higher than Chat Button */}
+      <div className="fixed bottom-32 right-6 z-50">
         <button
           onClick={toggleDropdown}
           className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center transition-all duration-200 hover:scale-105 relative"
@@ -116,7 +116,7 @@ export function NotificationBell() {
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="fixed bottom-40 right-6 z-40 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
+          className="fixed bottom-48 right-6 z-40 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
           style={{
             width: '420px',
             height: '600px',
