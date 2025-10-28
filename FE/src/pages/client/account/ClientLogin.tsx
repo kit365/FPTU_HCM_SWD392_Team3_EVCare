@@ -148,7 +148,7 @@ const ClientLogin = () => {
                     <Divider className="my-6">Hoặc</Divider>
 
                     <GoogleLoginButton 
-                        text="Đăng nhập với Google" 
+                        text="Đăng nhập bằng Google" 
                         fullWidth={true}
                     />
 

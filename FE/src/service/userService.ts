@@ -38,7 +38,15 @@ export const userService = {
   // Create new user
   create: async (data: CreationUserRequest): Promise<boolean> => {
     const response = await apiClient.post<ApiResponse<string>>('/user/', data);
-    return Boolean(response.data?.success);
+    
+    // If backend returns success: false, throw error to trigger catch block
+    if (!response.data?.success) {
+      const error = new Error(response.data?.message || 'Tạo người dùng thất bại');
+      (error as any).response = { data: response.data };
+      throw error;
+    }
+    
+    return true;
   },
 
   // Update user
@@ -47,7 +55,15 @@ export const userService = {
       `/user/${userId}`,
       data
     );
-    return Boolean(response.data?.success);
+    
+    // If backend returns success: false, throw error to trigger catch block
+    if (!response.data?.success) {
+      const error = new Error(response.data?.message || 'Cập nhật người dùng thất bại');
+      (error as any).response = { data: response.data };
+      throw error;
+    }
+    
+    return true;
   },
 
   // Delete (soft delete)
@@ -55,7 +71,15 @@ export const userService = {
     const response = await apiClient.delete<ApiResponse<string>>(
       `/user/${userId}`
     );
-    return Boolean(response.data?.success);
+    
+    // If backend returns success: false, throw error to trigger catch block
+    if (!response.data?.success) {
+      const error = new Error(response.data?.message || 'Xóa người dùng thất bại');
+      (error as any).response = { data: response.data };
+      throw error;
+    }
+    
+    return true;
   },
 
   // Restore deleted user
@@ -63,7 +87,15 @@ export const userService = {
     const response = await apiClient.patch<ApiResponse<string>>(
       `/user/restore/${userId}`
     );
-    return Boolean(response.data?.success);
+    
+    // If backend returns success: false, throw error to trigger catch block
+    if (!response.data?.success) {
+      const error = new Error(response.data?.message || 'Khôi phục người dùng thất bại');
+      (error as any).response = { data: response.data };
+      throw error;
+    }
+    
+    return true;
   },
 
   // Get user profile by email/username/phone
@@ -78,6 +110,14 @@ export const userService = {
   getUsersByRole: async (roleName: string): Promise<UserResponse[]> => {
     const response = await apiClient.get<ApiResponse<UserResponse[]>>(
       `/user/by-role?roleName=${encodeURIComponent(roleName)}`
+    );
+    return response.data.data;
+  },
+
+  // Get technicians (special endpoint with TechnicianResponse)
+  getTechnicians: async (): Promise<UserResponse[]> => {
+    const response = await apiClient.get<ApiResponse<UserResponse[]>>(
+      `/user/technicians`
     );
     return response.data.data;
   }

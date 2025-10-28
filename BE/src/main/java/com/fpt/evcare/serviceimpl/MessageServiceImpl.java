@@ -207,23 +207,17 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public List<UserResponse> getAvailableStaff() {
-        log.info("Lấy danh sách nhân viên có sẵn");
+        log.info("Lấy danh sách nhân viên có sẵn - chỉ lấy user có role STAFF");
         
-        // Get all staff and admin users (excluding customers)
+        // Chỉ lấy user có role STAFF, không bao gồm ADMIN hay TECHNICIAN
         List<UserEntity> staffUsers = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.STAFF);
-        List<UserEntity> adminUsers = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.ADMIN);
-        
-        // Combine both lists
-        List<UserEntity> allStaff = new java.util.ArrayList<>();
-        allStaff.addAll(staffUsers);
-        allStaff.addAll(adminUsers);
         
         // Map to UserResponse
-        List<UserResponse> response = allStaff.stream()
+        List<UserResponse> response = staffUsers.stream()
                 .map(userMapper::toResponse)
                 .collect(Collectors.toList());
         
-        log.info("Tìm thấy {} nhân viên có sẵn", response.size());
+        log.info("Tìm thấy {} nhân viên STAFF có sẵn", response.size());
         return response;
     }
 }

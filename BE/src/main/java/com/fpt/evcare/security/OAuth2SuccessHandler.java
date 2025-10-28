@@ -72,6 +72,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             
             userEntity = userRepository.save(userEntity);
             log.info("Created new user from Google OAuth2: {}", email);
+        } else {
+            // User already exists - update provider if not already set to GOOGLE
+            if (!"GOOGLE".equals(userEntity.getProvider())) {
+                userEntity.setProvider("GOOGLE");
+                userEntity = userRepository.save(userEntity);
+                log.info("Updated existing user provider to GOOGLE: {}", email);
+            }
         }
 
         // Generate JWT tokens for our system
@@ -88,9 +95,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String encodedEmail = UriUtils.encode(email, StandardCharsets.UTF_8);
         String encodedName = name != null ? UriUtils.encode(name, StandardCharsets.UTF_8) : "";
 
-        // Redirect to frontend with tokens as URL parameters
+        // Redirect directly to homepage with tokens (no intermediate callback page)
         String frontendCallbackUrl = String.format(
-            "http://localhost:5000/oauth2/callback?accessToken=%s&refreshToken=%s&email=%s&name=%s",
+            "http://localhost:5000/?googleAuth=true&accessToken=%s&refreshToken=%s&email=%s&name=%s",
             accessToken,
             refreshToken,
             encodedEmail,

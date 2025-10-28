@@ -1,13 +1,15 @@
+import { apiClient } from './api';
+import type { ApiResponse } from '../types/common';
 
-import { API_BASE_URL } from "../constants/apiConstants";
-import type { ApiResponse } from "../types/api";
-import { apiClient } from "./api";
-import type { RoleResponse } from "../types/admin/role";
-import { GET_ALL_ROLES } from "../constants/roleConstants";
+export interface RoleResponse {
+  roleId: string;
+  roleName: string;
+}
 
 export const roleService = {
-    getAllRole: async () => {
-        const response = await apiClient.get<ApiResponse<RoleResponse[]>>(`${API_BASE_URL}/${GET_ALL_ROLES}`);
-        return response;
-    },
+  // Get all roles
+  getAllRoles: async (): Promise<RoleResponse[]> => {
+    const response = await apiClient.get<ApiResponse<RoleResponse[]>>('/role/');
+    return response.data.data;
+  },
 };
