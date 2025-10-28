@@ -166,25 +166,69 @@ export const VehicleCreate = () => {
 
                     <div className="col-span-2">
                         <LabelAdmin htmlFor="image" content="Hình ảnh mẫu xe" />
-                        <input
-                            type="file"
-                            id="image"
-                            accept="image/*"
-                            {...register("image")}
-                            onChange={handleImageChange}
-                            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-                        />
-                        {errors.image && (
-                            <p className="text-red-500 text-[13px] mt-[4px]">{errors.image.message}</p>
-                        )}
-                        {previewImage && (
-                            <div className="mt-3">
-                                <img
-                                    src={previewImage}
-                                    alt="Preview"
-                                    className="w-[200px] h-[150px] object-cover rounded-md border"
+
+                        {/* Upload box */}
+                        <div
+                            className="relative flex flex-col items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-200 ease-in-out p-6"
+                        >
+                            {/* Input chỉ hiển thị khi chưa chọn ảnh */}
+                            {!previewImage && (
+                                <input
+                                    type="file"
+                                    id="image"
+                                    accept="image/*"
+                                    {...register("image")}
+                                    onChange={handleImageChange}
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                 />
-                            </div>
+                            )}
+
+                            {/* Khi chưa chọn ảnh */}
+                            {!previewImage && (
+                                <div className="flex flex-col items-center text-gray-500 z-0">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="w-12 h-12 mb-2 text-gray-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6h.1a5 5 0 010 10H7z"
+                                        />
+                                    </svg>
+                                    <p className="text-[14px] font-medium">Nhấn để chọn hình ảnh</p>
+                                    <p className="text-[12px] text-gray-400 mt-1">PNG, JPG, JPEG (tối đa 5MB)</p>
+                                </div>
+                            )}
+
+                            {/* Khi đã có ảnh */}
+                            {previewImage && (
+                                <div className="flex flex-col items-center">
+                                    <img
+                                        src={previewImage}
+                                        alt="Preview"
+                                        className="w-[220px] h-[160px] object-cover rounded-lg shadow-sm border"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPreviewImage(null);
+                                            setSelectedFile(null);
+                                        }}
+                                        className="mt-3 text-[13px] text-red-500 hover:underline cursor-pointer"
+                                    >
+                                        Xóa hình
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        {/* Error message */}
+                        {errors.image && (
+                            <p className="text-red-500 text-[13px] mt-[6px]">{errors.image.message}</p>
                         )}
                     </div>
 
