@@ -19,7 +19,7 @@ export const vehiclePartService = {
       pageSize: String(params.pageSize),
       ...(params.keyword ? { keyword: params.keyword } : {}),
       ...(params.vehicleTypeId ? { vehicleTypeId: params.vehicleTypeId } : {}),
-      ...(params.vehiclePartCategoryId ? { vehiclePartCategoryId: params.vehiclePartCategoryId } : {}),
+      ...(params.vehiclePartCategoryId ? { categoryId: params.vehiclePartCategoryId } : {}),
       ...(params.status ? { status: params.status } : {}),
     }).toString();
     

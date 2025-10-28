@@ -15,4 +15,5 @@ public class LoginResponse implements Serializable {
     boolean authenticated;
     String token;
     String refreshToken;
+    Boolean isAdmin; // true if user has ADMIN/STAFF/TECHNICIAN role (not CUSTOMER)
 }

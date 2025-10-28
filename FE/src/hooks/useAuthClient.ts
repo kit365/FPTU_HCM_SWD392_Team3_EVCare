@@ -33,12 +33,12 @@ export function useAuthClient() {
         try {
           await refreshUser(); // Gọi API lấy user và set vào context
           console.log("User info loaded successfully");
+          // Navigate to root, will auto-redirect based on role
+          navigate("/");
         } catch (userError) {
           console.error("Error loading user info:", userError);
           notify.error("Không thể tải thông tin người dùng");
         }
-        
-        navigate("/");
       } else {
         console.log("Login failed:", response?.data.message);
         notify.error(response?.data.message || "Đăng nhập thất bại");

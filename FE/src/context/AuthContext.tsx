@@ -12,6 +12,7 @@ type User = {
     isActive?: boolean,
     isDeleted?: boolean,
     roleName?: string[],
+    isAdmin?: boolean, 
 } | null;
 // Định nghĩa type cho context
 type AuthContextType = {
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     isActive: userData.isActive,
                     isDeleted: userData.isDeleted,
                     roleName: userData.roleName || [],
+                    isAdmin: userData.isAdmin || false, 
                 };
                 console.log("Mapped user:", mappedUser);
                 setUser(mappedUser);

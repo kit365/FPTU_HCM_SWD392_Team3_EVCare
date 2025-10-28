@@ -62,24 +62,24 @@ const ClientHeader = () => {
     }, [user?.userId]);
     const items: MenuProps['items'] = [
         {
-            label: <Link to={"/"}>Trang Chủ</Link>,
+            label: <Link to={"/client"}>Trang Chủ</Link>,
             key: 'homepage',
             icon: <HomeOutlined />,
         },
         {
-            label: <Link to={"service-booking"}>Đặt lịch</Link>,
+            label: <Link to={"/client/service-booking"}>Đặt lịch</Link>,
             key: 'booking',
             icon: <ScheduleOutlined />,
         },
         {
-            label: <Link to={"car-profile"}>Hồ sơ xe</Link>,
+            label: <Link to={"/client/car-profile"}>Hồ sơ xe</Link>,
             key: 'carprofile',
             icon: <IdcardOutlined />,
         },
         // Hiển thị menu Tin nhắn khi đã đăng nhập
         ...(user?.userId ? [{
             label: (
-                <Link to="/message">
+                <Link to="/client/message">
                     <Badge count={unreadCount} size="small">
                         Tin nhắn
                     </Badge>
@@ -102,7 +102,7 @@ const ClientHeader = () => {
             children: [
                 {
                     label: (
-                        <Link to="/message">
+                        <Link to="/client/message">
                             <Badge count={unreadCount} size="small">
                                 Tin nhắn
                             </Badge>
@@ -111,6 +111,11 @@ const ClientHeader = () => {
                     key: 'message',
                     icon: <MessageOutlined />,
                 },
+                // Show Admin Panel link if user is admin
+                ...(user.isAdmin ? [{
+                    label: <Link to="/admin/dashboard">🔧 Trang quản trị</Link>,
+                    key: 'admin-panel',
+                }] : []),
                 {
                     label: 'Đăng xuất',
                     key: 'logout',

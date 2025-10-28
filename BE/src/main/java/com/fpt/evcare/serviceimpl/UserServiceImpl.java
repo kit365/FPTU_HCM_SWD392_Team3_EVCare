@@ -57,6 +57,7 @@ public class UserServiceImpl implements UserService {
 
         UserResponse response = userMapper.toResponse(user);
         response.setRoleName(roleNames);
+        response.setIsAdmin(isAdminRole(roleNames));
 
         log.info(UserConstants.LOG_SUCCESS_SHOWING_USER);
         return response;
@@ -85,6 +86,7 @@ public class UserServiceImpl implements UserService {
                 }
             }
             response.setRoleName(roleNames);
+            response.setIsAdmin(isAdminRole(roleNames));
             return response;
         }).getContent();
 
@@ -101,38 +103,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public PageResponse<EmployeeResponse> findAllEmployee(Pageable pageable, String keyword) {
         return null;
-//        Page<UserEntity> usersPage;
-//        if (keyword == null || keyword.trim().isEmpty()) {
-//            usersPage = userRepository.findByIsDeletedFalse(pageable);
-//        } else {
-//            usersPage = userRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword.trim(), pageable);
-//        }
-//
-//        if (usersPage.isEmpty()) {
-//            log.error(UserConstants.LOG_ERR_USER_LIST_NOT_FOUND);
-//            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_LIST_NOT_FOUND);
-//        }
-//
-//        List<EmployeeResponse> userResponses = usersPage.map(user -> {
-//            EmployeeResponse response = userMapper.toResponse(user);
-//            List<String> roleNames = new ArrayList<>();
-//            if (user.getRoles() != null) {
-//                for (RoleEntity role : user.getRoles()) {
-//                    roleNames.add(role.getRoleName().toString());
-//                }
-//            }
-//            response.setRoleName(roleNames);
-//            return response;
-//        }).getContent();
-//
-//        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER_LIST);
-//        return PageResponse.<EmployeeResponse>builder()
-//                .data(userResponses)
-//                .page(usersPage.getNumber())
-//                .size(usersPage.getSize())
-//                .totalElements(usersPage.getTotalElements())
-//                .totalPages(usersPage.getTotalPages())
-//                .build();
+
     }
 
     @Override
@@ -314,7 +285,7 @@ public class UserServiceImpl implements UserService {
                         .userId(technician.getUserId())
                         .fullName(technician.getFullName())
                         .build())
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -358,5 +329,12 @@ public class UserServiceImpl implements UserService {
                     errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
             }
             if(!errors.isEmpty()) throw new UserValidationException(String.join(", ", errors));
+    }
+
+    private boolean isAdminRole(List<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return false;
+        }
+        return roleNames.stream().anyMatch(role -> !role.equals("CUSTOMER"));
     }
 }

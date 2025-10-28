@@ -6,27 +6,10 @@ import type {
 } from '../types/service-type.types';
 import { apiClient } from './api';
 
-// ServiceType Service - quản lý loại dịch vụ
-// Align with BE ServiceTypeController endpoints:
-// BASE: /v1/api/service-type
-// GET /{id}, POST /, PATCH /{id}, DELETE /{id}, PATCH /restore/{id}
-// GET /?page=0&pageSize=10&keyword= (search with pagination)
-export const serviceTypeService = {
-  // Search with pagination
-  search: async (params: { page: number; pageSize: number; keyword?: string }) => {
-    const query = new URLSearchParams({
-      page: String(params.page),
-      pageSize: String(params.pageSize),
-      ...(params.keyword ? { keyword: params.keyword } : {}),
-    }).toString();
 
-    const response = await apiClient.get<ApiResponse<{
-      data: ServiceTypeResponse[];
-      totalPages: number;
-      totalElements: number;
-    }>>(`/service-type/?${query}`);
-    return response.data.data;
-  },
+// GET /vehicle_type/{vehicleTypeId}?page=0&pageSize=10&keyword= (search with pagination by vehicle type)
+export const serviceTypeService = {
+
 
   // Get service type detail by service type ID
   getById: async (id: string): Promise<ServiceTypeResponse> => {
