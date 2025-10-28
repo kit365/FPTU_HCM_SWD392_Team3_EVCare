@@ -32,7 +32,7 @@ import { VehicleProfileEdit } from "../pages/admin/vehicle-profile/VehicleProfil
 import { VehicleProfileDetail } from "../pages/admin/vehicle-profile/VehicleProfileDetail";
 import Shift from "../pages/admin/warranty_and_shift/Shift";
 import Warranty from "../pages/admin/warranty_and_shift/Warranty";
-
+import { MessagePage } from "../pages/message/MessagePage";
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "setting", element: <SettingPage /> },
@@ -67,9 +67,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "appointment-manage", element: <AppointmentManage/> },
     { path: "shift", element: <Shift/> },
     { path: "warranty", element: <Warranty/> },
-
+    { path: "message", element: <MessagePage /> },
 ];
-
 export const AuthAdminRoutes = [
     { path: "login", element: <LoginPage /> },
 ];

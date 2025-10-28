@@ -7,7 +7,6 @@ export interface AdminMenuItem {
     icon?: React.ElementType
     children?: AdminMenuItem[]
 }
-
 export const adminMenuItems: AdminMenuItem[] = [
     {
         href: `/${pathAdmin}/dashboard`,
@@ -65,5 +64,10 @@ export const adminMenuItems: AdminMenuItem[] = [
                 icon: Erase
             },
         ],
+    },
+    {
+        href: `/${pathAdmin}/message`,
+        label: "Tin nhắn",
+        icon: Group,
     },
 ]
