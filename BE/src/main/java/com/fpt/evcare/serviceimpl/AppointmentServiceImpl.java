@@ -61,6 +61,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     InvoiceMapper invoiceMapper;
     PaymentMethodRepository paymentMethodRepository;
     ShiftRepository shiftRepository;
+    com.fpt.evcare.service.NotificationHelperService notificationHelperService;
 
     @Override
     public List<String> getAllServiceMode(){
@@ -794,8 +795,21 @@ public class AppointmentServiceImpl implements AppointmentService {
             // Khi chuyển sang IN_PROGRESS → tạo Maintenance Management
             addMaintenanceManagementData(appointmentEntity);
 
+            // Gửitory notification qua WebSocket
+            sendInProgressNotification(appointmentEntity);
+
             // Gửi email thông báo bắt đầu dịch vụ
             sendInProgressEmail(appointmentEntity);
+        }
+        
+        // Khi chuyển sang COMPLETED → gửi notification
+        if (newStatus == AppointmentStatusEnum.COMPLETED) {
+            sendCompletedNotification(appointmentEntity);
+        }
+        
+        // Khi chuyển sang CANCELLED → gửi notification
+        if (newStatus == AppointmentStatusEnum.CANCELLED) {
+            sendCancelledNotification(appointmentEntity);
         }
 
         // Chỉ cho phép chuyển sang CONFIRMED khi đang ở PENDING
@@ -1139,6 +1153,66 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.info(AppointmentConstants.LOG_INFO_SENT_IN_PROGRESS_EMAIL, appointment.getCustomerEmail());
         } catch (Exception e) {
             log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_IN_PROGRESS_EMAIL, e.getMessage());
+        }
+    }
+    
+    /**
+     * Gửi notification qua WebSocket khi appointment chuyển sang IN_PROGRESS
+     */
+    private void sendInProgressNotification(AppointmentEntity appointment) {
+        try {
+            com.fpt.evcare.service.NotificationHelperService.NotificationData notif = 
+                new com.fpt.evcare.service.NotificationHelperService.NotificationData();
+            notif.setTitle("Dịch vụ đã bắt đầu");
+            notif.setContent(String.format("Dịch vụ cho xe %s đã được bắt đầu xử lý", 
+                appointment.getVehicleNumberPlate()));
+            notif.setNotificationType("ALERT");
+            notif.setAppointmentId(appointment.getAppointmentId().toString());
+            
+            notificationHelperService.sendNotification(appointment.getCustomer().getUserId(), notif);
+            log.info("📬 Sent IN_PROGRESS notification to customer: {}", appointment.getCustomer().getUserId());
+        } catch (Exception e) {
+            log.error("❌ Failed to send IN_PROGRESS notification: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Gửi notification qua WebSocket khi appointment chuyển sang COMPLETED
+     */
+    private void sendCompletedNotification(AppointmentEntity appointment) {
+        try {
+            com.fpt.evcare.service.NotificationHelperService.NotificationData notif = 
+                new com.fpt.evcare.service.NotificationHelperService.NotificationData();
+            notif.setTitle("Dịch vụ đã hoàn thành");
+            notif.setContent(String.format("Dịch vụ cho xe %s đã hoàn thành. Vui lòng thanh toán hóa đơn!", 
+                appointment.getVehicleNumberPlate()));
+            notif.setNotificationType("REMINDER");
+            notif.setAppointmentId(appointment.getAppointmentId().toString());
+            
+            notificationHelperService.sendNotification(appointment.getCustomer().getUserId(), notif);
+            log.info("📬 Sent COMPLETED notification to customer: {}", appointment.getCustomer().getUserId());
+        } catch (Exception e) {
+            log.error("❌ Failed to send COMPLETED notification: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Gửi notification qua WebSocket khi appointment chuyển sang CANCELLED
+     */
+    private void sendCancelledNotification(AppointmentEntity appointment) {
+        try {
+            com.fpt.evcare.service.NotificationHelperService.NotificationData notif = 
+                new com.fpt.evcare.service.NotificationHelperService.NotificationData();
+            notif.setTitle("Đã hủy dịch vụ");
+            notif.setContent(String.format("Dịch vụ cho xe %s đã bị hủy", 
+                appointment.getVehicleNumberPlate()));
+            notif.setNotificationType("ALERT");
+            notif.setAppointmentId(appointment.getAppointmentId().toString());
+            
+            notificationHelperService.sendNotification(appointment.getCustomer().getUserId(), notif);
+            log.info("📬 Sent CANCELLED notification to customer: {}", appointment.getCustomer().getUserId());
+        } catch (Exception e) {
+            log.error("❌ Failed to send CANCELLED notification: {}", e.getMessage());
         }
     }
 }
