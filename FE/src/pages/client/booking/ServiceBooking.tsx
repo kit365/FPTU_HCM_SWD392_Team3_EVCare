@@ -57,40 +57,68 @@ export const ServiceBookingPage: React.FC = () => {
     setIsUseOldData(false);
   };
 
-  const handleResetForm = () => {
-    form.resetFields();
-    setSelectedVehicleTypeId("");
-    setServiceType("");
-    setServiceTypes([]);
-  };
 
-  const handleSelectVehicle = (vehicleData: VehicleProfileData) => {
-    // Fill thông tin cơ bản từ hồ sơ xe (không disable)
-    form.setFieldsValue({
-      customerName: vehicleData.customerName,
-      phone: vehicleData.phone,
-      email: vehicleData.email,
-      mileage: vehicleData.mileage,
-      licensePlate: vehicleData.licensePlate,
-    });
-    
-    // Client có thể edit tất cả các field như bình thường
+  const handleSelectVehicle = async (vehicleData: VehicleProfileData) => {
+    try {
+      // Fill thông tin cơ bản từ hồ sơ xe
+      form.setFieldsValue({
+        customerName: vehicleData.customerName,
+        phone: vehicleData.phone,
+        email: vehicleData.email,
+        mileage: vehicleData.mileage,
+        licensePlate: vehicleData.licensePlate,
+        notes: vehicleData.notes || "",
+        location: vehicleData.userAddress || "",
+      });
 
-    // Reset các trường selection để user phải chọn lại
-    form.setFieldsValue({
-      vehicleType: undefined,
-      services: undefined,
-      serviceType: undefined,
-      dateTime: undefined,
-      location: undefined, // Reset location cho STATIONARY
-    });
-
-    // Reset state để không load services tự động
-    setSelectedVehicleTypeId("");
-    setServiceType("");
-
-    // Hiển thị message
-    message.success("Đã điền thông tin cơ bản từ hồ sơ xe! Bạn có thể chỉnh sửa thông tin nếu cần. Vui lòng chọn Mẫu xe, Dịch vụ và Thời gian.");
+      // Bước 1: Fill mẫu xe
+      if (vehicleData.vehicleTypeId) {
+        form.setFieldsValue({
+          vehicleType: vehicleData.vehicleTypeId,
+        });
+        setSelectedVehicleTypeId(vehicleData.vehicleTypeId);
+        
+        // Bước 2: Load và fill dịch vụ
+        if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
+          try {
+            // Load service types cho vehicle type đã chọn
+            const serviceResponse = await bookingService.getServiceTypesByVehicleId(vehicleData.vehicleTypeId, {
+              page: 0,
+              pageSize: 100,
+            });
+            
+            if (serviceResponse.data.success && serviceResponse.data.data.data) {
+              setServiceTypes(serviceResponse.data.data.data);
+              
+              // Fill dịch vụ đã chọn trước đó
+              form.setFieldsValue({
+                services: vehicleData.serviceTypeIds,
+              });
+              
+              // Bước 3: Fill loại hình dịch vụ
+              if (vehicleData.serviceMode) {
+                form.setFieldsValue({
+                  serviceType: vehicleData.serviceMode,
+                });
+                setServiceType(vehicleData.serviceMode);
+              }
+              
+              message.success("Đã điền đầy đủ thông tin từ hồ sơ xe! Bạn có thể chỉnh sửa nếu cần.");
+            }
+          } catch (error) {
+            console.error("Error loading service types:", error);
+            message.warning("Đã điền thông tin cơ bản và mẫu xe. Vui lòng chọn dịch vụ thủ công.");
+          }
+        } else {
+          message.success("Đã điền thông tin cơ bản và mẫu xe. Vui lòng chọn dịch vụ.");
+        }
+      } else {
+        message.success("Đã điền thông tin cơ bản. Vui lòng chọn mẫu xe và dịch vụ.");
+      }
+    } catch (error) {
+      console.error("Error in handleSelectVehicle:", error);
+      message.error("Có lỗi khi điền thông tin từ hồ sơ xe.");
+    }
   };
 
   const fetchVehicleTypes = async () => {
@@ -519,10 +547,10 @@ export const ServiceBookingPage: React.FC = () => {
             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 border border-blue-200">
               <div className="text-center space-x-4">
                 <Button
-                  type="primary"
+                  type="default"
                   htmlType="submit"
                   size="large"
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0 text-white font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                  className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
                 >
                   Đặt lịch hẹn
                 </Button>
@@ -530,17 +558,9 @@ export const ServiceBookingPage: React.FC = () => {
                   type="default"
                   onClick={handleOldData}
                   size="large"
-                  className="bg-white/80 backdrop-blur-sm border-2 border-blue-200 text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-blue-50"
+                  className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
                 >
                   Sử dụng hồ sơ xe
-                </Button>
-                <Button
-                  type="default"
-                  onClick={handleResetForm}
-                  size="large"
-                  className="bg-white/80 backdrop-blur-sm border-2 border-orange-200 text-orange-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-orange-50"
-                >
-                  Nhập lại từ đầu
                 </Button>
               </div>
             </div>

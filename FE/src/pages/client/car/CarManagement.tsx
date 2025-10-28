@@ -2,68 +2,63 @@ import { useState, useEffect, useCallback } from 'react'
 import CarTable from './CarTable'
 import CarCreate from './CarCreate'
 import React from 'react';
-import { bookingService } from '../../../service/bookingService';
 import { useAuthContext } from '../../../context/useAuthContext';
-import type { UserAppointment } from '../../../types/booking.types';
-import { message } from 'antd';
+import { useVehicleProfile } from '../../../hooks/useVehicleProfile';
+import type { VehicleProfileResponse } from '../../../types/vehicle-profile.types';
 
 const CarManagement: React.FC = () => {
   const { user } = useAuthContext();
-  const [appointments, setAppointments] = useState<UserAppointment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { search: searchVehicles, list, totalPages, totalElements, loading } = useVehicleProfile();
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
   const [keyword, setKeyword] = useState('');
+  
+  // Filter vehicles của user hiện tại
+  const userVehicles = list.filter(vehicle => vehicle.user.userId === user?.userId);
 
-  // Fetch appointments from API
-  const fetchAppointments = useCallback(async () => {
+  // Fetch vehicle profiles from API
+  const fetchVehicleProfiles = useCallback(async () => {
     if (!user?.userId) return;
     
-    setLoading(true);
-    try {
-      const response = await bookingService.getUserAppointments(user.userId, {
-        page: current - 1,
-        pageSize: pageSize,
-        keyword: keyword || undefined
-      });
-      
-      if (response.data.success) {
-        setAppointments(response.data.data.data);
-        setTotal(response.data.data.totalElements);
-      }
-    } catch (error) {
-      message.error("Không thể tải danh sách cuộc hẹn");
-      console.error("Error fetching appointments:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.userId, current, pageSize, keyword]);
+    // Search tất cả vehicles rồi filter theo userId ở client
+    // (Backend API chưa hỗ trợ filter theo userId cho customer)
+    await searchVehicles({
+      keyword: keyword || undefined,
+      page: current - 1,
+      size: pageSize,
+    });
+  }, [user?.userId, current, pageSize, keyword, searchVehicles]);
 
-  // Fetch appointments on mount and when dependencies change
+  // Fetch vehicle profiles on mount and when dependencies change
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    fetchVehicleProfiles();
+  }, [fetchVehicleProfiles]);
 
   const handleSearch = (value: string) => {
     setKeyword(value);
     setCurrent(1); // Reset về trang 1 khi search
   };
 
+  const handleSuccess = () => {
+    // Reload danh sách sau khi tạo/cập nhật thành công
+    fetchVehicleProfiles();
+  };
+
   return (
     <div style={{ padding: "20px", backgroundColor: "#ffffff"  }}>
       
       {/*BẢNG HỒ SƠ XE */}
-      <CarCreate onSearch={handleSearch} />
+      <CarCreate onSearch={handleSearch} onSuccess={handleSuccess} />
 
       <CarTable
-        appointments={appointments}
+        vehicleProfiles={userVehicles}
         loading={loading}
-        total={total}
+        total={userVehicles.length}
         current={current}
         setCurrent={setCurrent}
         pageSize={pageSize}
         setPageSize={setPageSize}
+        onSuccess={handleSuccess}
       />
     </div>
   )
