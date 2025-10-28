@@ -3,15 +3,11 @@ import { useAuthClient } from '../../hooks/useAuthClient';
 import { useAuthContext } from '../../context/useAuthContext';
 import { notification } from 'antd';
 import { useEffect, useState, useRef } from 'react';
-import { messageService } from '../../service/messageService';
-import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined';
-import { Badge } from '@mui/material';
 import { UserBadgeCheck, LogOut } from "iconoir-react";
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 
 const ClientHeader = () => {
     const location = useLocation().pathname;
-    const [unreadCount, setUnreadCount] = useState(0);
     const [openMenu, setOpenMenu] = useState(false);
     const { user } = useAuthContext();
     const { logout } = useAuthClient();
@@ -42,26 +38,6 @@ const ClientHeader = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    // Load unread message count
-    useEffect(() => {
-        const loadUnreadCount = async () => {
-            if (user?.userId) {
-                try {
-                    const response = await messageService.getUnreadCount(user.userId);
-                    if (response?.data?.success) {
-                        setUnreadCount(response.data.data || 0);
-                    }
-                } catch (error) {
-                    console.error('Error loading unread count:', error);
-                }
-            }
-        };
-
-        loadUnreadCount();
-        const interval = setInterval(loadUnreadCount, 30000);
-        return () => clearInterval(interval);
-    }, [user?.userId]);
 
     return (
         <header className='z-[50] relative'>
@@ -104,26 +80,6 @@ const ClientHeader = () => {
 
                 {user && (
                     <div className={`flex items-center gap-[20px] ${location === '/client' ? 'text-[#FAFAFA]' : 'text-[#1A1A19]'}`} ref={menuRef}>
-                        {/* Tin nhắn */}
-                        <Badge
-                            badgeContent={unreadCount}
-                            sx={{
-                                '& .MuiBadge-badge': {
-                                    backgroundColor: '#BECB0A',
-                                    color: '#fff',
-                                },
-                            }}
-                        >
-                            <ChatOutlinedIcon
-                                sx={{
-                                    color: location === '/client' ? '#fff' : '#1A1A19',
-                                    fontSize: '2.7rem',
-                                    cursor: 'pointer',
-                                }}
-                                onClick={() => navigate('/client/message')}
-                            />
-                        </Badge>
-
                         {/* User dropdown custom */}
                         <div className="relative">
                             <div

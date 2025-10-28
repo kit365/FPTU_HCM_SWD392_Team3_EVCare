@@ -59,6 +59,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/**",
                                 "/api/v1/forgot-password/**"
                         ).permitAll()
+                        // Message endpoints (cần authenticate qua JWT filter)
+                        .requestMatchers("/api/v1/messages/**").authenticated()
                         // OAuth2 user info endpoint (cần OAuth2 authentication)
                         .requestMatchers(AuthConstants.GET_USER_INFO).authenticated()
                         // All other requests need authentication
@@ -98,7 +100,7 @@ public class SecurityConfig {
                 );
         http.addFilterBefore(nimbusJwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class);
-
+        
         return http.build();
     }
 

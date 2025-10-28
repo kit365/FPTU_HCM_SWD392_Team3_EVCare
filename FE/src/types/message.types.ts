@@ -60,11 +60,10 @@ export interface WebSocketMarkReadRequest {
 }
 // Page Response
 export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
+  data: T[];
+  page: number;
+  size: number;
   totalElements: number;
   totalPages: number;
-  first: boolean;
   last: boolean;
 }

@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom"
 import ClientHeader from '../components/client/ClientHeader'
-import ClientFooter from '../components/client/ClientFooter'
+import { ClientFooter } from '../components/client/ClientFooter'
+import { SimpleChatWidget } from '../components/message/SimpleChatWidget'
 
 export const Layout = () => {
     return (
@@ -10,6 +11,7 @@ export const Layout = () => {
                 <Outlet />
             </main>
             <ClientFooter />
+            <SimpleChatWidget />
         </div>
     )
 }
