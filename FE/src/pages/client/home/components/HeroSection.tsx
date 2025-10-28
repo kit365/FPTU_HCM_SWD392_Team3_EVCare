@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export const HeroSection = () => {
   return (
@@ -17,7 +18,11 @@ export const HeroSection = () => {
       <div style={{ maxWidth: 1400, width: '100%', margin: '0 auto', padding: '140px 40px 60px 40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
           {/* Left: Title & Description */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
             <h1 style={{
               fontSize: 84,
               lineHeight: 1.05,
@@ -54,10 +59,15 @@ export const HeroSection = () => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 4px 16px rgba(163, 230, 53, 0.4)';
             }}>Đặt lịch ngay</Link>
-          </div>
+          </motion.div>
 
           {/* Right: 3 Icon Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'rgba(255,255,255,0.1)' }}>
+          <motion.div 
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'rgba(255,255,255,0.1)' }}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          >
             <div style={{
               background: 'rgba(0, 0, 0, 0.5)',
               backdropFilter: 'blur(8px)',
@@ -121,7 +131,7 @@ export const HeroSection = () => {
               </div>
               <h4 style={{ margin: 0, fontSize: 18, fontWeight: 700, lineHeight: 1.3, color: '#ffffff' }}>Lưu lại<br />Hồ sơ</h4>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

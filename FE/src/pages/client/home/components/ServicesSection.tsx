@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+
 export const ServicesSection = () => {
   const services = [
     {
@@ -20,11 +22,29 @@ export const ServicesSection = () => {
 
   return (
     <section className='px-[130px] py-[120px]'>
-      <div className='uppercase text-[#141541] text-[1.4rem] font-[500] tracking-[0.8px] mb-[21px] text-center'>Những gì chúng tôi cung cấp</div>
-      <h2 className='text-[#141541] text-[5.7rem] font-[600] text-center tracking-[-1.7px] mb-[45px]'>Lái xe an toàn, vận hành tối ưu.</h2>
+      <motion.div 
+        className='uppercase text-[#141541] text-[1.4rem] font-[500] tracking-[0.8px] mb-[21px] text-center'
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+      >Những gì chúng tôi cung cấp</motion.div>
+      <motion.h2 
+        className='text-[#141541] text-[5.7rem] font-[600] text-center tracking-[-1.7px] mb-[45px]'
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >Lái xe an toàn, vận hành tối ưu.</motion.h2>
       <div className='grid grid-cols-3 gap-[50px]'>
         {services.map((item, index) => (
-          <div key={index}>
+          <motion.div 
+            key={index}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, delay: index * 0.2 }}
+          >
             <div className='mx-[82px] mb-[32px] w-[60%] aspect-square relative group'>
               <span
                 style={{ backgroundImage: `url(${item.background})` }}
@@ -37,7 +57,7 @@ export const ServicesSection = () => {
             <div className='text-center text-[#4F627A] mb-[12px]'>Lợi ích</div>
             <div className='text-[#141541] font-[600] text-[2.5rem] text-center'>{item.title}</div>
             <div className='text-center text-[#4f627a] mt-[13px]'>{item.description}</div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </section>
