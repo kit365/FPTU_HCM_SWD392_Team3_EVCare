@@ -21,6 +21,22 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const reconnectAttemptsRef = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 3000;
+  
+  // Store callbacks in refs to keep stable references
+  const onMessageRef = useRef(onMessage);
+  const onUnreadCountUpdateRef = useRef(onUnreadCountUpdate);
+  const onErrorRef = useRef(onError);
+  const onConnectedRef = useRef(onConnected);
+  const onDisconnectedRef = useRef(onDisconnected);
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+    onUnreadCountUpdateRef.current = onUnreadCountUpdate;
+    onErrorRef.current = onError;
+    onConnectedRef.current = onConnected;
+    onDisconnectedRef.current = onDisconnected;
+  }, [onMessage, onUnreadCountUpdate, onError, onConnected, onDisconnected]);
 
   const connect = useCallback(() => {
     if (!userId) {
@@ -36,7 +52,28 @@ export function useWebSocket(options: UseWebSocketOptions) {
       console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
 
       const client = new Client({
-        webSocketFactory: () => new SockJS(wsUrl) as any,
+        webSocketFactory: () => {
+          console.log('🔌 Creating SockJS connection to:', wsUrl);
+          const sock = new SockJS(wsUrl);
+          
+          sock.onopen = () => {
+            console.log('✅ SockJS connection opened');
+          };
+          
+          sock.onclose = (event) => {
+            console.log('❌ SockJS connection closed:', event.code, event.reason);
+          };
+          
+          sock.onerror = (error) => {
+            console.error('❌ SockJS connection error:', error);
+          };
+          
+          sock.onmessage = (event) => {
+            console.log('📨 SockJS message received:', event.data);
+          };
+          
+          return sock as any;
+        },
         reconnectDelay: RECONNECT_DELAY,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
@@ -54,7 +91,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
             try {
               const data = JSON.parse(message.body) as MessageResponse;
               console.log('📨 Received message:', data);
-              onMessage?.(data);
+              onMessageRef.current?.(data);
             } catch (e) {
               console.error('Error parsing message:', e);
             }
@@ -65,18 +102,18 @@ export function useWebSocket(options: UseWebSocketOptions) {
             try {
               const count = Number(message.body);
               console.log('🔔 Unread count update:', count);
-              onUnreadCountUpdate?.(count);
+              onUnreadCountUpdateRef.current?.(count);
             } catch (e) {
               console.error('Error parsing unread count:', e);
             }
           });
 
-          onConnected?.();
+          onConnectedRef.current?.();
         },
         onDisconnect: () => {
           console.log('🔌 WebSocket disconnected');
           setIsConnected(false);
-          onDisconnected?.();
+          onDisconnectedRef.current?.();
 
           // Attempt to reconnect
           if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
@@ -93,7 +130,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
         onStompError: (frame) => {
           console.error('❌ STOMP error:', frame);
           setError('WebSocket connection error');
-          onError?.('WebSocket connection error');
+          onErrorRef.current?.('WebSocket connection error');
         },
       });
 
@@ -102,9 +139,10 @@ export function useWebSocket(options: UseWebSocketOptions) {
     } catch (err) {
       console.error('Failed to create WebSocket:', err);
       setError('Failed to create WebSocket connection');
-      onError?.('Failed to create WebSocket connection');
+      onErrorRef.current?.('Failed to create WebSocket connection');
     }
-  }, [userId, onMessage, onUnreadCountUpdate, onError, onConnected, onDisconnected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
