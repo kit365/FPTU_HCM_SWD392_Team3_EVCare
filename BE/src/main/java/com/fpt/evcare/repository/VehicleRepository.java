@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
@@ -23,5 +24,8 @@ public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
     boolean existsByPlateNumberAndIsDeletedFalse(String plateNumber);
 
     boolean existsByVinAndIsDeletedFalse(String vin);
+
+    // Find by user id
+    List<VehicleEntity> findAllByUser_UserIdAndIsDeletedFalse(UUID userId);
 
 }

@@ -29,8 +29,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("""
         SELECT u
         FROM UserEntity u
-        JOIN u.roles r
-        WHERE r.roleName = 'TECHNICIAN'
+        WHERE u.role.roleName = 'TECHNICIAN'
           AND u.isDeleted = false
           AND u.isActive = true
         ORDER BY u.fullName
@@ -38,6 +37,6 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     java.util.List<UserEntity> findTechnicians();
 
     // Search users by role
-    @Query("SELECT u FROM UserEntity u JOIN u.roles r WHERE r.roleName = :roleName AND u.isDeleted = false")
+    @Query("SELECT u FROM UserEntity u WHERE u.role.roleName = :roleName AND u.isDeleted = false")
     List<UserEntity> findByRoleNameAndIsDeletedFalse(@Param("roleName") RoleEnum roleName);
 }

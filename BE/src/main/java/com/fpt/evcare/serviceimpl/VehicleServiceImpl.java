@@ -2,11 +2,9 @@ package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.constants.VehicleConstants;
-import com.fpt.evcare.constants.VehiclePartCategoryConstants;
 import com.fpt.evcare.dto.request.vehicle.CreationVehicleRequest;
 import com.fpt.evcare.dto.request.vehicle.UpdationVehicleRequest;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.dto.response.VehiclePartCategoryResponse;
 import com.fpt.evcare.dto.response.VehicleResponse;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.entity.VehicleEntity;
@@ -240,6 +238,26 @@ public class VehicleServiceImpl implements VehicleService {
         }
         vehicleEntity.setIsDeleted(false);
         vehicleRepository.save(vehicleEntity);
+    }
+
+    @Override
+    @Transactional
+    public List<VehicleResponse> getVehiclesByUserId(UUID userId) {
+        // Kiểm tra user có tồn tại không
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_EXIST));
+
+        List<VehicleEntity> vehicleEntityList = vehicleRepository.findAllByUser_UserIdAndIsDeletedFalse(userId);
+
+        if (vehicleEntityList.isEmpty()) {
+            log.warn("No vehicles found for user id: {}", userId);
+            return List.of();
+        }
+
+        log.info("Found {} vehicles for user id: {}", vehicleEntityList.size(), userId);
+        return vehicleEntityList.stream()
+                .map(vehicleMapper::toVehicleResponse)
+                .toList();
     }
 
 

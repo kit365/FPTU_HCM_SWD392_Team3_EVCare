@@ -73,3 +73,4 @@ export const serviceTypeService = {
     return Boolean(response.data?.success);
   }
 };
+

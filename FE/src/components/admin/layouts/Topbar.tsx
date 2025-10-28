@@ -1,9 +1,5 @@
-import { MenuScale, User, LogOut } from 'iconoir-react';
+import { MenuScale, Search, SunLight, BellNotificationSolid } from 'iconoir-react';
 import { IconButtonAdmin } from '../ui/IconButton';
-import { useState, useRef, useEffect } from 'react';
-import { useAuthContext } from '../../../context/useAuthContext';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
 
 interface TopbarProps {
     onToggleSidebar: () => void;
@@ -11,38 +7,6 @@ interface TopbarProps {
 }
 
 export const TopbarAdmin = ({ onToggleSidebar, isSidebarOpen }: TopbarProps) => {
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const { user, setUser } = useAuthContext();
-    const { logout } = useAuth();
-    const navigate = useNavigate();
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    const handleLogout = () => {
-        // Clear user from context immediately for UX
-        setUser(null);
-        // Call logout hook to clear tokens and navigate
-        logout();
-    };
-
-    const handleProfile = () => {
-        // Navigate to profile page
-        navigate('/admin/profile');
-    };
-
     return (
         <>
             <header
@@ -52,58 +16,17 @@ export const TopbarAdmin = ({ onToggleSidebar, isSidebarOpen }: TopbarProps) => 
                 <div className='max-w-[1320px] h-full px-[12px] mx-auto flex justify-between items-center'>
                     <div className="flex items-center">
                         <IconButtonAdmin icon={MenuScale} onClick={onToggleSidebar} className='ml-0' />
-                        <h3 className='font-[700] text-[2.4rem] mx-[2.4rem] text-admin-secondary'>
-                            Good Morning, {user?.username || 'Admin'}!
-                        </h3>
+                        <h3 className='font-[700] text-[2.4rem] mx-[2.4rem] text-admin-secondary'>Good Morning, James!</h3>
                     </div>
-                    <div className='flex items-center relative' ref={dropdownRef}>
-                        <button
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
-                        >
+                    <div className='flex items-center'>
+                        <figure>
                             <img
                                 src="https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcTN5i4i5V434kyMZRzwa-ar5eBpmX5rvxRSozeSEWoxbdzZNMdAdo-4-JkeqBQDIsNamRSFi9QrvMXf68-DLAyXatf0DLWkdzFswdYxlConfQ"
-                                alt="Avatar"
+                                alt=""
                                 className="w-[48px] h-[48px] rounded-full object-cover ml-[8px]"
                                 data-aos="fade-up-right"
                             />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {isDropdownOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                                <div className="px-4 py-2 border-b border-gray-100">
-                                    <p className="text-sm font-medium text-gray-900">{user?.username || 'Admin'}</p>
-                                    <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
-                                </div>
-                                
-                                <button
-                                    onClick={handleProfile}
-                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                                >
-                                    <User className="w-4 h-4 mr-3" />
-                                    Trang cá nhân
-                                </button>
-                                
-                                <button
-                                    onClick={() => navigate('/client')}
-                                    className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center"
-                                >
-                                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                    </svg>
-                                    Xem giao diện khách hàng
-                                </button>
-                                
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
-                                >
-                                    <LogOut className="w-4 h-4 mr-3" />
-                                    Đăng xuất
-                                </button>
-                            </div>
-                        )}
+                        </figure>
                     </div>
                 </div>
             </header>

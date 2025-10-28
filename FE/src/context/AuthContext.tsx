@@ -67,6 +67,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error("Error refreshing user:", error);
             setUser(null);
+            // Clear tokens nếu có lỗi
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
         } finally {
             setIsLoading(false);
         }
