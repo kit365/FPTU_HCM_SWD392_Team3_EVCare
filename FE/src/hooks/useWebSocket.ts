@@ -94,7 +94,10 @@ export function useWebSocket(options: UseWebSocketOptions) {
           reconnectAttemptsRef.current = 0;
 
           // Subscribe to messages
-          client.subscribe(`/user/${userId}/queue/messages`, (message) => {
+          console.log('📡 Setting up message subscription for user:', userId);
+          console.log('📡 Subscribing to:', `/user/${userId}/queue/messages`);
+
+          const messageSubscription = client.subscribe(`/user/${userId}/queue/messages`, (message) => {
             console.log('🔥 ====== RAW MESSAGE RECEIVED ======');
             console.log('🔥 Destination:', `/user/${userId}/queue/messages`);
             console.log('🔥 Raw message body:', message.body);
@@ -117,6 +120,8 @@ export function useWebSocket(options: UseWebSocketOptions) {
               console.error('❌ Raw body that failed to parse:', message.body);
             }
           });
+
+          console.log('✅ Message subscription completed for user:', userId);
 
           // Subscribe to unread count updates
           client.subscribe(`/user/${userId}/queue/unread-count`, (message) => {
@@ -181,9 +186,16 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const sendMessage = useCallback((request: WebSocketMessageRequest) => {
     if (!clientRef.current || !isConnected) {
       console.error('Cannot send message: WebSocket is not connected');
+      console.error('clientRef.current:', clientRef.current);
+      console.error('isConnected:', isConnected);
       return;
     }
     try {
+      console.log('🔄 Preparing to send WebSocket message...');
+      console.log('🔄 Destination:', '/app/message/send');
+      console.log('🔄 Request object:', request);
+      console.log('🔄 JSON body:', JSON.stringify(request));
+
       clientRef.current.publish({
         destination: '/app/message/send',
         body: JSON.stringify(request),

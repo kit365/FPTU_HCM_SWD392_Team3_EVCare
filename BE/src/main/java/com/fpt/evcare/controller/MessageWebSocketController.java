@@ -31,11 +31,15 @@ public class MessageWebSocketController {
     @MessageMapping("/message/send")
     public void handleSendMessage(
             @Payload MessageRequest messageRequest) {
-        
+
+        log.info("🔥 ====== RECEIVED WebSocket MESSAGE ======");
+        log.info("🔥 Raw MessageRequest: senderId={}, receiverId={}, content={}",
+                messageRequest.getSenderId(), messageRequest.getReceiverId(), messageRequest.getContent());
+
         try {
             // Validate và gửi tin nhắn
             MessageResponse response = messageService.sendMessage(
-                    messageRequest.getSenderId(), 
+                    messageRequest.getSenderId(),
                     new CreationMessageRequest(
                             messageRequest.getReceiverId(),
                             messageRequest.getContent(),
@@ -43,6 +47,7 @@ public class MessageWebSocketController {
                     )
             );
 
+            log.info("✅ Message saved successfully, response ID: {}", response.getMessageId());
             log.info("Gửi tin nhắn qua WebSocket từ {} đến {}", messageRequest.getSenderId(), messageRequest.getReceiverId());
             log.info("Message response object: {}", response);
 
@@ -56,6 +61,7 @@ public class MessageWebSocketController {
 
             // Gửi tin nhắn đến receiver (tin nhắn mới)
             log.info("Sending to receiver {} at /queue/messages", messageRequest.getReceiverId());
+            log.info("Message content being sent: {}", response.getContent());
             messagingTemplate.convertAndSendToUser(
                     messageRequest.getReceiverId().toString(),
                     "/queue/messages",
@@ -64,6 +70,7 @@ public class MessageWebSocketController {
 
             // Gửi notification về số tin nhắn chưa đọc
             Long unreadCount = messageService.getUnreadCount(messageRequest.getReceiverId());
+            log.info("Sending unread count {} to receiver {}", unreadCount, messageRequest.getReceiverId());
             messagingTemplate.convertAndSendToUser(
                     messageRequest.getReceiverId().toString(),
                     "/queue/unread-count",
