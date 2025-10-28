@@ -16,8 +16,10 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Slf4j
@@ -35,14 +37,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                                         Authentication authentication) throws IOException {
         try {
             handleSuccess(request, response, authentication);
-        } catch (JOSEException e) {
-            log.error("Error generating JWT tokens for Google OAuth2 user", e);
-            response.sendRedirect("http://localhost:5000/client/login?error=token_generation_failed");
+        } catch (Exception e) {
+            log.error("❌ Error in Google OAuth2 login: {}", e.getMessage(), e);
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "unknown_error";
+            response.sendRedirect("http://localhost:5000/client/login?error=" + errorMessage);
         }
     }
 
     @Transactional
-    private void handleSuccess(HttpServletRequest request, HttpServletResponse response,
+    public void handleSuccess(HttpServletRequest request, HttpServletResponse response,
                               Authentication authentication) throws IOException, JOSEException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         
@@ -81,15 +84,20 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         log.info("Generated and saved system tokens for Google user: {}", email);
 
+        // URL-encode parameters to handle Unicode characters (e.g., Vietnamese names)
+        String encodedEmail = UriUtils.encode(email, StandardCharsets.UTF_8);
+        String encodedName = name != null ? UriUtils.encode(name, StandardCharsets.UTF_8) : "";
+
         // Redirect to frontend with tokens as URL parameters
         String frontendCallbackUrl = String.format(
             "http://localhost:5000/oauth2/callback?accessToken=%s&refreshToken=%s&email=%s&name=%s",
             accessToken,
             refreshToken,
-            email,
-            name != null ? name : ""
+            encodedEmail,
+            encodedName
         );
 
+        log.info("Redirecting to frontend: {}", frontendCallbackUrl);
         getRedirectStrategy().sendRedirect(request, response, frontendCallbackUrl);
     }
 
