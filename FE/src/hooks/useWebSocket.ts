@@ -2,18 +2,20 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { MessageResponse, WebSocketMessageRequest, WebSocketMarkReadRequest } from '../types/message.types';
+import type { WebSocketNotification } from '../types/notification.types';
 
 interface UseWebSocketOptions {
   userId: string;
   onMessage?: (message: MessageResponse) => void;
   onUnreadCountUpdate?: (count: number) => void;
+  onNotification?: (notification: WebSocketNotification) => void;
   onError?: (error: string) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
 }
 
 export function useWebSocket(options: UseWebSocketOptions) {
-  const { userId, onMessage, onUnreadCountUpdate, onError, onConnected, onDisconnected } = options;
+  const { userId, onMessage, onUnreadCountUpdate, onNotification, onError, onConnected, onDisconnected } = options;
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const clientRef = useRef<Client | null>(null);
@@ -26,6 +28,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
   // Store callbacks in refs to keep stable references
   const onMessageRef = useRef(onMessage);
   const onUnreadCountUpdateRef = useRef(onUnreadCountUpdate);
+  const onNotificationRef = useRef(onNotification);
   const onErrorRef = useRef(onError);
   const onConnectedRef = useRef(onConnected);
   const onDisconnectedRef = useRef(onDisconnected);
@@ -34,10 +37,11 @@ export function useWebSocket(options: UseWebSocketOptions) {
   useEffect(() => {
     onMessageRef.current = onMessage;
     onUnreadCountUpdateRef.current = onUnreadCountUpdate;
+    onNotificationRef.current = onNotification;
     onErrorRef.current = onError;
     onConnectedRef.current = onConnected;
     onDisconnectedRef.current = onDisconnected;
-  }, [onMessage, onUnreadCountUpdate, onError, onConnected, onDisconnected]);
+  }, [onMessage, onUnreadCountUpdate, onNotification, onError, onConnected, onDisconnected]);
 
   const connect = useCallback(() => {
     if (!userId) {
@@ -151,6 +155,20 @@ export function useWebSocket(options: UseWebSocketOptions) {
               console.error('Error parsing unread count:', e);
             }
           });
+
+          // Subscribe to notifications
+          client.subscribe(`/user/${userId}/queue/notifications`, (message) => {
+            console.log('🔔 ====== NOTIFICATION RECEIVED ======');
+            console.log('🔔 Raw notification body:', message.body);
+            try {
+              const notification = JSON.parse(message.body);
+              console.log('✅ Parsed notification:', notification);
+              onNotificationRef.current?.(notification);
+            } catch (e) {
+              console.error('❌ Error parsing notification:', e);
+            }
+          });
+          console.log('✅ Subscribed to notifications at /user/' + userId + '/queue/notifications');
 
           onConnectedRef.current?.();
         },

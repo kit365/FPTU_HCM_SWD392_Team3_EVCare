@@ -14,11 +14,13 @@ import com.fpt.evcare.mapper.MessageMapper;
 import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.MessageRepository;
 import com.fpt.evcare.repository.UserRepository;
+import com.fpt.evcare.event.MessageCreatedEvent;
 import com.fpt.evcare.service.MessageService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class MessageServiceImpl implements MessageService {
     UserRepository userRepository;
     MessageMapper messageMapper;
     UserMapper userMapper;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -79,7 +82,21 @@ public class MessageServiceImpl implements MessageService {
         MessageEntity savedMessage = messageRepository.save(messageEntity);
         log.info("Gửi tin nhắn thành công từ {} đến {}", senderId, request.getReceiverId());
 
-        return messageMapper.toResponse(savedMessage);
+        // Convert to response
+        MessageResponse messageResponse = messageMapper.toResponse(savedMessage);
+        
+        // Publish event để trigger WebSocket sending (via MessageEventListener)
+        log.info("📢 Publishing MessageCreatedEvent for message: {}", savedMessage.getMessageId());
+        log.info("📢 Event will be handled asynchronously by MessageEventListener");
+        eventPublisher.publishEvent(new MessageCreatedEvent(
+            this, 
+            messageResponse, 
+            senderId.toString(), 
+            request.getReceiverId().toString()
+        ));
+        log.info("📢 Event published successfully - listener should now be processing");
+        
+        return messageResponse;
     }
 
     @Override

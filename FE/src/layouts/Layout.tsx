@@ -1,12 +1,9 @@
 import { Outlet } from "react-router-dom"
 import ClientHeader from '../components/client/ClientHeader'
-<<<<<<< HEAD
-import { ClientFooter } from "../components/client/ClientFooter"
-import { ScrollToTopButton } from "../components/client/ScrollToTopButton"
-=======
 import { ClientFooter } from '../components/client/ClientFooter'
 import { SimpleChatWidget } from '../components/message/SimpleChatWidget'
->>>>>>> 3c7df0dcfe34bae8dc331810a75904ab184b38d6
+import { NotificationBell } from '../components/notification/NotificationBell'
+import { ScrollToTopButton } from '../components/client/ScrollToTopButton'
 
 export const Layout = () => {
     return (
@@ -16,11 +13,9 @@ export const Layout = () => {
                 <Outlet />
             </main>
             <ClientFooter />
-<<<<<<< HEAD
-            <ScrollToTopButton />
-=======
             <SimpleChatWidget />
->>>>>>> 3c7df0dcfe34bae8dc331810a75904ab184b38d6
+            <NotificationBell />
+            <ScrollToTopButton />
         </div>
     )
 }

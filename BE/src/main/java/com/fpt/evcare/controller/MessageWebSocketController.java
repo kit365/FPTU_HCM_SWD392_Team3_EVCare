@@ -45,7 +45,9 @@ public class MessageWebSocketController {
 
             log.info("🔄 Converted UUIDs: sender={}, receiver={}", senderUUID, receiverUUID);
 
-            // Validate và gửi tin nhắn
+            // Save message và publish event
+            // Event listener sẽ tự động gửi WebSocket message
+            log.info("🔄 Calling messageService.sendMessage()...");
             MessageResponse response = messageService.sendMessage(
                     senderUUID,
                     new CreationMessageRequest(
@@ -56,46 +58,39 @@ public class MessageWebSocketController {
             );
 
             log.info("✅ Message saved successfully, response ID: {}", response.getMessageId());
-            log.info("Gửi tin nhắn qua WebSocket từ {} đến {}", messageRequest.getSenderId(), messageRequest.getReceiverId());
-            log.info("Message response object: {}", response);
-
-            // Debug: Check connected users
+            log.info("✅ MessageCreatedEvent published - WebSocket sending handled by MessageEventListener");
+            
+            // ALSO send directly via WebSocket as backup (in case event listener is delayed)
+            log.info("📤 Sending message directly to sender {} at /queue/messages", messageRequest.getSenderId());
+            messagingTemplate.convertAndSendToUser(
+                    messageRequest.getSenderId(),
+                    "/queue/messages",
+                    response
+            );
+            
+            log.info("📤 Sending message directly to receiver {} at /queue/messages", messageRequest.getReceiverId());
+            messagingTemplate.convertAndSendToUser(
+                    messageRequest.getReceiverId(),
+                    "/queue/messages",
+                    response
+            );
+            
+            // Send unread count update to receiver
+            Long unreadCount = messageService.getUnreadCount(receiverUUID);
+            log.info("📊 Sending unread count ({}) to receiver {}", unreadCount, messageRequest.getReceiverId());
+            messagingTemplate.convertAndSendToUser(
+                    messageRequest.getReceiverId(),
+                    "/queue/unread-count",
+                    unreadCount
+            );
+            
+            // Check connected users for debugging
             log.info("🔍 Checking connected WebSocket sessions...");
             log.info("🔍 Total connected users: {}", userRegistry.getUserCount());
             log.info("🔍 Sender {} is connected: {}", messageRequest.getSenderId(), 
                     userRegistry.getUser(messageRequest.getSenderId()) != null);
             log.info("🔍 Receiver {} is connected: {}", messageRequest.getReceiverId(), 
                     userRegistry.getUser(messageRequest.getReceiverId()) != null);
-
-            // Gửi tin nhắn đến sender (xác nhận gửi thành công)
-            log.info("📤 Sending to sender {} at /queue/messages", messageRequest.getSenderId());
-            log.info("📤 Message being sent to sender: {}", response);
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getSenderId(),
-                    "/queue/messages",
-                    response
-            );
-            log.info("✅ Sent to sender successfully");
-
-            // Gửi tin nhắn đến receiver (tin nhắn mới)
-            log.info("📤 Sending to receiver {} at /queue/messages", messageRequest.getReceiverId());
-            log.info("📤 Message content being sent: {}", response.getContent());
-            log.info("📤 Full message response being sent: {}", response);
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/messages",
-                    response
-            );
-            log.info("✅ Sent to receiver successfully");
-
-            // Gửi notification về số tin nhắn chưa đọc
-            Long unreadCount = messageService.getUnreadCount(receiverUUID);
-            log.info("Sending unread count {} to receiver {}", unreadCount, messageRequest.getReceiverId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/unread-count",
-                    unreadCount
-            );
 
         } catch (Exception e) {
             log.error("Lỗi khi gửi tin nhắn qua WebSocket: {}", e.getMessage(), e);
@@ -172,6 +167,28 @@ public class MessageWebSocketController {
         }
     }
 
+    // ========== NOTIFICATION METHODS ==========
+    
+    /**
+     * Send notification via WebSocket
+     * This method can be called from any service to send real-time notifications
+     * 
+     * @param userId - Target user to receive notification
+     * @param notification - Notification object to send
+     */
+    public void sendNotification(UUID userId, NotificationWebSocketDTO notification) {
+        log.info("📬 Sending notification to user: {}", userId);
+        log.info("📬 Notification: {}", notification);
+        
+        messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                "/queue/notifications",
+                notification
+        );
+        
+        log.info("✅ Notification sent successfully to user: {}", userId);
+    }
+    
     // ========== DTOs cho WebSocket ==========
     
     static class MessageRequest {
@@ -202,6 +219,63 @@ public class MessageWebSocketController {
 
         public UUID getUserId() { return userId; }
         public void setUserId(UUID userId) { this.userId = userId; }
+    }
+    
+    // Notification DTO for WebSocket
+    public static class NotificationWebSocketDTO {
+        private String notificationId;
+        private String title;
+        private String content;
+        private String notificationType;
+        private Long unreadCount;
+        private String sentAt;
+        private String appointmentId;
+        private String messageId;
+        private String maintenanceManagementId;
+        private String invoiceId;
+        
+        // Getters and Setters
+        public String getNotificationId() { return notificationId; }
+        public void setNotificationId(String notificationId) { this.notificationId = notificationId; }
+        
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+        
+        public String getNotificationType() { return notificationType; }
+        public void setNotificationType(String notificationType) { this.notificationType = notificationType; }
+        
+        public Long getUnreadCount() { return unreadCount; }
+        public void setUnreadCount(Long unreadCount) { this.unreadCount = unreadCount; }
+        
+        public String getSentAt() { return sentAt; }
+        public void setSentAt(String sentAt) { this.sentAt = sentAt; }
+        
+        public String getAppointmentId() { return appointmentId; }
+        public void setAppointmentId(String appointmentId) { this.appointmentId = appointmentId; }
+        
+        public String getMessageId() { return messageId; }
+        public void setMessageId(String messageId) { this.messageId = messageId; }
+        
+        public String getMaintenanceManagementId() { return maintenanceManagementId; }
+        public void setMaintenanceManagementId(String maintenanceManagementId) { this.maintenanceManagementId = maintenanceManagementId; }
+        
+        public String getInvoiceId() { return invoiceId; }
+        public void setInvoiceId(String invoiceId) { this.invoiceId = invoiceId; }
+        
+        @Override
+        public String toString() {
+            return "NotificationWebSocketDTO{" +
+                    "notificationId='" + notificationId + '\'' +
+                    ", title='" + title + '\'' +
+                    ", content='" + content + '\'' +
+                    ", notificationType='" + notificationType + '\'' +
+                    ", unreadCount=" + unreadCount +
+                    ", sentAt='" + sentAt + '\'' +
+                    '}';
+        }
     }
 }
 
