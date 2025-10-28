@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Controller;
 
 import java.util.UUID;
@@ -22,6 +23,7 @@ public class MessageWebSocketController {
 
     MessageService messageService;
     SimpMessagingTemplate messagingTemplate;
+    SimpUserRegistry userRegistry;
 
     /**
      * Client subscribe: /user/{userId}/queue/messages
@@ -37,11 +39,17 @@ public class MessageWebSocketController {
                 messageRequest.getSenderId(), messageRequest.getReceiverId(), messageRequest.getContent());
 
         try {
+            // Convert String to UUID
+            UUID senderUUID = UUID.fromString(messageRequest.getSenderId());
+            UUID receiverUUID = UUID.fromString(messageRequest.getReceiverId());
+
+            log.info("🔄 Converted UUIDs: sender={}, receiver={}", senderUUID, receiverUUID);
+
             // Validate và gửi tin nhắn
             MessageResponse response = messageService.sendMessage(
-                    messageRequest.getSenderId(),
+                    senderUUID,
                     new CreationMessageRequest(
-                            messageRequest.getReceiverId(),
+                            receiverUUID,
                             messageRequest.getContent(),
                             messageRequest.getAttachmentUrl()
                     )
@@ -51,28 +59,40 @@ public class MessageWebSocketController {
             log.info("Gửi tin nhắn qua WebSocket từ {} đến {}", messageRequest.getSenderId(), messageRequest.getReceiverId());
             log.info("Message response object: {}", response);
 
+            // Debug: Check connected users
+            log.info("🔍 Checking connected WebSocket sessions...");
+            log.info("🔍 Total connected users: {}", userRegistry.getUserCount());
+            log.info("🔍 Sender {} is connected: {}", messageRequest.getSenderId(), 
+                    userRegistry.getUser(messageRequest.getSenderId()) != null);
+            log.info("🔍 Receiver {} is connected: {}", messageRequest.getReceiverId(), 
+                    userRegistry.getUser(messageRequest.getReceiverId()) != null);
+
             // Gửi tin nhắn đến sender (xác nhận gửi thành công)
-            log.info("Sending to sender {} at /queue/messages", messageRequest.getSenderId());
+            log.info("📤 Sending to sender {} at /queue/messages", messageRequest.getSenderId());
+            log.info("📤 Message being sent to sender: {}", response);
             messagingTemplate.convertAndSendToUser(
-                    messageRequest.getSenderId().toString(),
+                    messageRequest.getSenderId(),
                     "/queue/messages",
                     response
             );
+            log.info("✅ Sent to sender successfully");
 
             // Gửi tin nhắn đến receiver (tin nhắn mới)
-            log.info("Sending to receiver {} at /queue/messages", messageRequest.getReceiverId());
-            log.info("Message content being sent: {}", response.getContent());
+            log.info("📤 Sending to receiver {} at /queue/messages", messageRequest.getReceiverId());
+            log.info("📤 Message content being sent: {}", response.getContent());
+            log.info("📤 Full message response being sent: {}", response);
             messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId().toString(),
+                    messageRequest.getReceiverId(),
                     "/queue/messages",
                     response
             );
+            log.info("✅ Sent to receiver successfully");
 
             // Gửi notification về số tin nhắn chưa đọc
-            Long unreadCount = messageService.getUnreadCount(messageRequest.getReceiverId());
+            Long unreadCount = messageService.getUnreadCount(receiverUUID);
             log.info("Sending unread count {} to receiver {}", unreadCount, messageRequest.getReceiverId());
             messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId().toString(),
+                    messageRequest.getReceiverId(),
                     "/queue/unread-count",
                     unreadCount
             );
@@ -126,23 +146,49 @@ public class MessageWebSocketController {
         }
     }
 
+    /**
+     * Debug: Test user-specific messaging
+     * Client gửi: /app/debug/user-message
+     */
+    @MessageMapping("/debug/user-message")
+    public void handleDebugUserMessage(@Payload MessageRequest messageRequest) {
+        log.info("🧪 Debug user message received: sender={}, receiver={}, content={}",
+                messageRequest.getSenderId(), messageRequest.getReceiverId(), messageRequest.getContent());
+
+        try {
+            // Test send to specific user
+            String testMessage = "🧪 DEBUG: Test message to " + messageRequest.getReceiverId() + " at " + java.time.LocalDateTime.now();
+            log.info("🧪 Sending debug message to user: {}", messageRequest.getReceiverId());
+
+            messagingTemplate.convertAndSendToUser(
+                    messageRequest.getReceiverId(),
+                    "/queue/messages",
+                    testMessage
+            );
+
+            log.info("🧪 Debug message sent successfully to user: {}", messageRequest.getReceiverId());
+        } catch (Exception e) {
+            log.error("🧪 Error sending debug message: {}", e.getMessage(), e);
+        }
+    }
+
     // ========== DTOs cho WebSocket ==========
     
     static class MessageRequest {
-        UUID senderId;
-        UUID receiverId;
+        String senderId;  // Changed from UUID to String
+        String receiverId; // Changed from UUID to String
         String content;
         String attachmentUrl;
 
-        public UUID getSenderId() { return senderId; }
-        public void setSenderId(UUID senderId) { this.senderId = senderId; }
-        
-        public UUID getReceiverId() { return receiverId; }
-        public void setReceiverId(UUID receiverId) { this.receiverId = receiverId; }
-        
+        public String getSenderId() { return senderId; }
+        public void setSenderId(String senderId) { this.senderId = senderId; }
+
+        public String getReceiverId() { return receiverId; }
+        public void setReceiverId(String receiverId) { this.receiverId = receiverId; }
+
         public String getContent() { return content; }
         public void setContent(String content) { this.content = content; }
-        
+
         public String getAttachmentUrl() { return attachmentUrl; }
         public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
     }

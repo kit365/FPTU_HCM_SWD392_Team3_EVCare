@@ -52,19 +52,25 @@ export function useWebSocket(options: UseWebSocketOptions) {
     }
 
     try {
-      const wsUrl = import.meta.env.PROD
+      // ✅ Add userId as query parameter for backend to identify user session
+      const baseWsUrl = import.meta.env.PROD
         ? 'https://localhost:8080/ws'
         : 'http://localhost:8080/ws';
+      
+      const wsUrl = `${baseWsUrl}?userId=${userId}`;
 
       console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
 
       const client = new Client({
+        brokerURL: undefined, // Disable native WebSocket, use SockJS only
         webSocketFactory: () => {
           console.log('🔌 Creating SockJS connection to:', wsUrl);
+          console.log('🔌 User ID:', userId);
+          
           const sock = new SockJS(wsUrl);
           
           sock.onopen = () => {
-            console.log('✅ SockJS connection opened');
+            console.log('✅ SockJS connection opened for user:', userId);
           };
           
           sock.onclose = (event) => {
@@ -76,7 +82,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
           };
           
           sock.onmessage = (event) => {
-            console.log('📨 SockJS message received:', event.data);
+            console.log('📨 SockJS raw message:', event.data);
           };
           
           return sock as any;
@@ -95,14 +101,20 @@ export function useWebSocket(options: UseWebSocketOptions) {
 
           // Subscribe to messages
           console.log('📡 Setting up message subscription for user:', userId);
-          console.log('📡 Subscribing to:', `/user/${userId}/queue/messages`);
+          const messageDestination = `/user/${userId}/queue/messages`;
+          console.log('📡 Subscribing to:', messageDestination);
+          console.log('📡 STOMP user principal should be:', userId);
 
-          const messageSubscription = client.subscribe(`/user/${userId}/queue/messages`, (message) => {
+          const messageSubscription = client.subscribe(messageDestination, (message) => {
             console.log('🔥 ====== RAW MESSAGE RECEIVED ======');
-            console.log('🔥 Destination:', `/user/${userId}/queue/messages`);
+            console.log('🔥 User ID:', userId);
+            console.log('🔥 Subscribed destination:', messageDestination);
+            console.log('🔥 Message destination:', message.headers.destination);
             console.log('🔥 Raw message body:', message.body);
+            console.log('🔥 All message headers:', message.headers);
             console.log('🔥 Message type:', typeof message.body);
             console.log('🔥 Full message object:', message);
+            console.log('🔥 Message headers:', message.headers);
 
             try {
               const data = JSON.parse(message.body) as MessageResponse;
@@ -122,6 +134,12 @@ export function useWebSocket(options: UseWebSocketOptions) {
           });
 
           console.log('✅ Message subscription completed for user:', userId);
+
+          // Test send a message to verify subscription works
+          console.log('🧪 Testing subscription - sending test message to self...');
+          setTimeout(() => {
+            console.log('🧪 Test timeout reached, subscription should be active now');
+          }, 1000);
 
           // Subscribe to unread count updates
           client.subscribe(`/user/${userId}/queue/unread-count`, (message) => {
@@ -207,6 +225,30 @@ export function useWebSocket(options: UseWebSocketOptions) {
     }
   }, [isConnected, onError]);
 
+  const sendDebugMessage = useCallback((targetUserId: string) => {
+    if (!clientRef.current || !isConnected) {
+      console.error('Cannot send debug message: WebSocket is not connected');
+      return;
+    }
+    try {
+      console.log('🧪 Sending debug message to user:', targetUserId);
+
+      const debugRequest = {
+        senderId: userId,
+        receiverId: targetUserId,
+        content: "Debug test message"
+      };
+
+      clientRef.current.publish({
+        destination: '/app/debug/user-message',
+        body: JSON.stringify(debugRequest),
+      });
+      console.log('🧪 Debug message sent to:', targetUserId);
+    } catch (err) {
+      console.error('Error sending debug message:', err);
+    }
+  }, [isConnected, userId]);
+
   const markAsRead = useCallback((request: WebSocketMarkReadRequest) => {
     if (!clientRef.current || !isConnected) {
       console.error('Cannot mark as read: WebSocket is not connected');
@@ -239,6 +281,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
     isConnected,
     error,
     sendMessage,
+    sendDebugMessage,
     markAsRead,
     connect,
     disconnect,
