@@ -24,7 +24,7 @@ export function useAuth() {
         localStorage.setItem('refresh_token', refreshToken);
         try {
           await refreshUser(); 
-          navigate("/");
+          // RoleBasedLogin sẽ xử lý việc redirect
         } catch (userError) {
           console.error("Admin login - Error loading user info:", userError);
           notify.error("Không thể tải thông tin người dùng");

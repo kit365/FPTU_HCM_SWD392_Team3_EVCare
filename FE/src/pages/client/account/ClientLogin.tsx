@@ -5,12 +5,16 @@ import { useForm } from 'react-hook-form';
 import { useForgotPassword } from '../../../hooks/useForgotPassword';
 import { useState } from 'react';
 import type { RequestOtpRequest, VerifyOtpRequest } from '../../../types/admin/forgot-password';
-import { useAuthClient } from '../../../hooks/useAuthClient';
+import { useRoleBasedAuth } from '../../../hooks/useRoleBasedAuth';
 import type { LoginRequest } from '../../../types/admin/auth';
 import { GoogleLoginButton } from '../../../components/client/GoogleLoginButton';
 
 const ClientLogin = () => {
-    const { login, isLoading } = useAuthClient();
+    const { login, isLoading } = useRoleBasedAuth({
+        allowedRoles: ['CUSTOMER', 'CLIENT'],
+        redirectPath: '/client',
+        errorMessage: 'Tài khoản quản trị không thể đăng nhập vào trang khách hàng. Vui lòng đăng nhập qua trang quản trị.'
+    });
 
     const onFinish: FormProps['onFinish'] = async (values) => {
         const payload: LoginRequest = {

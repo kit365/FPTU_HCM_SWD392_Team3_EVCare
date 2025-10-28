@@ -29,7 +29,6 @@ export const ServiceBookingPage: React.FC = () => {
   const [loadingServices, setLoadingServices] = useState<boolean>(false);
   const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
   const [isUseOldData, setIsUseOldData] = useState(false);
-  const [disabledFields, setDisabledFields] = useState<Set<string>>(new Set());
 
   // Lấy thông tin user từ AuthContext
   const { user } = useAuthContext();
@@ -60,14 +59,13 @@ export const ServiceBookingPage: React.FC = () => {
 
   const handleResetForm = () => {
     form.resetFields();
-    setDisabledFields(new Set());
     setSelectedVehicleTypeId("");
     setServiceType("");
     setServiceTypes([]);
   };
 
   const handleSelectVehicle = (vehicleData: VehicleProfileData) => {
-    // Fill thông tin cơ bản từ hồ sơ xe và disable các field này
+    // Fill thông tin cơ bản từ hồ sơ xe (không disable)
     form.setFieldsValue({
       customerName: vehicleData.customerName,
       phone: vehicleData.phone,
@@ -76,14 +74,7 @@ export const ServiceBookingPage: React.FC = () => {
       licensePlate: vehicleData.licensePlate,
     });
     
-    // Disable các field được điền từ dữ liệu cũ
-    setDisabledFields(new Set([
-      'customerName',
-      'phone', 
-      'email',
-      'mileage',
-      'licensePlate'
-    ]));
+    // Client có thể edit tất cả các field như bình thường
 
     // Reset các trường selection để user phải chọn lại
     form.setFieldsValue({
@@ -99,7 +90,7 @@ export const ServiceBookingPage: React.FC = () => {
     setServiceType("");
 
     // Hiển thị message
-    message.success("Đã điền thông tin cơ bản từ hồ sơ xe! Vui lòng chọn lại Mẫu xe, Dịch vụ và Thời gian.");
+    message.success("Đã điền thông tin cơ bản từ hồ sơ xe! Bạn có thể chỉnh sửa thông tin nếu cần. Vui lòng chọn Mẫu xe, Dịch vụ và Thời gian.");
   };
 
   const fetchVehicleTypes = async () => {
@@ -355,10 +346,7 @@ export const ServiceBookingPage: React.FC = () => {
                   name="customerName"
                   rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
                 >
-                  <Input 
-                    placeholder="Nhập họ và tên" 
-                    disabled={disabledFields.has('customerName')}
-                  />
+                  <Input placeholder="Nhập họ và tên" />
                 </Form.Item>
                 <Form.Item
                   label="Số điện thoại"
@@ -369,10 +357,7 @@ export const ServiceBookingPage: React.FC = () => {
                     { min: 10, message: "Số điện thoại phải tối thiểu 10 số" },
                   ]}
                 >
-                  <Input 
-                    placeholder="Tối thiểu 10 chữ số" 
-                    disabled={disabledFields.has('phone')}
-                  />
+                  <Input placeholder="Tối thiểu 10 chữ số" />
                 </Form.Item>
                 <Form.Item
                   label="Email"
@@ -382,10 +367,7 @@ export const ServiceBookingPage: React.FC = () => {
                     { type: "email", message: "Email không hợp lệ" },
                   ]}
                 >
-                  <Input 
-                    placeholder="vidu@gmail.com" 
-                    disabled={disabledFields.has('email')}
-                  />
+                  <Input placeholder="vidu@gmail.com" />
                 </Form.Item>
               </div>
 
@@ -410,10 +392,7 @@ export const ServiceBookingPage: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label="Số Km" name="mileage">
-                  <Input 
-                    placeholder="Nhập số km trên phương tiện" 
-                    disabled={disabledFields.has('mileage')}
-                  />
+                  <Input placeholder="Nhập số km trên phương tiện" />
                 </Form.Item>
                 <Form.Item
                   label="Biển số xe"
@@ -427,10 +406,7 @@ export const ServiceBookingPage: React.FC = () => {
                     },
                   ]}
                 >
-                  <Input 
-                    placeholder="Ví dụ: 30A-12345" 
-                    disabled={disabledFields.has('licensePlate')}
-                  />
+                  <Input placeholder="Ví dụ: 30A-12345" />
                 </Form.Item>
               </div>
             </div>

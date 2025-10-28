@@ -86,6 +86,7 @@ export interface ServiceType {
   serviceTypeId: string;
   serviceName: string;
   description: string;
+  estimatedDurationMinutes: number;
   parentId: string | null;
   vehicleTypeResponse: VehicleType;
   isActive: boolean;
@@ -175,6 +176,7 @@ export interface UserResponse {
   isActive: boolean;
   lastLogin: string;
   isDeleted: boolean;
+  isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
