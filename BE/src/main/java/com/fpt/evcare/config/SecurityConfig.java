@@ -37,8 +37,12 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // WebSocket endpoints
-                        .requestMatchers("/ws/**", "/ws/info", "/app/**").permitAll()
+                        // WebSocket endpoints - must allow ALL SockJS endpoints and transports
+                        .requestMatchers("/ws/**", "/app/**", "/topic/**", "/queue/**", "/user/**").permitAll()
+                        .requestMatchers("/ws/info/**").permitAll()
+                        .requestMatchers("/ws/*/*/websocket").permitAll()
+                        .requestMatchers("/ws/*/*/xhr_streaming").permitAll()
+                        .requestMatchers("/ws/*/*/xhr").permitAll()
         
                         .requestMatchers(
                                 "/v3/api-docs/**",
