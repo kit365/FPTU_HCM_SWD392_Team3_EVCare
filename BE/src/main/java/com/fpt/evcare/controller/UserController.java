@@ -6,7 +6,6 @@ import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.dto.response.TechnicianResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -159,11 +158,11 @@ public class UserController {
     @GetMapping(UserConstants.TECHNICIANS)
     @Operation(summary = "Lấy danh sách kỹ thuật viên", description = "👨‍💼 **Roles:** ADMIN, STAFF")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ResponseEntity<ApiResponse<java.util.List<TechnicianResponse>>> getTechnicians() {
-        java.util.List<TechnicianResponse> technicians = userService.getTechnicians();
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getTechnicians() {
+        java.util.List<UserResponse> technicians = userService.getUsersByRole("TECHNICIAN");
 
         return ResponseEntity
-                .ok(ApiResponse.<java.util.List<TechnicianResponse>>builder()
+                .ok(ApiResponse.<java.util.List<UserResponse>>builder()
                         .success(true)
                         .message("Lấy danh sách kỹ thuật viên thành công")
                         .data(technicians)

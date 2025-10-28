@@ -8,10 +8,12 @@ export interface UserResponse {
   fullName?: string;
   numberPhone?: string;
   avatarUrl?: string;
+  provider?: string;
   technicianSkills?: string;
   isActive?: boolean;
   lastLogin?: string;
   isDeleted?: boolean;
+  isAdmin?: boolean;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;

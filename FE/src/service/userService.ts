@@ -80,6 +80,14 @@ export const userService = {
       `/user/by-role?roleName=${encodeURIComponent(roleName)}`
     );
     return response.data.data;
+  },
+
+  // Get technicians (special endpoint with TechnicianResponse)
+  getTechnicians: async (): Promise<UserResponse[]> => {
+    const response = await apiClient.get<ApiResponse<UserResponse[]>>(
+      `/user/technicians`
+    );
+    return response.data.data;
   }
 };
 

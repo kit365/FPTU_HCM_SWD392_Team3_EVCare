@@ -2,8 +2,6 @@ import type { RouteObject } from "react-router-dom";
 import { DashboardPage } from "../pages/admin/dashboard/Dashboard";
 import { SettingPage } from "../pages/admin/setting/Setting";
 import { LoginPage } from "../pages/admin/login/Login";
-import { StaffPage } from "../pages/admin/staff/Staff";
-import { StaffCreatePage } from "../pages/admin/staff/StaffCreate";
 import { Vehicle } from "../pages/admin/vehicle/Vehicle";
 import { VehicleCreate } from "../pages/admin/vehicle/VehicleCreate";
 import { VehicleEdit } from "../pages/admin/vehicle/VehicleEdit";
@@ -37,11 +35,15 @@ import ShiftEdit from "../pages/admin/shift/ShiftEdit";
 import ShiftDetail from "../pages/admin/shift/ShiftDetail";
 import Warranty from "../pages/admin/warranty_and_shift/Warranty";
 import { MessagePage } from "../pages/message/MessagePage";
+import { AdminCustomerManagement } from "../pages/admin/user/AdminCustomerManagement";
+import { AdminStaffManagement } from "../pages/admin/user/AdminStaffManagement";
+import { UserEdit } from "../pages/admin/user/UserEdit";
+import CustomerEdit from "../pages/admin/user/CustomerEdit";
+import CustomerCreate from "../pages/admin/user/CustomerCreate";
+import UserCreate from "../pages/admin/user/UserCreate";
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "setting", element: <SettingPage /> },
-    { path: "staff", element: <StaffPage /> },
-    { path: "staff/create", element: <StaffCreatePage /> },
     { path: "vehicle", element: <Vehicle /> },
     { path: "vehicle/create", element: <VehicleCreate /> },
     { path: "vehicle/edit/:id", element: <VehicleEdit /> },
@@ -76,6 +78,12 @@ export const AdminRoutes: RouteObject[] = [
     { path: "shift/view/:id", element: <ShiftDetail/> },
     { path: "warranty", element: <Warranty/> },
     { path: "message", element: <MessagePage /> },
+    { path: "users/customers", element: <AdminCustomerManagement /> },
+    { path: "customers/create", element: <CustomerCreate /> },
+    { path: "customers/edit/:id", element: <CustomerEdit /> },
+    { path: "users/staff", element: <AdminStaffManagement /> },
+    { path: "users/create", element: <UserCreate /> },
+    { path: "users/edit/:id", element: <UserEdit /> },
 ];
 export const AuthAdminRoutes = [
     { path: "login", element: <LoginPage /> },

@@ -111,7 +111,7 @@ const ClientRegister = () => {
           <Divider className="my-6">Hoặc</Divider>
 
           <GoogleLoginButton 
-            text="Đăng ký với Google" 
+            text="Đăng ký bằng Google" 
             fullWidth={true}
           />
 
