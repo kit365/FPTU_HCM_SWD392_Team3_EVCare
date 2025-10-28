@@ -172,6 +172,28 @@ public class MessageWebSocketController {
         }
     }
 
+    // ========== NOTIFICATION METHODS ==========
+    
+    /**
+     * Send notification via WebSocket
+     * This method can be called from any service to send real-time notifications
+     * 
+     * @param userId - Target user to receive notification
+     * @param notification - Notification object to send
+     */
+    public void sendNotification(UUID userId, NotificationWebSocketDTO notification) {
+        log.info("📬 Sending notification to user: {}", userId);
+        log.info("📬 Notification: {}", notification);
+        
+        messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                "/queue/notifications",
+                notification
+        );
+        
+        log.info("✅ Notification sent successfully to user: {}", userId);
+    }
+    
     // ========== DTOs cho WebSocket ==========
     
     static class MessageRequest {
@@ -202,6 +224,63 @@ public class MessageWebSocketController {
 
         public UUID getUserId() { return userId; }
         public void setUserId(UUID userId) { this.userId = userId; }
+    }
+    
+    // Notification DTO for WebSocket
+    public static class NotificationWebSocketDTO {
+        private String notificationId;
+        private String title;
+        private String content;
+        private String notificationType;
+        private Long unreadCount;
+        private String sentAt;
+        private String appointmentId;
+        private String messageId;
+        private String maintenanceManagementId;
+        private String invoiceId;
+        
+        // Getters and Setters
+        public String getNotificationId() { return notificationId; }
+        public void setNotificationId(String notificationId) { this.notificationId = notificationId; }
+        
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        
+        public String getContent() { return content; }
+        public void setContent(String content) { this.content = content; }
+        
+        public String getNotificationType() { return notificationType; }
+        public void setNotificationType(String notificationType) { this.notificationType = notificationType; }
+        
+        public Long getUnreadCount() { return unreadCount; }
+        public void setUnreadCount(Long unreadCount) { this.unreadCount = unreadCount; }
+        
+        public String getSentAt() { return sentAt; }
+        public void setSentAt(String sentAt) { this.sentAt = sentAt; }
+        
+        public String getAppointmentId() { return appointmentId; }
+        public void setAppointmentId(String appointmentId) { this.appointmentId = appointmentId; }
+        
+        public String getMessageId() { return messageId; }
+        public void setMessageId(String messageId) { this.messageId = messageId; }
+        
+        public String getMaintenanceManagementId() { return maintenanceManagementId; }
+        public void setMaintenanceManagementId(String maintenanceManagementId) { this.maintenanceManagementId = maintenanceManagementId; }
+        
+        public String getInvoiceId() { return invoiceId; }
+        public void setInvoiceId(String invoiceId) { this.invoiceId = invoiceId; }
+        
+        @Override
+        public String toString() {
+            return "NotificationWebSocketDTO{" +
+                    "notificationId='" + notificationId + '\'' +
+                    ", title='" + title + '\'' +
+                    ", content='" + content + '\'' +
+                    ", notificationType='" + notificationType + '\'' +
+                    ", unreadCount=" + unreadCount +
+                    ", sentAt='" + sentAt + '\'' +
+                    '}';
+        }
     }
 }
 
