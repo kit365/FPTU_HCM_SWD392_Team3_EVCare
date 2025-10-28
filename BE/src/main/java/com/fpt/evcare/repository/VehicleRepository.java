@@ -28,4 +28,7 @@ public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
     // Find by user id
     List<VehicleEntity> findAllByUser_UserIdAndIsDeletedFalse(UUID userId);
 
+    // Count vehicles
+    Long countByIsDeletedFalse();
+
 }

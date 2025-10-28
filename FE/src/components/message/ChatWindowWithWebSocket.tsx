@@ -42,10 +42,12 @@ export function ChatWindowWithWebSocket({
     if (onWebSocketMessage) {
       console.log('📨 ====== ChatWindow: Received new message from WebSocket ======');
       console.log('📨 Full message:', JSON.stringify(onWebSocketMessage, null, 2));
+      console.log('📨 Message ID:', onWebSocketMessage.messageId);
       console.log('📨 Current userId:', currentUserId);
       console.log('📨 Other userId:', otherUserId);
       console.log('📨 Message senderId:', onWebSocketMessage.senderId);
       console.log('📨 Message receiverId:', onWebSocketMessage.receiverId);
+      console.log('📨 Current messages count:', messages.length);
       
       // Check if message is part of current conversation
       const isFromSelectedUser = onWebSocketMessage.senderId === otherUserId && onWebSocketMessage.receiverId === currentUserId;
@@ -55,7 +57,12 @@ export function ChatWindowWithWebSocket({
       console.log('📨 isToSelectedUser:', isToSelectedUser);
       
       if (isFromSelectedUser || isToSelectedUser) {
+        console.log('✅ Message belongs to current conversation, updating UI');
+        
         setMessages(prev => {
+          console.log('📦 Current messages before update:', prev.length);
+          console.log('📦 Message IDs:', prev.map(m => m.messageId).join(', '));
+          
           // Check if this is a real message replacing a temporary one
           const tempMessageIndex = prev.findIndex(m => 
             m.messageId.startsWith('temp-') && 
@@ -68,6 +75,7 @@ export function ChatWindowWithWebSocket({
             const newMessages = [...prev];
             newMessages[tempMessageIndex] = onWebSocketMessage;
             console.log('✅ Replaced temporary message with real message');
+            console.log('📦 New messages after replace:', newMessages.length);
             return newMessages;
           }
           
@@ -77,8 +85,11 @@ export function ChatWindowWithWebSocket({
             console.log('⚠️ Message already exists, skipping duplicate');
             return prev;
           }
+          
           console.log('✅ Adding new message to conversation');
-          return [...prev, onWebSocketMessage];
+          const newMessages = [...prev, onWebSocketMessage];
+          console.log('📦 New messages after add:', newMessages.length);
+          return newMessages;
         });
         
         // Mark as read if I'm the receiver

@@ -18,9 +18,9 @@ export const authService = {
         return response;
     },
 
-    // logout: async (data: LogoutRequest) => {
-    //     const response = await apiClient.post<ApiResponse<LogoutResponse>>(`${API_BASE}/auth/logout`, data);
-    //     return response;
-    // },
+    logout: async () => {
+        // No need to call backend - just clear local storage
+        return Promise.resolve();
+    },
 
 }

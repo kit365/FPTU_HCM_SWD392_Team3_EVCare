@@ -33,7 +33,7 @@ export const LoginPage = () => {
 
     const { login, isLoading } = useRoleBasedAuth({
         allowedRoles: ['ADMIN', 'STAFF', 'TECHNICIAN'],
-        redirectPath: '/admin',
+        redirectPath: '/admin/dashboard',
         errorMessage: 'Tài khoản khách hàng không thể đăng nhập vào trang quản trị. Vui lòng đăng nhập qua trang khách hàng.'
     });
     
