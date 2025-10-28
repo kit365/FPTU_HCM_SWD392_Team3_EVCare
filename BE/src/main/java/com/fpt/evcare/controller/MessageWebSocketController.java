@@ -45,7 +45,8 @@ public class MessageWebSocketController {
 
             log.info("🔄 Converted UUIDs: sender={}, receiver={}", senderUUID, receiverUUID);
 
-            // Validate và gửi tin nhắn
+            // Save message và publish event
+            // Event listener sẽ tự động gửi WebSocket message
             MessageResponse response = messageService.sendMessage(
                     senderUUID,
                     new CreationMessageRequest(
@@ -56,46 +57,15 @@ public class MessageWebSocketController {
             );
 
             log.info("✅ Message saved successfully, response ID: {}", response.getMessageId());
-            log.info("Gửi tin nhắn qua WebSocket từ {} đến {}", messageRequest.getSenderId(), messageRequest.getReceiverId());
-            log.info("Message response object: {}", response);
-
-            // Debug: Check connected users
+            log.info("✅ MessageCreatedEvent published - WebSocket sending handled by MessageEventListener");
+            
+            // Check connected users for debugging
             log.info("🔍 Checking connected WebSocket sessions...");
             log.info("🔍 Total connected users: {}", userRegistry.getUserCount());
             log.info("🔍 Sender {} is connected: {}", messageRequest.getSenderId(), 
                     userRegistry.getUser(messageRequest.getSenderId()) != null);
             log.info("🔍 Receiver {} is connected: {}", messageRequest.getReceiverId(), 
                     userRegistry.getUser(messageRequest.getReceiverId()) != null);
-
-            // Gửi tin nhắn đến sender (xác nhận gửi thành công)
-            log.info("📤 Sending to sender {} at /queue/messages", messageRequest.getSenderId());
-            log.info("📤 Message being sent to sender: {}", response);
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getSenderId(),
-                    "/queue/messages",
-                    response
-            );
-            log.info("✅ Sent to sender successfully");
-
-            // Gửi tin nhắn đến receiver (tin nhắn mới)
-            log.info("📤 Sending to receiver {} at /queue/messages", messageRequest.getReceiverId());
-            log.info("📤 Message content being sent: {}", response.getContent());
-            log.info("📤 Full message response being sent: {}", response);
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/messages",
-                    response
-            );
-            log.info("✅ Sent to receiver successfully");
-
-            // Gửi notification về số tin nhắn chưa đọc
-            Long unreadCount = messageService.getUnreadCount(receiverUUID);
-            log.info("Sending unread count {} to receiver {}", unreadCount, messageRequest.getReceiverId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/unread-count",
-                    unreadCount
-            );
 
         } catch (Exception e) {
             log.error("Lỗi khi gửi tin nhắn qua WebSocket: {}", e.getMessage(), e);
