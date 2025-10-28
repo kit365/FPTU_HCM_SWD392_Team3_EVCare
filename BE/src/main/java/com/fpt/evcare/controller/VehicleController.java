@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -108,6 +109,21 @@ public class VehicleController {
                 .ok(ApiResponse.<String>builder()
                         .success(true)
                         .message(VehicleConstants.MESSAGE_SUCCESS_RESTORING_VEHICLE)
+                        .build()
+                );
+    }
+
+    @Operation(summary = "Lấy danh sách xe theo ID người dùng", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tất cả xe của một người dùng")
+    @GetMapping(VehicleConstants.VEHICLE_BY_USER)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<VehicleResponse>>> getVehiclesByUserId(
+            @PathVariable("userId") UUID userId) {
+        List<VehicleResponse> response = vehicleService.getVehiclesByUserId(userId);
+        return ResponseEntity
+                .ok(ApiResponse.<List<VehicleResponse>>builder()
+                        .success(true)
+                        .message(VehicleConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_BY_USER)
+                        .data(response)
                         .build()
                 );
     }

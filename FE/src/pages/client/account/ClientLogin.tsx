@@ -1,4 +1,4 @@
-import { Button, Form, Input, Modal } from 'antd';
+import { Button, Form, Input, Modal, Divider } from 'antd';
 import type { FormProps } from 'rc-field-form';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -7,6 +7,7 @@ import { useState } from 'react';
 import type { RequestOtpRequest, VerifyOtpRequest } from '../../../types/admin/forgot-password';
 import { useRoleBasedAuth } from '../../../hooks/useRoleBasedAuth';
 import type { LoginRequest } from '../../../types/admin/auth';
+import { GoogleLoginButton } from '../../../components/client/GoogleLoginButton';
 
 const ClientLogin = () => {
     const { login, isLoading } = useRoleBasedAuth({
@@ -144,7 +145,14 @@ const ClientLogin = () => {
                         </Form.Item>
                     </Form>
 
-                    <div className="text-center mt-4">
+                    <Divider className="my-6">Hoặc</Divider>
+
+                    <GoogleLoginButton 
+                        text="Đăng nhập với Google" 
+                        fullWidth={true}
+                    />
+
+                    <div className="text-center mt-6">
                         Chưa có tài khoản? <Link to="/client/register" className="text-blue-600 hover:text-blue-800">Đăng ký tại đây</Link>
                     </div>
                 </div>

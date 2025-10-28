@@ -22,9 +22,7 @@ import com.fpt.evcare.repository.*;
 import com.fpt.evcare.service.*;
 import com.fpt.evcare.utils.UtilFunction;
 import com.fpt.evcare.dto.request.EmailRequestDTO;
-import com.fpt.evcare.entity.InvoiceEntity;
 import com.fpt.evcare.entity.MaintenanceManagementEntity;
-import com.fpt.evcare.enums.InvoiceStatusEnum;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -842,10 +840,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             userResponse.setNumberPhone(userEntity.getNumberPhone());
             userResponse.setEmail(userEntity.getEmail());
 
-            List<String> roleNames = userEntity.getRoles().stream()
-                    .map(role -> role.getRoleName() != null ? role.getRoleName().name() : null)
-                    .filter(Objects::nonNull)
-                    .toList();
+            List<String> roleNames = new ArrayList<>();
+            if (userEntity.getRole() != null && userEntity.getRole().getRoleName() != null) {
+                roleNames.add(userEntity.getRole().getRoleName().name());
+            }
             userResponse.setRoleName(roleNames);
         }
         return userResponse;
@@ -864,9 +862,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private void checkRoleUser(UserEntity userEntity, RoleEnum roleEnum) {
-        boolean hasRole = userEntity.getRoles().stream().anyMatch(
-                role -> roleEnum.name().equalsIgnoreCase(role.getRoleName().toString())
-        );
+        boolean hasRole = userEntity.getRole() != null 
+                && roleEnum.name().equalsIgnoreCase(userEntity.getRole().getRoleName().toString());
 
         if (!hasRole) {
             log.warn(UserConstants.LOG_ERR_USER_ROLE_NOT_PROPER);

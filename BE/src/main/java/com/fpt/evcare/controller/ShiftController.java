@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -37,7 +38,8 @@ public class ShiftController {
     ShiftService shiftService;
 
     @GetMapping(ShiftConstants.SHIFT_GET_TYPES)
-    @Operation(summary = "Lấy danh sách loại ca làm việc", description = "Hiển thị toàn bộ các giá trị của enum ShiftTypeEnum")
+    @Operation(summary = "Lấy danh sách loại ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Hiển thị toàn bộ các giá trị của enum ShiftTypeEnum")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<List<String>>> getAllShiftTypes() {
         List<String> shiftTypes = shiftService.getAllShiftTypes();
 
@@ -51,7 +53,8 @@ public class ShiftController {
     }
 
     @GetMapping(ShiftConstants.SHIFT_GET_STATUSES)
-    @Operation(summary = "Lấy danh sách trạng thái ca làm việc", description = "Hiển thị toàn bộ các giá trị của enum ShiftStatusEnum")
+    @Operation(summary = "Lấy danh sách trạng thái ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Hiển thị toàn bộ các giá trị của enum ShiftStatusEnum")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<List<String>>> getAllShiftStatuses() {
         List<String> shiftStatuses = shiftService.getAllShiftStatuses();
 
@@ -65,7 +68,8 @@ public class ShiftController {
     }
 
     @GetMapping(ShiftConstants.SHIFT_GET_BY_ID)
-    @Operation(summary = "Lấy thông tin ca làm việc theo ID", description = "Từ ID của ca làm việc, hiển thị toàn bộ thông tin của ca làm việc đó")
+    @Operation(summary = "Lấy thông tin ca làm việc theo ID", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Từ ID của ca làm việc, hiển thị toàn bộ thông tin của ca làm việc đó")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<ShiftResponse>> getShiftById(@PathVariable("id") UUID id) {
         ShiftResponse response = shiftService.getShiftById(id);
 
@@ -79,7 +83,8 @@ public class ShiftController {
     }
 
     @GetMapping(ShiftConstants.SHIFT_SEARCH)
-    @Operation(summary = "Tìm kiếm ca làm việc", description = "Tìm kiếm ca làm việc theo từ khóa với phân trang")
+    @Operation(summary = "Tìm kiếm ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Tìm kiếm ca làm việc theo từ khóa với phân trang")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<ShiftResponse>>> searchShift(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "page", defaultValue = "1") int page,
@@ -98,7 +103,8 @@ public class ShiftController {
     }
 
     @GetMapping(ShiftConstants.SHIFT_GET_BY_APPOINTMENT)
-    @Operation(summary = "Lấy danh sách ca làm việc theo lịch hẹn", description = "Từ ID của lịch hẹn, hiển thị danh sách các ca làm việc")
+    @Operation(summary = "Lấy danh sách ca làm việc theo lịch hẹn", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Từ ID của lịch hẹn, hiển thị danh sách các ca làm việc")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<PageResponse<ShiftResponse>>> getShiftsByAppointmentId(
             @PathVariable("appointmentId") UUID appointmentId,
             @RequestParam(name = "page", defaultValue = "1") int page,
@@ -117,7 +123,8 @@ public class ShiftController {
     }
 
     @PostMapping(ShiftConstants.SHIFT_CREATE)
-    @Operation(summary = "Tạo ca làm việc mới", description = "Tạo một ca làm việc mới trong hệ thống")
+    @Operation(summary = "Tạo ca làm việc mới", description = "👨‍💼 **Roles:** ADMIN, STAFF - Tạo một ca làm việc mới trong hệ thống")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> createShift(@RequestBody @Valid CreationShiftRequest creationShiftRequest) {
         boolean result = shiftService.addShift(creationShiftRequest);
 
@@ -130,7 +137,8 @@ public class ShiftController {
     }
 
     @PutMapping(ShiftConstants.SHIFT_UPDATE)
-    @Operation(summary = "Cập nhật ca làm việc", description = "Cập nhật thông tin ca làm việc theo ID")
+    @Operation(summary = "Cập nhật ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Cập nhật thông tin ca làm việc theo ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> updateShift(
             @PathVariable("id") UUID id,
             @RequestBody @Valid UpdationShiftRequest updationShiftRequest
@@ -146,7 +154,8 @@ public class ShiftController {
     }
 
     @DeleteMapping(ShiftConstants.SHIFT_DELETE)
-    @Operation(summary = "Xóa ca làm việc", description = "Xóa mềm ca làm việc theo ID")
+    @Operation(summary = "Xóa ca làm việc", description = "👑 **Roles:** ADMIN only - Xóa mềm ca làm việc theo ID")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteShift(@PathVariable("id") UUID id) {
         boolean result = shiftService.deleteShift(id);
 
@@ -159,7 +168,8 @@ public class ShiftController {
     }
 
     @PutMapping(ShiftConstants.SHIFT_RESTORE)
-    @Operation(summary = "Khôi phục ca làm việc", description = "Khôi phục ca làm việc đã bị xóa theo ID")
+    @Operation(summary = "Khôi phục ca làm việc", description = "👑 **Roles:** ADMIN only - Khôi phục ca làm việc đã bị xóa theo ID")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> restoreShift(@PathVariable("id") UUID id) {
         boolean result = shiftService.restoreShift(id);
 
@@ -172,7 +182,8 @@ public class ShiftController {
     }
 
     @PostMapping(ShiftConstants.SHIFT_CHECK_AVAILABILITY)
-    @Operation(summary = "Kiểm tra khả dụng của kỹ thuật viên", description = "Kiểm tra xem các kỹ thuật viên có bị trùng ca làm việc không")
+    @Operation(summary = "Kiểm tra khả dụng của kỹ thuật viên", description = "👨‍💼 **Roles:** ADMIN, STAFF - Kiểm tra xem các kỹ thuật viên có bị trùng ca làm việc không")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<List<TechnicianAvailabilityResponse>>> checkTechnicianAvailability(
             @Valid @RequestBody CheckTechnicianAvailabilityRequest request) {
         List<TechnicianAvailabilityResponse> results = shiftService.checkTechnicianAvailability(request);
@@ -187,7 +198,8 @@ public class ShiftController {
     }
 
     @GetMapping(ShiftConstants.SHIFT_GET_AVAILABLE_TECHNICIANS)
-    @Operation(summary = "Lấy danh sách kỹ thuật viên available", description = "Lấy danh sách kỹ thuật viên không bị trùng ca làm việc trong khoảng thời gian")
+    @Operation(summary = "Lấy danh sách kỹ thuật viên available", description = "👨‍💼 **Roles:** ADMIN, STAFF - Lấy danh sách kỹ thuật viên không bị trùng ca làm việc trong khoảng thời gian")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAvailableTechnicians(
             @RequestParam String startTime,
             @RequestParam String endTime,
@@ -209,7 +221,8 @@ public class ShiftController {
     }
 
     @PatchMapping(ShiftConstants.SHIFT_ASSIGN)
-    @Operation(summary = "Phân công ca làm việc", description = "Phân công assignee, staff và technicians cho shift đang ở trạng thái PENDING_ASSIGNMENT")
+    @Operation(summary = "Phân công ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Phân công assignee, staff và technicians cho shift đang ở trạng thái PENDING_ASSIGNMENT")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> assignShift(
             @PathVariable UUID id,
             @Valid @RequestBody AssignShiftRequest request) {

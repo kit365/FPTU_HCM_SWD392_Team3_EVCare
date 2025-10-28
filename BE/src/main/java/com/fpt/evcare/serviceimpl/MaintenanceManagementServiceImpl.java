@@ -229,9 +229,8 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
         }
 
         //Kiểm tra user có phải role technician không
-        boolean isTechnician = technician.getRoles()
-                .stream()
-                .anyMatch(role -> role.getRoleName().equals(RoleEnum.TECHNICIAN));
+        boolean isTechnician = technician.getRole() != null 
+                && technician.getRole().getRoleName().equals(RoleEnum.TECHNICIAN);
 
         if (!isTechnician) {
             log.warn(UserConstants.LOG_ERR_USER_ROLE_NOT_MATCH + technicianId);

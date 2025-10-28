@@ -1,17 +1,18 @@
-import { Link } from 'react-router-dom';
-import { useRoleBasedRegister } from '../../../hooks/useRoleBasedRegister';
+import { Link, useNavigate } from 'react-router-dom';
+import { Divider } from 'antd';
+import { useAuth } from '../../../hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import type { RegisterUserRequest } from '../../../types/admin/auth';
+import { GoogleLoginButton } from '../../../components/client/GoogleLoginButton';
 const ClientRegister = () => {
-  const { registerAndLogin, isLoading } = useRoleBasedRegister({
-    allowedRoles: ['CUSTOMER', 'CLIENT'],
-    redirectPath: '/client',
-    errorMessage: 'Tài khoản quản trị không thể đăng ký qua trang khách hàng. Vui lòng đăng ký qua trang quản trị.'
-  });
-  
+  const { registerUser, isLoading } = useAuth();
+  const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterUserRequest>();
   const onSubmit = async (values: RegisterUserRequest) => {
-    await registerAndLogin(values);
+    const response = await registerUser(values);
+    if (response.data.success === true) {
+      navigate("/client/login");
+    }
   };
 
   return (
@@ -102,11 +103,19 @@ const ClientRegister = () => {
             {/* Submit Button */}
             <div className="ant-form-item">
               <button type="submit" className="ant-btn ant-btn-primary w-full text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-base font-medium" style={{height: 40, fontSize: 16}} disabled={isLoading}>
-                {isLoading ? 'Đang đăng ký và đăng nhập...' : 'Đăng ký và đăng nhập'}
+                {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
               </button>
             </div>
           </form>
-          <div className="text-center mt-4">
+
+          <Divider className="my-6">Hoặc</Divider>
+
+          <GoogleLoginButton 
+            text="Đăng ký với Google" 
+            fullWidth={true}
+          />
+
+          <div className="text-center mt-6">
             Đã có tài khoản? <Link to="/client/login" className="text-blue-600 hover:text-blue-800">Đăng nhập tại đây</Link>
           </div>
         </div>
