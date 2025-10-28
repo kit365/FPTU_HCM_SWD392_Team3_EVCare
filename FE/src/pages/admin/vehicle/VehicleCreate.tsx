@@ -10,6 +10,7 @@ import { pathAdmin } from "../../../constants/paths.constant";
 import { manufacturers } from "../../../constants/manufacturer.constant";
 import { Link } from "react-router-dom";
 import { vehicleTypeSchema } from "../../../validations/vehicleType.validation";
+import { useState } from "react";
 
 type FormData = {
     vehicleTypeName: string;
@@ -19,10 +20,13 @@ type FormData = {
     maintenanceIntervalKm: number;
     maintenanceIntervalMonths: number;
     description: string;
+    image: string;
 };
 
 export const VehicleCreate = () => {
     const { loading, createVehicleType } = useVehicleType();
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const {
         register,
@@ -39,16 +43,49 @@ export const VehicleCreate = () => {
             maintenanceIntervalKm: 0,
             maintenanceIntervalMonths: 0,
             description: "",
+            image: undefined as any,
         },
     });
 
+    const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Hiển thị preview local
+        const previewUrl = URL.createObjectURL(file);
+        setPreviewImage(previewUrl);
+
+        setSelectedFile(file);
+    };
     const onSubmit = async (data: FormData) => {
         try {
-            if (await createVehicleType(data)) {
+            let imageUrl = "";
+
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+                formData.append("upload_preset", "maika_xinh_dep");
+
+                const res = await fetch("https://api.cloudinary.com/v1_1/dxyuuul0q/image/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const uploaded = await res.json();
+                imageUrl = uploaded.secure_url;
+            }
+
+            const payload = { ...data, image: imageUrl };
+
+            console.log(payload);
+
+            if (await createVehicleType(payload)) {
                 reset();
+                setPreviewImage(null);
+                setSelectedFile(null);
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     };
 
@@ -125,6 +162,30 @@ export const VehicleCreate = () => {
                             {...register("maintenanceIntervalMonths")}
                             error={errors.maintenanceIntervalMonths?.message}
                         />
+                    </div>
+
+                    <div className="col-span-2">
+                        <LabelAdmin htmlFor="image" content="Hình ảnh mẫu xe" />
+                        <input
+                            type="file"
+                            id="image"
+                            accept="image/*"
+                            {...register("image")}
+                            onChange={handleImageChange}
+                            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+                        />
+                        {errors.image && (
+                            <p className="text-red-500 text-[13px] mt-[4px]">{errors.image.message}</p>
+                        )}
+                        {previewImage && (
+                            <div className="mt-3">
+                                <img
+                                    src={previewImage}
+                                    alt="Preview"
+                                    className="w-[200px] h-[150px] object-cover rounded-md border"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="col-span-2">
