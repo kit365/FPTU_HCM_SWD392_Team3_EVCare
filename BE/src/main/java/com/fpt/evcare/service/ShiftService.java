@@ -26,6 +26,8 @@ public interface ShiftService {
     
     PageResponse<ShiftResponse> getShiftsByAppointmentId(UUID appointmentId, Pageable pageable);
     
+    PageResponse<ShiftResponse> searchShiftForTechnician(UUID technicianId, String keyword, Pageable pageable);
+    
     boolean addShift(CreationShiftRequest creationShiftRequest);
     
     boolean updateShift(UUID id, UpdationShiftRequest updationShiftRequest);

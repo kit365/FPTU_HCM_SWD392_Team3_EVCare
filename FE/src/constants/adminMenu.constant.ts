@@ -1,11 +1,16 @@
 
 import { pathAdmin } from "./paths.constant";
-import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase, UserCircle, UserScan } from "iconoir-react";
+import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase } from "iconoir-react";
 export interface AdminMenuItem {
     href?: string
     label: string
     icon?: React.ElementType
     children?: AdminMenuItem[]
+    roleBasedHref?: {
+        TECHNICIAN?: string
+        ADMIN?: string
+        STAFF?: string
+    }
 }
 export const adminMenuItems: AdminMenuItem[] = [
     {
@@ -61,20 +66,23 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: DownloadDataWindow,
     },
     {
-        label: "Ca làm và bảo hành",
+        label: "Ca làm",
+        icon: Calendar,
+        roleBasedHref: {
+            TECHNICIAN: `/${pathAdmin}/schedule`,
+            ADMIN: `/${pathAdmin}/shift`,
+            STAFF: `/${pathAdmin}/shift`,
+        }
+    },
+    {
+        href: `/${pathAdmin}/my-maintenance`,
+        label: "Công việc bảo dưỡng",
+        icon: Tools,
+    },
+    {
+        href: `/${pathAdmin}/warranty`,
+        label: "Bảo hành",
         icon: Codepen,
-        children: [
-            {
-                href: `/${pathAdmin}/shift`,
-                label: "Ca làm",
-                icon: Menu
-            },
-            {
-                href: `/${pathAdmin}/warranty`,
-                label: "Bảo hành",
-                icon: Erase
-            },
-        ],
     },
     {
         href: `/${pathAdmin}/message`,

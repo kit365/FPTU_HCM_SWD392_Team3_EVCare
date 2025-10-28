@@ -32,6 +32,7 @@ const config: Config = {
       },
       fontFamily: {
         secondary: ["Lexend Deca", "sans-serif"],
+        third: ["Roboto", "sans-serif"]
       },
     },
   },

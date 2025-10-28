@@ -24,6 +24,7 @@ import { ServiceTypeDetail } from "../pages/admin/service-type/ServiceTypeDetail
 import { Profile } from "../pages/admin/profile/Profile";
 import { VehicleService } from "../pages/admin/vehicle/VehicleService";
 import AppointmentManage from "../pages/admin/appointment/AppointmentManage";
+import AppointmentView from "../pages/admin/appointment/AppointmentView";
 import { VehicleProfileList } from "../pages/admin/vehicle-profile/VehicleProfileList";
 import { VehicleProfileCreate } from "../pages/admin/vehicle-profile/VehicleProfileCreate";
 import { VehicleProfileEdit } from "../pages/admin/vehicle-profile/VehicleProfileEdit";
@@ -33,6 +34,9 @@ import { ShiftAssign } from "../pages/admin/shift/ShiftAssign";
 import { ShiftCreate } from "../pages/admin/shift/ShiftCreate";
 import ShiftEdit from "../pages/admin/shift/ShiftEdit";
 import ShiftDetail from "../pages/admin/shift/ShiftDetail";
+import MyShifts from "../pages/admin/shift/MyShifts";
+import MaintenanceManagementDetail from "../pages/admin/maintenance/MaintenanceManagementDetail";
+import MyMaintenanceManagement from "../pages/admin/maintenance/MyMaintenanceManagement";
 import Warranty from "../pages/admin/warranty_and_shift/Warranty";
 import { MessagePage } from "../pages/message/MessagePage";
 import { AdminCustomerManagement } from "../pages/admin/user/AdminCustomerManagement";
@@ -41,6 +45,7 @@ import { UserEdit } from "../pages/admin/user/UserEdit";
 import CustomerEdit from "../pages/admin/user/CustomerEdit";
 import CustomerCreate from "../pages/admin/user/CustomerCreate";
 import UserCreate from "../pages/admin/user/UserCreate";
+import { InvoiceView } from "../pages/admin/payment/InvoiceView";
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <DashboardPage /> },
     { path: "setting", element: <SettingPage /> },
@@ -71,7 +76,12 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
     { path: "appointment-manage", element: <AppointmentManage/> },
+    { path: "appointment/view/:id", element: <AppointmentView/> },
+    { path: "invoice/:appointmentId", element: <InvoiceView/> },
     { path: "shift", element: <ShiftList/> },
+    { path: "schedule", element: <MyShifts/> },
+    { path: "my-maintenance", element: <MyMaintenanceManagement/> },
+    { path: "maintenance/:id", element: <MaintenanceManagementDetail/> },
     { path: "shift/assign/:id", element: <ShiftAssign/> },
     { path: "shift/create", element: <ShiftCreate/> },
     { path: "shift/edit/:id", element: <ShiftEdit/> },

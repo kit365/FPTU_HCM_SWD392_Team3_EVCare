@@ -87,6 +87,7 @@ public class ShiftConstants {
     public static final String SHIFT_GET_STATUSES = "/statuses";
     public static final String SHIFT_SEARCH = "/search";
     public static final String SHIFT_GET_BY_APPOINTMENT = "/appointment/{appointmentId}";
+    public static final String SHIFT_SEARCH_FOR_TECHNICIAN = "/technician/search/{technician_id}";
     public static final String SHIFT_CREATE = "";
     public static final String SHIFT_UPDATE = "/{id}";
     public static final String SHIFT_DELETE = "/{id}";

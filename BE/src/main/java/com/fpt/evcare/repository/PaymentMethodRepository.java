@@ -2,6 +2,7 @@ package com.fpt.evcare.repository;
 
 import com.fpt.evcare.entity.PaymentMethodEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.MethodTypeEnum;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,4 +25,6 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethodEnti
     Optional<PaymentMethodEntity> findByUserAndIsDefaultTrueAndIsDeletedFalse(UserEntity user);
     
     boolean existsByAccountNumberAndIsDeletedFalse(String accountNumber);
+
+    Optional<PaymentMethodEntity> findByMethodTypeAndIsDeletedFalse(MethodTypeEnum methodTypeEnum);
 }

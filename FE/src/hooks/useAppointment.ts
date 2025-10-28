@@ -53,6 +53,20 @@ export const useAppointment = () => {
     }
   }, []);
 
+  const updateStatus = useCallback(async (id: string, status: string) => {
+    setLoading(true);
+    try {
+      await appointmentService.updateStatus(id, status);
+      toast.success("Cập nhật trạng thái thành công!");
+      return true;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Không thể cập nhật trạng thái!");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     list,
     detail,
@@ -61,6 +75,7 @@ export const useAppointment = () => {
     totalElements,
     search,
     getById,
+    updateStatus,
   };
 };
 

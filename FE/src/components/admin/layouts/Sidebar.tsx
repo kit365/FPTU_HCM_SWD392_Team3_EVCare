@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { adminMenuItems } from "../../../constants/adminMenu.constant";
+import { useAuthContext } from "../../../context/useAuthContext";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -9,8 +10,18 @@ interface SidebarProps {
 export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
     const [isHovered, setIsHovered] = useState(false);
     const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
+    const { user } = useAuthContext();
 
     const expanded = isOpen || isHovered;
+
+    // Helper: Lấy href dựa vào role
+    const getHrefByRole = (item: any) => {
+        if (item.roleBasedHref && user?.roleName && user.roleName.length > 0) {
+            const role = user.roleName[0]; // Lấy role đầu tiên
+            return item.roleBasedHref[role] || item.href;
+        }
+        return item.href;
+    };
 
     const toggleDropdown = (label: string) => {
         const newOpenDropdowns = new Set(openDropdowns);
@@ -53,7 +64,7 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
                             </button>
                         ) : (
                             <NavLink
-                                to={item.href || "#"}
+                                to={getHrefByRole(item) || "#"}
                                 className={`flex items-center w-full ${!expanded ? 'justify-center' : ''}`}
                             >
                                 <item.icon

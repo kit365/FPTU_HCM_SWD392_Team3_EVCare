@@ -30,6 +30,21 @@ export const appointmentService = {
     );
     console.log("GET APPOINTMENT BY ID RESPONSE:", response);
     return response.data.data;
+  },
+
+  // Update status - PATCH /api/v1/appointment/status/{id}
+  updateStatus: async (id: string, status: string) => {
+    const response = await apiClient.patch(
+      `/appointment/status/${id}`,
+      status,
+      {
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      }
+    );
+    console.log("UPDATE APPOINTMENT STATUS RESPONSE:", response);
+    return response.data;
   }
 };
 

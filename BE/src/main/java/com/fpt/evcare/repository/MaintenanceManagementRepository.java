@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -90,5 +91,64 @@ public interface MaintenanceManagementRepository extends JpaRepository<Maintenan
             @Param("fromDate") String fromDate,
             @Param("toDate") String toDate,
             Pageable pageable);
+
+    @Query(value = """
+        SELECT mm.*
+        FROM maintenance_managements mm
+        JOIN appointments a ON mm.appointment_id = a.id
+        LEFT JOIN shifts s ON s.appointment_id = a.id
+        JOIN appointment_technicians at ON a.id = at.appointment_id
+        WHERE at.technician_id = :technicianId
+          AND mm.is_deleted = false
+          AND DATE(s.start_time) = :targetDate
+        ORDER BY s.start_time ASC, mm.created_at ASC
+    """, nativeQuery = true)
+    Page<MaintenanceManagementEntity> findByTechnicianAndDate(
+            @Param("technicianId") UUID technicianId,
+            @Param("targetDate") LocalDate targetDate,
+            Pageable pageable
+    );
+
+    @Query(value = """
+        SELECT mm.*
+        FROM maintenance_managements mm
+        JOIN appointments a ON mm.appointment_id = a.id
+        LEFT JOIN shifts s ON s.appointment_id = a.id
+        JOIN appointment_technicians at ON a.id = at.appointment_id
+        WHERE at.technician_id = :technicianId
+          AND mm.is_deleted = false
+          AND DATE(s.start_time) = :targetDate
+          AND UPPER(mm.status) = UPPER(CAST(:status AS VARCHAR))
+        ORDER BY s.start_time ASC, mm.created_at ASC
+    """, nativeQuery = true)
+    Page<MaintenanceManagementEntity> findByTechnicianAndDateAndStatus(
+            @Param("technicianId") UUID technicianId,
+            @Param("targetDate") LocalDate targetDate,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    @Query(value = """
+        SELECT mm.*
+        FROM maintenance_managements mm
+        JOIN appointments a ON mm.appointment_id = a.id
+        LEFT JOIN shifts s ON s.appointment_id = a.id
+        JOIN appointment_technicians at ON a.id = at.appointment_id
+        WHERE at.technician_id = :technicianId
+          AND mm.is_deleted = false
+          AND (:keyword IS NULL OR :keyword = '' OR LOWER(mm.search) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:date IS NULL OR :date = '' OR DATE(s.start_time) = CAST(:date AS DATE))
+          AND (:status IS NULL OR :status = '' OR UPPER(mm.status) = UPPER(CAST(:status AS VARCHAR)))
+          AND (:appointmentId IS NULL OR :appointmentId = '' OR a.id = CAST(:appointmentId AS UUID))
+        ORDER BY mm.created_at DESC
+    """, nativeQuery = true)
+    Page<MaintenanceManagementEntity> findByTechnicianWithFilters(
+            @Param("technicianId") UUID technicianId,
+            @Param("keyword") String keyword,
+            @Param("date") String date,
+            @Param("status") String status,
+            @Param("appointmentId") String appointmentId,
+            Pageable pageable
+    );
 
 }

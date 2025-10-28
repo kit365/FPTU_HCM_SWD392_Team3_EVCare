@@ -125,6 +125,41 @@ public class ShiftServiceImpl implements ShiftService {
     }
 
     @Override
+    public PageResponse<ShiftResponse> searchShiftForTechnician(UUID technicianId, String keyword, Pageable pageable) {
+        log.info("Showing shift list for technician: {}", technicianId);
+        
+        // Kiểm tra technician có tồn tại không
+        UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(technicianId);
+        if (technician == null) {
+            log.warn(ShiftConstants.MESSAGE_TECHNICIAN_NOT_FOUND);
+            throw new ResourceNotFoundException(ShiftConstants.MESSAGE_TECHNICIAN_NOT_FOUND);
+        }
+        
+        Page<ShiftEntity> shiftPage;
+        if (keyword == null || keyword.trim().isEmpty()) {
+            // Tìm tất cả shifts có technician này
+            shiftPage = shiftRepository.findByTechnicianIdAndIsDeletedFalse(technicianId, pageable);
+        } else {
+            // Tìm shifts có technician này và match keyword
+            shiftPage = shiftRepository.findByTechnicianIdAndSearchContainingIgnoreCaseAndIsDeletedFalse(
+                    technicianId, keyword, pageable);
+        }
+
+        List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
+                .map(shiftMapper::toResponse)
+                .toList();
+
+        return PageResponse.<ShiftResponse>builder()
+                .data(shiftResponses)
+                .page(shiftPage.getNumber())
+                .size(shiftPage.getSize())
+                .totalElements(shiftPage.getTotalElements())
+                .totalPages(shiftPage.getTotalPages())
+                .last(shiftPage.isLast())
+                .build();
+    }
+
+    @Override
     @Transactional
     public boolean addShift(CreationShiftRequest creationShiftRequest) {
         log.info(ShiftConstants.LOG_INFO_CREATING_SHIFT);
@@ -168,7 +203,6 @@ public class ShiftServiceImpl implements ShiftService {
                 UpdationAppointmentRequest appointmentRequest = new UpdationAppointmentRequest();
                 appointmentRequest.setTechnicianId(creationShiftRequest.getTechnicianIds());
                 appointmentRequest.setAssigneeId(creationShiftRequest.getAssigneeId());
-                
                 appointmentService.updateAppointmentForStaff(appointment.getAppointmentId(), appointmentRequest);
             }
             

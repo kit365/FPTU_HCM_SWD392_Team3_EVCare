@@ -119,4 +119,14 @@ export const shiftService = {
     }>(`${SHIFT_BASE}/${id}/assign`, data);
     return response;
   },
+
+  // Search shifts by Technician ID - CA LÀM CỦA TÔI
+  searchByTechnician: async (technicianId: string, params: ShiftSearchRequest) => {
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      data: PageResponse<ShiftResponse>;
+    }>(`${SHIFT_BASE}/technician/search/${technicianId}`, { params });
+    return response;
+  },
 };

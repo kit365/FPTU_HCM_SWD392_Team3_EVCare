@@ -4,10 +4,7 @@ import com.fpt.evcare.base.BaseEntity;
 import com.fpt.evcare.enums.AppointmentStatusEnum;
 import com.fpt.evcare.enums.ServiceModeEnum;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
@@ -20,6 +17,7 @@ import java.util.UUID;
 @Table(name = "appointments")
 @Data
 @NoArgsConstructor
+@Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppointmentEntity extends BaseEntity {

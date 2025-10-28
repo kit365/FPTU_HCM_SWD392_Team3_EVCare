@@ -17,7 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -108,22 +111,86 @@ public class MaintenanceManagementController {
     }
 
     @GetMapping(MaintenanceManagementConstants.MAINTENANCE_MANAGEMENT_SEARCH_FOR_TECHNICIAN)
-    @Operation(summary = "Hiển thị danh sách maintenance management cho kỹ thuật viên", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Hiển thị danh sách Maintenance Management cho kỹ thuật viên có phân trang và tìm kiếm theo keyword")
+    @Operation(
+        summary = "Hiển thị danh sách maintenance management cho kỹ thuật viên", 
+        description = """
+            🔧 **Roles:** ADMIN, STAFF, TECHNICIAN
+            
+            Hiển thị danh sách Maintenance Management cho kỹ thuật viên với các bộ lọc:
+            - keyword: Tìm kiếm theo tên, mô tả
+            - date: Lọc theo ngày (format: yyyy-MM-dd)
+            - status: Lọc theo trạng thái (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+            - appointmentId: Lọc theo appointment cụ thể
+            
+            Response: Danh sách Maintenance Managements được sắp xếp theo thời gian tạo (mới nhất trước)
+            """
+    )
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
     public ResponseEntity<ApiResponse<PageResponse<MaintenanceManagementResponse>>> searchMaintenanceManagementForTechnician(
             @PathVariable(name = "technician_id") UUID technicianId,
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = "10") int pageSize,
-            @Nullable @RequestParam(name = PaginationConstants.KEYWORD_KEY) String keyword
+            @Nullable @RequestParam(name = PaginationConstants.KEYWORD_KEY) String keyword,
+            @Nullable @RequestParam(name = "date") String date,
+            @Nullable @RequestParam(name = "status") String status,
+            @Nullable @RequestParam(name = "appointmentId") UUID appointmentId
     ) {
+        log.info("Fetching maintenance list for technician: {} with filters - date: {}, status: {}, appointmentId: {}", 
+                 technicianId, date, status, appointmentId);
+        
         Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<MaintenanceManagementResponse> response = maintenanceManagementService.searchMaintenanceManagementForTechnicians(technicianId, keyword, pageable);
+        PageResponse<MaintenanceManagementResponse> response = maintenanceManagementService
+            .searchMaintenanceManagementForTechnicians(technicianId, keyword, date, status, appointmentId, pageable);
 
         log.info(MaintenanceManagementConstants.LOG_SUCCESS_SHOWING_MAINTENANCE_MANAGEMENT_LIST_FOR_ADMIN);
         return ResponseEntity.ok(
                 ApiResponse.<PageResponse<MaintenanceManagementResponse>>builder()
                         .success(true)
                         .message(MaintenanceManagementConstants.MESSAGE_SUCCESS_SHOWING_MAINTENANCE_MANAGEMENT_LIST)
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/my-tasks")
+    @Operation(
+        summary = "Lấy danh sách công việc của technician đang login",
+        description = """
+            🔧 **Roles:** TECHNICIAN
+            
+            Lấy danh sách Maintenance Managements mà technician hiện tại phải làm.
+            Tự động lấy technician từ JWT token.
+            
+            Parameters:
+            - date: Lọc theo ngày (format: yyyy-MM-dd) - optional, default = hôm nay
+            - status: Lọc theo trạng thái (PENDING, IN_PROGRESS, COMPLETED) - optional
+            - page: Số trang (default: 0)
+            - pageSize: Số lượng mỗi trang (default: 100)
+            
+            Response: Danh sách Maintenance Managements được sắp xếp theo thời gian shift
+            """
+    )
+    @PreAuthorize("hasRole('TECHNICIAN')")
+    public ResponseEntity<ApiResponse<PageResponse<MaintenanceManagementResponse>>> getMyTasks(
+            @Nullable @RequestParam(name = "date") String date,
+            @Nullable @RequestParam(name = "status") String status,
+            @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = "0") int page,
+            @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = "100") int pageSize
+    ) {
+        // Lấy username từ JWT token
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        log.info("Fetching tasks for technician: {}", username);
+        
+        Pageable pageable = PageRequest.of(page, pageSize);
+        PageResponse<MaintenanceManagementResponse> response = 
+            maintenanceManagementService.getMyTasks(username, date, status, pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<MaintenanceManagementResponse>>builder()
+                        .success(true)
+                        .message("Lấy danh sách công việc thành công")
                         .data(response)
                         .build()
         );

@@ -16,7 +16,9 @@ public interface MaintenanceManagementService {
     PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementWithFilters(String keyword, String status, 
                                                                                      String vehicleId, String fromDate, 
                                                                                      String toDate, Pageable pageable);
-    PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementForTechnicians(UUID technicianId, String keyword, Pageable pageable);
+    PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementForTechnicians(
+            UUID technicianId, String keyword, String date, String status, UUID appointmentId, Pageable pageable);
+    PageResponse<MaintenanceManagementResponse> getMyTasks(String username, String date, String status, Pageable pageable);
     void addMaintenanceManagement(CreationMaintenanceManagementRequest request);
     boolean updateStartEndStartMaintenanceManagement(UUID id, UpdationMaintenanceManagementRequest updationMaintenanceManagementRequest);
     boolean updateNotesMaintenanceManagement(UUID id, String notes);
