@@ -87,12 +87,14 @@ public class MessageServiceImpl implements MessageService {
         
         // Publish event để trigger WebSocket sending (via MessageEventListener)
         log.info("📢 Publishing MessageCreatedEvent for message: {}", savedMessage.getMessageId());
+        log.info("📢 Event will be handled asynchronously by MessageEventListener");
         eventPublisher.publishEvent(new MessageCreatedEvent(
             this, 
             messageResponse, 
             senderId.toString(), 
             request.getReceiverId().toString()
         ));
+        log.info("📢 Event published successfully - listener should now be processing");
         
         return messageResponse;
     }
