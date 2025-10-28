@@ -99,6 +99,8 @@ public class GlobalExceptionHandler {
                 );
     }
 
+
+
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ApiResponse<Void>> handleLockedException(LockedException ex) {
         if (log.isInfoEnabled()) {

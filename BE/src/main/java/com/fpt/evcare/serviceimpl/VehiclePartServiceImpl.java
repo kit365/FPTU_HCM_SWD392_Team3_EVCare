@@ -108,15 +108,19 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         List<VehiclePartEntity> vehiclePartEntityList = vehiclePartRepository.findByVehicleTypeVehicleTypeIdAndIsDeletedFalse(vehicleTypeId);
 
         return vehiclePartEntityList.stream().map(vehiclePartEntity -> {
-            VehiclePartResponse vehiclePartResponse = new VehiclePartResponse();
-            vehiclePartResponse.setVehiclePartId(vehiclePartEntity.getVehiclePartId());
-            vehiclePartResponse.setVehiclePartName(vehiclePartEntity.getVehiclePartName());
-
-            VehiclePartCategoryResponse vehiclePartCategoryResponse = new VehiclePartCategoryResponse();
-            vehiclePartCategoryResponse.setPartCategoryName(vehiclePartEntity.getVehiclePartCategories().getPartCategoryName());
-            vehiclePartResponse.setVehiclePartCategory(vehiclePartCategoryResponse);
+            // Use mapper to map all fields automatically (including currentQuantity, unitPrice, status, etc.)
+            VehiclePartResponse vehiclePartResponse = vehiclePartMapper.toResponse(vehiclePartEntity);
+            
+            // Manually map vehicleType (as it's ignored in mapper)
+            vehiclePartResponse.setVehicleType(vehicleTypeMapper.toResponse(vehiclePartEntity.getVehicleType()));
+            
+            // Manually map vehiclePartCategory (as it's ignored in mapper)
+            vehiclePartResponse.setVehiclePartCategory(
+                vehiclePartCategoryMapper.toResponse(vehiclePartEntity.getVehiclePartCategories())
+            );
+            
             return vehiclePartResponse;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     @Override

@@ -1,6 +1,6 @@
 
 import { pathAdmin } from "./paths.constant";
-import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase } from "iconoir-react";
+import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase, UserCircle, UserScan, Calendar, Tools } from "iconoir-react";
 export interface AdminMenuItem {
     href?: string
     label: string

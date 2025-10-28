@@ -1066,7 +1066,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                 throw new EntityValidationException(MaintenanceManagementConstants.MESSAGE_ERR_CANCEL_INITIALIZING_MAINTENANCE_MANAGEMENT_FOR_THIS_SERVICE_BECAUSE_OF_PART_NOT_ENOUGH);
             }
 
-            // Nếu đủ thì tạo
+            // ⚠️ CHECK: Nếu dịch vụ chưa được config phụ tùng thì SKIP (tránh lỗi "danh sách rỗng")
+            if (recordRequests.isEmpty()) {
+                log.warn("⚠️ Service '{}' chưa được cấu hình phụ tùng trong service_type_vehicle_part. Skip tạo MaintenanceManagement cho dịch vụ này!", parentService.getServiceName());
+                return; // Skip service này, không throw exception
+            }
+
+            // Nếu đủ phụ tùng và có record thì tạo
             CreationMaintenanceManagementRequest managementRequest = new CreationMaintenanceManagementRequest();
             managementRequest.setAppointmentId(appointmentEntity.getAppointmentId());
             managementRequest.setServiceTypeId(parentService.getServiceTypeId());

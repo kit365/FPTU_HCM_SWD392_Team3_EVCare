@@ -482,22 +482,11 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 log.info("Auto-set startTime for maintenance management: {}", id);
             }
 
+            // ✅ KHÔNG CẦN TRỪ STOCK NỮA - Đã trừ khi ADD record rồi!
+            // Stock đã được trừ trong MaintenanceRecordServiceImpl.addMaintenanceRecords()
+            // Chỉ cần update cost
             List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
-
             if (!maintenanceRecords.isEmpty()) {
-                maintenanceRecords.forEach(record -> {
-                    Integer quantityUsed = record.getQuantityUsed();
-                    VehiclePartEntity vehiclePart = record.getVehiclePart();
-
-                    if (vehiclePart.getCurrentQuantity() < quantityUsed) {
-                        log.warn(VehiclePartConstants.LOG_ERR_INSUFFICIENT_VEHICLE_PART_STOCK, vehiclePart.getVehiclePartName());
-                        throw new EntityValidationException(VehiclePartConstants.MESSAGE_ERR_INSUFFICIENT_VEHICLE_PART_STOCK);
-                    }
-
-                    // Trừ số lượng phụ tùng trong kho
-                    vehiclePartService.subtractQuantity(vehiclePart.getVehiclePartId(), quantityUsed);
-                });
-
                 // Cập nhật lại tổng chi phí bảo trì
                 maintenanceManagementRepository.flush();
                 maintenanceCostService.updateTotalCost(maintenanceManagement);
