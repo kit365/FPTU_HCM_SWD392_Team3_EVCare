@@ -43,10 +43,11 @@ public class MessageWebSocketController {
                     )
             );
 
-            log.info("Gửi tin nhắn qua WebSocket từ {} đến {}", 
-                    messageRequest.getSenderId(), messageRequest.getReceiverId());
+            log.info("Gửi tin nhắn qua WebSocket từ {} đến {}", messageRequest.getSenderId(), messageRequest.getReceiverId());
+            log.info("Message response object: {}", response);
 
             // Gửi tin nhắn đến sender (xác nhận gửi thành công)
+            log.info("Sending to sender {} at /queue/messages", messageRequest.getSenderId());
             messagingTemplate.convertAndSendToUser(
                     messageRequest.getSenderId().toString(),
                     "/queue/messages",
@@ -54,6 +55,7 @@ public class MessageWebSocketController {
             );
 
             // Gửi tin nhắn đến receiver (tin nhắn mới)
+            log.info("Sending to receiver {} at /queue/messages", messageRequest.getReceiverId());
             messagingTemplate.convertAndSendToUser(
                     messageRequest.getReceiverId().toString(),
                     "/queue/messages",

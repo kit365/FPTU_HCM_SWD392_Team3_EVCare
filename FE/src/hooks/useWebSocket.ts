@@ -19,6 +19,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const isCleaningUpRef = useRef(false);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 3000;
   
@@ -41,6 +42,12 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const connect = useCallback(() => {
     if (!userId) {
       console.warn('Cannot connect WebSocket: userId is empty');
+      return;
+    }
+    
+    // Prevent duplicate connections
+    if (clientRef.current && clientRef.current.active) {
+      console.log('WebSocket already connected, skipping...');
       return;
     }
 
@@ -88,12 +95,26 @@ export function useWebSocket(options: UseWebSocketOptions) {
 
           // Subscribe to messages
           client.subscribe(`/user/${userId}/queue/messages`, (message) => {
+            console.log('🔥 ====== RAW MESSAGE RECEIVED ======');
+            console.log('🔥 Destination:', `/user/${userId}/queue/messages`);
+            console.log('🔥 Raw message body:', message.body);
+            console.log('🔥 Message type:', typeof message.body);
+            console.log('🔥 Full message object:', message);
+
             try {
               const data = JSON.parse(message.body) as MessageResponse;
-              console.log('📨 Received message:', data);
+              console.log('✅ Parsed message data:', data);
+              console.log('✅ Message senderId:', data.senderId);
+              console.log('✅ Message receiverId:', data.receiverId);
+              console.log('✅ Message content:', data.content);
+
+              // Call the callback
+              console.log('📞 Calling onMessage callback...');
               onMessageRef.current?.(data);
+              console.log('✅ onMessage callback completed');
             } catch (e) {
-              console.error('Error parsing message:', e);
+              console.error('❌ Error parsing message:', e);
+              console.error('❌ Raw body that failed to parse:', message.body);
             }
           });
 
@@ -115,14 +136,14 @@ export function useWebSocket(options: UseWebSocketOptions) {
           setIsConnected(false);
           onDisconnectedRef.current?.();
 
-          // Attempt to reconnect
-          if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          // Only attempt to reconnect if not cleaning up
+          if (!isCleaningUpRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttemptsRef.current++;
             console.log(`Reconnecting... Attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS}`);
             reconnectTimeoutRef.current = setTimeout(() => {
               connect();
             }, RECONNECT_DELAY);
-          } else {
+          } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
             console.error('Max reconnection attempts reached');
             setError('Failed to reconnect after multiple attempts');
           }
@@ -145,6 +166,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
   }, [userId]);
 
   const disconnect = useCallback(() => {
+    isCleaningUpRef.current = true;
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
@@ -153,6 +175,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
       console.log('Disconnected from STOMP');
     }
     setIsConnected(false);
+    isCleaningUpRef.current = false;
   }, []);
 
   const sendMessage = useCallback((request: WebSocketMessageRequest) => {
