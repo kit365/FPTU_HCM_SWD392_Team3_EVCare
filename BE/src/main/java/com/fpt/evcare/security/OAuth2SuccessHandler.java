@@ -75,7 +75,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = tokenService.generateAccessToken(userEntity.getUserId());
         String refreshToken = tokenService.generateRefreshToken(userEntity.getUserId());
 
-        log.info("Generated system tokens for Google user: {}", email);
+        // Save tokens to Redis
+        tokenService.saveAccessToken(userEntity.getUserId(), accessToken, 3600); // 1 hour
+        tokenService.saveRefreshToken(userEntity.getUserId(), refreshToken, 604800); // 7 days
+
+        log.info("Generated and saved system tokens for Google user: {}", email);
 
         // Redirect to frontend with tokens as URL parameters
         String frontendCallbackUrl = String.format(
