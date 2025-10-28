@@ -84,10 +84,6 @@ export function FloatingChatButton() {
         </div>
       )}
 
-      {/* Notification placeholder for future */}
-      <div className="fixed bottom-28 right-6 z-50">
-        {/* This is where notification bell will go later */}
-      </div>
     </>
   );
 }
