@@ -42,6 +42,8 @@ public class UserResponse implements Serializable {
 
     Boolean isDeleted;
 
+    Boolean isAdmin;
+
     LocalDateTime createdAt;
 
     LocalDateTime updatedAt;

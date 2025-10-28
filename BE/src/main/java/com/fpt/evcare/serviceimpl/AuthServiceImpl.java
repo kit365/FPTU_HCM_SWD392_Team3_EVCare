@@ -71,7 +71,19 @@ public class AuthServiceImpl implements AuthService {
         tokenService.saveAccessToken(user.getUserId(), accessToken, 3600); // 1h
         tokenService.saveRefreshToken(user.getUserId(), refreshToken, 604800);   // 7 ngày
 
+        // Check if user has admin-level roles (not CUSTOMER)
+        boolean isAdmin = user.getRoles() != null && user.getRoles().stream()
+                .anyMatch(role -> !role.getRoleName().toString().equals("CUSTOMER"));
+
+        // Debug: Log user roles and isAdmin status
         if (log.isInfoEnabled()) {
+            String roles = user.getRoles() != null 
+                ? user.getRoles().stream()
+                    .map(r -> r.getRoleName().toString())
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("NO_ROLES")
+                : "NULL_ROLES";
+            log.info("Login - User: {}, Roles: {}, isAdmin: {}", loginRequest.getEmail(), roles, isAdmin);
             log.info(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
         }
 
@@ -80,6 +92,7 @@ public class AuthServiceImpl implements AuthService {
                 .token(accessToken)
                 .refreshToken(refreshToken)
                 .authenticated(true)
+                .isAdmin(isAdmin)
                 .build();
     }
 
@@ -109,13 +122,32 @@ public class AuthServiceImpl implements AuthService {
             if (userEntity == null) {
                 throw new IllegalArgumentException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
             }
-            return userMapper.toResponse(userEntity);
+
+            List<String> roleNames = new ArrayList<>();
+            if (userEntity.getRoles() != null) {
+                for (com.fpt.evcare.entity.RoleEntity role : userEntity.getRoles()) {
+                    roleNames.add(role.getRoleName().toString());
+                }
+            }
+
+            UserResponse response = userMapper.toResponse(userEntity);
+            response.setRoleName(roleNames);
+            response.setIsAdmin(isAdminRole(roleNames));
+
+            return response;
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
                 log.error("Failed to get user from token: {}", e.getMessage());
             }
             throw new IllegalArgumentException(TokenConstants.MESSAGE_ERR_TOKEN_DISABLED);
         }
+    }
+
+    private boolean isAdminRole(List<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return false;
+        }
+        return roleNames.stream().anyMatch(role -> !role.equals("CUSTOMER"));
     }
 
 

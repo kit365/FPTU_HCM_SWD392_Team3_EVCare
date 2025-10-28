@@ -19,7 +19,7 @@ import { VehiclePartCategoryList } from "../pages/admin/vehicle-part-category/Ve
 import { VehiclePartCategoryCreate } from "../pages/admin/vehicle-part-category/VehiclePartCategoryCreate";
 import { VehiclePartCategoryEdit } from "../pages/admin/vehicle-part-category/VehiclePartCategoryEdit";
 import { VehiclePartCategoryDetail } from "../pages/admin/vehicle-part-category/VehiclePartCategoryDetail";
-import { ServiceTypeList } from "../pages/admin/service-type/ServiceTypeList";
+// ServiceTypeList removed - không được sử dụng (dùng VehicleService thay thế)
 import { ServiceTypeCreate } from "../pages/admin/service-type/ServiceTypeCreate";
 import { ServiceTypeEdit } from "../pages/admin/service-type/ServiceTypeEdit";
 import { ServiceTypeDetail } from "../pages/admin/service-type/ServiceTypeDetail";
@@ -63,7 +63,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "vehicle-part-category/create", element: <VehiclePartCategoryCreate /> },
     { path: "vehicle-part-category/edit/:id", element: <VehiclePartCategoryEdit /> },
     { path: "vehicle-part-category/view/:id", element: <VehiclePartCategoryDetail /> },
-    { path: "service-type", element: <ServiceTypeList /> },
+    // { path: "service-type", element: <ServiceTypeList /> }, // Removed - không được sử dụng
     { path: "service-type/create", element: <ServiceTypeCreate /> },
     { path: "service-type/edit/:id", element: <ServiceTypeEdit /> },
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },

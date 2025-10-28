@@ -5,8 +5,8 @@ import CarManagement from "../pages/client/car/CarManagement";
 import ProtectedRoute from "../components/client/ProtectedRoute";
 import { MessagePage } from "../pages/message/MessagePage";
 export const ClientRoutes: RouteObject[] = [
-    { path: "/", element: <HomePage /> },
-    { path: "service-booking", element: <ServiceBookingPage /> },
-    { path: "car-profile", element: <ProtectedRoute><CarManagement/></ProtectedRoute> },
-    { path: "message", element: <ProtectedRoute><MessagePage /></ProtectedRoute> },
+    { path: "", element: <HomePage /> }, 
+    { path: "service-booking", element: <ServiceBookingPage /> }, // /client/service-booking
+    { path: "car-profile", element: <ProtectedRoute><CarManagement/></ProtectedRoute> }, // /client/car-profile
+    { path: "message", element: <ProtectedRoute><MessagePage /></ProtectedRoute> }, // /client/message
 ];

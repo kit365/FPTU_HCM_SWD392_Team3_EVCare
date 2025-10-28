@@ -14,19 +14,8 @@ export const useServiceType = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  const search = useCallback(async (params: { page: number; pageSize: number; keyword?: string }) => {
-    setLoading(true);
-    try {
-      const data = await serviceTypeService.search(params);
-      setList(data.data);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể tải danh sách loại dịch vụ!");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // DEPRECATED: BE không có endpoint search chung (không có vehicleTypeId)
+  // Note: Dùng getByVehicleTypeId thay thế (xem VehicleService.tsx)
 
   // Get service type detail by service type ID
   const getById = useCallback(async (id: string) => {
@@ -162,7 +151,7 @@ export const useServiceType = () => {
     loading,
     totalPages,
     totalElements,
-    search,
+    // search, // DEPRECATED: endpoint không tồn tại trong BE
     getById,
     getByVehicleTypeId,
     getParentsByVehicleTypeId,
