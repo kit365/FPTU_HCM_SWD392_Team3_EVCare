@@ -211,7 +211,20 @@ export const MaintenanceManagementDetail: React.FC = () => {
       
       handleCloseAddDialog();
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể thêm phụ tùng");
+      console.error("❌ Error adding maintenance record:", error);
+      console.error("❌ Error response:", error?.response);
+      console.error("❌ Error data:", error?.response?.data);
+      console.error("❌ Error message:", error?.response?.data?.message);
+      
+      const errorMessage = error?.response?.data?.message || error?.message || "Không thể thêm phụ tùng";
+      
+      // KHÔNG đóng dialog khi lỗi để user thấy toast
+      // handleCloseAddDialog(); // ← Đã đóng ở line 212 nếu thành công
+      
+      toast.error(errorMessage, {
+        autoClose: 5000, // 5 seconds
+        position: "top-center", // Hiển thị ở top để không bị dialog che
+      });
     } finally {
       setAddingRecord(false);
     }
@@ -1020,17 +1033,63 @@ export const MaintenanceManagementDetail: React.FC = () => {
           {/* Vehicle Part Selection */}
           <Autocomplete
             fullWidth
-            options={vehiclePartsList}
-            getOptionLabel={(option) => `${option.vehiclePartName} - ${option.unitPrice?.toLocaleString('vi-VN')} ₫/cái`}
+            options={vehiclePartsList.filter(part => (part.currentQuantity || 0) >= quantity)}
+            getOptionLabel={(option) => {
+              const stock = option.currentQuantity || 0;
+              const price = option.unitPrice?.toLocaleString('vi-VN') || '0';
+              return `${option.vehiclePartName} - ${price} ₫/cái (Tồn: ${stock})`;
+            }}
             value={selectedVehiclePart}
-            onChange={(_, newValue) => setSelectedVehiclePart(newValue)}
+            onChange={(_, newValue) => {
+              setSelectedVehiclePart(newValue);
+              // Auto set quantity to 1 when selecting new part (user can adjust later)
+              if (newValue) {
+                setQuantity(1);
+              }
+            }}
             loading={loadingVehicleParts}
+            noOptionsText={
+              vehiclePartsList.length === 0 
+                ? "Không có phụ tùng nào" 
+                : `Không có phụ tùng nào có tồn kho >= ${quantity}. Giảm số lượng để xem thêm.`
+            }
+            renderOption={(props, option) => {
+              const stock = option.currentQuantity || 0;
+              return (
+                <li {...props}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="body1">{option.vehiclePartName}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.unitPrice?.toLocaleString('vi-VN')} ₫/cái
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 600,
+                          color: stock < 10 ? 'warning.main' : 'success.main'
+                        }}
+                      >
+                        Tồn: {stock}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </li>
+              );
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Chọn phụ tùng"
                 placeholder="Tìm kiếm phụ tùng..."
                 variant="outlined"
+                helperText={
+                  vehiclePartsList.filter(p => (p.currentQuantity || 0) >= quantity).length > 0
+                    ? `${vehiclePartsList.filter(p => (p.currentQuantity || 0) >= quantity).length} phụ tùng có sẵn với số lượng >= ${quantity}`
+                    : `⚠️ Không có phụ tùng nào đủ stock. Giảm số lượng xuống.`
+                }
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -1051,10 +1110,35 @@ export const MaintenanceManagementDetail: React.FC = () => {
             type="number"
             label="Số lượng"
             value={quantity}
-            onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-            InputProps={{
-              inputProps: { min: 1 }
+            onChange={(e) => {
+              let newQty = parseInt(e.target.value) || 1;
+              
+              // ✅ Giới hạn min = 1
+              if (newQty < 1) {
+                newQty = 1;
+              }
+              
+              // ✅ Giới hạn max = currentQuantity của phụ tùng đang chọn (auto clamp)
+              if (selectedVehiclePart) {
+                const maxStock = selectedVehiclePart.currentQuantity || 0;
+                if (newQty > maxStock) {
+                  newQty = maxStock; // Tự động giảm xuống max (VD: 81 → 80)
+                }
+              }
+              
+              setQuantity(newQty);
             }}
+            InputProps={{
+              inputProps: { 
+                min: 1,
+                max: selectedVehiclePart ? selectedVehiclePart.currentQuantity : undefined
+              }
+            }}
+            helperText={
+              selectedVehiclePart 
+                ? `Tối đa: ${selectedVehiclePart.currentQuantity} (tồn kho hiện tại)`
+                : "Chọn phụ tùng trước để xem số lượng tối đa"
+            }
             sx={{ mb: 2 }}
           />
 

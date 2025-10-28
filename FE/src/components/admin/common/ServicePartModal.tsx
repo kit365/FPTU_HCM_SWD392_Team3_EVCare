@@ -41,8 +41,9 @@ export const ServicePartModal = ({ open, onClose, serviceTypeId, serviceTypeName
   const { create, loading } = useServiceTypeVehiclePart();
   const { getByVehicleTypeId, list } = useVehiclePart();
   const [vehiclePartOptions, setVehiclePartOptions] = useState<{ value: string; label: string }[]>([]);
+  const [selectedPartStock, setSelectedPartStock] = useState<number | null>(null); // Track tồn kho của phụ tùng đang chọn
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       vehiclePartId: "",
@@ -50,6 +51,9 @@ export const ServicePartModal = ({ open, onClose, serviceTypeId, serviceTypeName
       estimatedTimeDefault: 30,
     }
   });
+
+  const watchedVehiclePartId = watch("vehiclePartId");
+  const watchedQuantity = watch("requiredQuantity");
 
   useEffect(() => {
     if (open && vehicleTypeId) {
@@ -63,13 +67,36 @@ export const ServicePartModal = ({ open, onClose, serviceTypeId, serviceTypeName
       // Filter out parts that are already added to this service
       const filteredList = list.filter((part: any) => !existingPartIds.includes(part.vehiclePartId));
       
-      const options = filteredList.map((part: any) => ({
+      // ✅ CHỈ hiển thị phụ tùng có tồn kho >= requiredQuantity
+      const availableParts = filteredList.filter((part: any) => 
+        (part.currentQuantity || 0) >= (watchedQuantity || 1)
+      );
+      
+      const options = availableParts.map((part: any) => ({
         value: part.vehiclePartId,
-        label: `${part.vehiclePartName} (Tồn kho: ${part.currentQuantity})`
+        label: `${part.vehiclePartName} (Tồn: ${part.currentQuantity})`
       }));
       setVehiclePartOptions(options);
     }
-  }, [list, existingPartIds]);
+  }, [list, existingPartIds, watchedQuantity]);
+
+  // ✅ Track tồn kho của phụ tùng đang chọn
+  useEffect(() => {
+    if (watchedVehiclePartId && list) {
+      const selectedPart = list.find((part: any) => part.vehiclePartId === watchedVehiclePartId);
+      if (selectedPart) {
+        setSelectedPartStock(selectedPart.currentQuantity || 0);
+        
+        // ✅ Clamp quantity nếu vượt quá tồn kho
+        const currentQty = watchedQuantity || 1;
+        if (currentQty > (selectedPart.currentQuantity || 0)) {
+          setValue("requiredQuantity", selectedPart.currentQuantity || 1);
+        }
+      }
+    } else {
+      setSelectedPartStock(null);
+    }
+  }, [watchedVehiclePartId, list, watchedQuantity, setValue]);
 
   const onSubmit = async (data: any) => {
     const payload: CreationServiceTypeVehiclePartRequest = {
@@ -89,6 +116,7 @@ export const ServicePartModal = ({ open, onClose, serviceTypeId, serviceTypeName
 
   const handleClose = () => {
     reset();
+    setSelectedPartStock(null); // ✅ Reset stock khi đóng modal
     onClose();
   };
 
@@ -131,9 +159,35 @@ export const ServicePartModal = ({ open, onClose, serviceTypeId, serviceTypeName
               id="requiredQuantity"
               type="number"
               placeholder="Nhập số lượng..."
-              {...register("requiredQuantity")}
+              {...register("requiredQuantity", {
+                onChange: (e) => {
+                  let qty = parseInt(e.target.value) || 1;
+                  
+                  // ✅ Clamp min = 1
+                  if (qty < 1) {
+                    qty = 1;
+                  }
+                  
+                  // ✅ Clamp max = tồn kho (nếu đã chọn phụ tùng)
+                  if (selectedPartStock && qty > selectedPartStock) {
+                    qty = selectedPartStock;
+                  }
+                  
+                  setValue("requiredQuantity", qty);
+                }
+              })}
               error={errors.requiredQuantity?.message as string}
             />
+            {selectedPartStock !== null && (
+              <p className="text-[1.2rem] text-gray-600 mt-1">
+                Tối đa: {selectedPartStock} (tồn kho hiện tại)
+              </p>
+            )}
+            {!watchedVehiclePartId && (
+              <p className="text-[1.2rem] text-gray-500 mt-1">
+                Chọn phụ tùng trước để xem số lượng tối đa
+              </p>
+            )}
           </div>
 
           <div>
