@@ -49,8 +49,23 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const response = await authService.registerUser(data);
-      if (response?.data?.success === true) {
+      if (response?.data?.success === true && response.data.data) {
         notify.success(response?.data?.message || "Đăng ký thành công");
+        
+        // ✅ Auto-login: Lưu token và refresh user info
+        const { token, refreshToken } = response.data.data;
+        if (token && refreshToken) {
+          localStorage.setItem('access_token', token);
+          localStorage.setItem('refresh_token', refreshToken);
+          
+          try {
+            await refreshUser();
+            // Navigate sẽ được xử lý ở component (ClientRegister)
+          } catch (userError) {
+            console.error("Error loading user info after registration:", userError);
+            notify.error("Đăng ký thành công nhưng không thể tải thông tin người dùng");
+          }
+        }
       } else {
         notify.error(response?.data?.message || "Đăng ký thất bại");
       }
