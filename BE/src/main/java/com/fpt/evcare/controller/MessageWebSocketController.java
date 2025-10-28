@@ -60,31 +60,8 @@ public class MessageWebSocketController {
             log.info("✅ Message saved successfully, response ID: {}", response.getMessageId());
             log.info("✅ MessageCreatedEvent published - WebSocket sending handled by MessageEventListener");
             
-            // ALSO send directly via WebSocket as backup (in case event listener is delayed)
-            log.info("📤 Sending message directly to sender {} at /queue/messages", messageRequest.getSenderId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getSenderId(),
-                    "/queue/messages",
-                    response
-            );
-            
-            log.info("📤 Sending message directly to receiver {} at /queue/messages", messageRequest.getReceiverId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/messages",
-                    response
-            );
-            
-            // Send unread count update to receiver
-            Long unreadCount = messageService.getUnreadCount(receiverUUID);
-            log.info("📊 Sending unread count ({}) to receiver {}", unreadCount, messageRequest.getReceiverId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/unread-count",
-                    unreadCount
-            );
-            
-            // Check connected users for debugging
+            // ❌ REMOVED: Duplicate send (MessageEventListener already handles this)
+            // Just log connection status for debugging
             log.info("🔍 Checking connected WebSocket sessions...");
             log.info("🔍 Total connected users: {}", userRegistry.getUserCount());
             log.info("🔍 Sender {} is connected: {}", messageRequest.getSenderId(), 

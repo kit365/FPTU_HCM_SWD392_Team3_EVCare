@@ -19,7 +19,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const clientRef = useRef<Client | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isCleaningUpRef = useRef(false);
   const MAX_RECONNECT_ATTEMPTS = 5;
@@ -105,7 +105,9 @@ export function useWebSocket(options: UseWebSocketOptions) {
 
           // Subscribe to messages
           console.log('📡 Setting up message subscription for user:', userId);
-          const messageDestination = `/user/${userId}/queue/messages`;
+          // ✅ FIX: Subscribe to /user/queue/messages (Spring auto-routes by principal)
+          // Do NOT include userId in subscription path!
+          const messageDestination = `/user/queue/messages`;
           console.log('📡 Subscribing to:', messageDestination);
           console.log('📡 STOMP user principal should be:', userId);
 
@@ -118,7 +120,8 @@ export function useWebSocket(options: UseWebSocketOptions) {
             console.log('🔥 All message headers:', message.headers);
             console.log('🔥 Message type:', typeof message.body);
             console.log('🔥 Full message object:', message);
-            console.log('🔥 Message headers:', message.headers);
+            console.log('🔥 Subscription ID:', messageSubscription.id);
+            console.log('🔥 onMessageRef.current exists:', !!onMessageRef.current);
 
             try {
               const data = JSON.parse(message.body) as MessageResponse;
@@ -129,8 +132,14 @@ export function useWebSocket(options: UseWebSocketOptions) {
 
               // Call the callback
               console.log('📞 Calling onMessage callback...');
-              onMessageRef.current?.(data);
-              console.log('✅ onMessage callback completed');
+              console.log('📞 Callback function:', onMessageRef.current);
+              
+              if (onMessageRef.current) {
+                onMessageRef.current(data);
+                console.log('✅ onMessage callback completed');
+              } else {
+                console.error('❌ onMessage callback is null/undefined!');
+              }
             } catch (e) {
               console.error('❌ Error parsing message:', e);
               console.error('❌ Raw body that failed to parse:', message.body);
@@ -138,6 +147,9 @@ export function useWebSocket(options: UseWebSocketOptions) {
           });
 
           console.log('✅ Message subscription completed for user:', userId);
+          console.log('✅ Subscription object:', messageSubscription);
+          console.log('✅ Subscription ID:', messageSubscription.id);
+          console.log('✅ Is subscription active:', !messageSubscription.closed);
 
           // Test send a message to verify subscription works
           console.log('🧪 Testing subscription - sending test message to self...');
@@ -146,7 +158,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
           }, 1000);
 
           // Subscribe to unread count updates
-          client.subscribe(`/user/${userId}/queue/unread-count`, (message) => {
+          client.subscribe(`/user/queue/unread-count`, (message) => {
             try {
               const count = Number(message.body);
               console.log('🔔 Unread count update:', count);
@@ -157,7 +169,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
           });
 
           // Subscribe to notifications
-          client.subscribe(`/user/${userId}/queue/notifications`, (message) => {
+          client.subscribe(`/user/queue/notifications`, (message) => {
             console.log('🔔 ====== NOTIFICATION RECEIVED ======');
             console.log('🔔 Raw notification body:', message.body);
             try {
@@ -168,7 +180,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
               console.error('❌ Error parsing notification:', e);
             }
           });
-          console.log('✅ Subscribed to notifications at /user/' + userId + '/queue/notifications');
+          console.log('✅ Subscribed to notifications at /user/queue/notifications');
 
           onConnectedRef.current?.();
         },
