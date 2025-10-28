@@ -33,6 +33,8 @@ public class UserResponse implements Serializable {
 
     String avatarUrl;
 
+    String provider;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String technicianSkills;
 

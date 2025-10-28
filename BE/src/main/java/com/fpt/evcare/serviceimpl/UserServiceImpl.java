@@ -9,6 +9,7 @@ import com.fpt.evcare.dto.response.TechnicianResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.UserMapper;
@@ -167,12 +168,18 @@ public class UserServiceImpl implements UserService {
         checkExistCreationUserInput(creationUserRequest);
         UserEntity user = userMapper.toEntity(creationUserRequest);
 
-        // Set single role (take first role from list if provided)
+        // Set single role (take first role from list if provided, otherwise default to CUSTOMER)
         if(creationUserRequest.getRoleIds() != null && !creationUserRequest.getRoleIds().isEmpty()){
             UUID roleId = creationUserRequest.getRoleIds().get(0); // Take first role
             RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
             if(roleEntity != null) {
                 user.setRole(roleEntity);
+            }
+        } else {
+            // Default to CUSTOMER role if no role specified
+            RoleEntity customerRole = roleRepository.findByRoleName(RoleEnum.CUSTOMER);
+            if(customerRole != null) {
+                user.setRole(customerRole);
             }
         }
         user.setPassword(passwordEncoder.encode(creationUserRequest.getPassword()));
@@ -207,7 +214,11 @@ public class UserServiceImpl implements UserService {
                 user.setRole(roleEntity);
             }
         }
-        user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
+        
+        // Only update password if provided (not null and not empty)
+        if(updationUserRequest.getPassword() != null && !updationUserRequest.getPassword().trim().isEmpty()){
+            user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
+        }
 
         if(Objects.equals(user.getEmail(), updationUserRequest.getEmail())){
             user.setEmail(updationUserRequest.getEmail());
@@ -315,6 +326,10 @@ public class UserServiceImpl implements UserService {
             }
             if(creationUserRequest.getEmail() != null && userRepository.existsByEmail(creationUserRequest.getEmail())){
                     errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+            }
+            if(creationUserRequest.getNumberPhone() != null && !creationUserRequest.getNumberPhone().isEmpty() 
+                    && userRepository.existsByNumberPhone(creationUserRequest.getNumberPhone())){
+                    errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
             }
             if(!errors.isEmpty()) throw new UserValidationException(String.join(", ", errors));
     }
