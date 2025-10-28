@@ -56,6 +56,7 @@ public class MessageConstants {
     public static final String MESSAGE_DELETE = "/{id}";
     public static final String MESSAGE_CONVERSATION = "/conversation/{userId}";
     public static final String MESSAGE_UNREAD_COUNT = "/unread-count";
+    public static final String MESSAGE_AVAILABLE_STAFF = "/staff/available";
 }
 
 

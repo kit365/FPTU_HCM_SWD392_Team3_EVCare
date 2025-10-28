@@ -152,12 +152,16 @@ export function useWebSocket(options: UseWebSocketOptions) {
   }, [isConnected, onError]);
   useEffect(() => {
     if (userId) {
+      console.log('🔌 useWebSocket: Attempting to connect for userId:', userId);
       connect();
     }
+    
     return () => {
+      console.log('🔌 useWebSocket: Cleaning up connection for userId:', userId);
       disconnect();
     };
-  }, [userId, connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Removed connect and disconnect from dependencies to prevent re-connection loop
   return {
     isConnected,
     error,
