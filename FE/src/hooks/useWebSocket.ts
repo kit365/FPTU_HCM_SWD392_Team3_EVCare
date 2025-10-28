@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { MessageResponse, WebSocketMessageRequest, WebSocketMarkReadRequest } from '../types/message.types';
+import type { WebSocketNotification } from '../types/notification.types';
 
 interface UseWebSocketOptions {
   userId: string;
   onMessage?: (message: MessageResponse) => void;
   onUnreadCountUpdate?: (count: number) => void;
-  onNotification?: (notification: any) => void;
+  onNotification?: (notification: WebSocketNotification) => void;
   onError?: (error: string) => void;
   onConnected?: () => void;
   onDisconnected?: () => void;
