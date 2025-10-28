@@ -53,26 +53,32 @@ export function NotificationBell() {
     }
   });
 
-  // Toggle dropdown
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-  };
+  // References for button and dropdown
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
-  const dropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      // Check if click is outside both button and dropdown
+      const clickedButton = buttonRef.current?.contains(event.target as Node);
+      const clickedDropdown = dropdownRef.current?.contains(event.target as Node);
+      
+      if (!clickedButton && !clickedDropdown && isOpen) {
         setIsOpen(false);
       }
     };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+  
+  // Toggle dropdown
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
 
   // Combine API notifications + realtime notifications
   // Remove duplicates based on notificationId
@@ -98,6 +104,7 @@ export function NotificationBell() {
       {/* Notification Bell Button - Higher than Chat Button */}
       <div className="fixed bottom-32 right-6 z-50">
         <button
+          ref={buttonRef}
           onClick={toggleDropdown}
           className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center transition-all duration-200 hover:scale-105 relative"
           style={{ width: '64px', height: '64px' }}
