@@ -40,13 +40,8 @@ export function ChatWindowWithWebSocket({
   // Listen for new messages from parent component's WebSocket
   useEffect(() => {
     if (onWebSocketMessage) {
-      console.log('📨 ====== ChatWindow: Received new message from WebSocket ======');
-      console.log('📨 Full message:', JSON.stringify(onWebSocketMessage, null, 2));
-      console.log('📨 Message ID:', onWebSocketMessage.messageId);
       console.log('📨 Current userId:', currentUserId);
       console.log('📨 Other userId:', otherUserId);
-      console.log('📨 Message senderId:', onWebSocketMessage.senderId);
-      console.log('📨 Message receiverId:', onWebSocketMessage.receiverId);
       console.log('📨 Current messages count:', messages.length);
       
       // Check if message is part of current conversation

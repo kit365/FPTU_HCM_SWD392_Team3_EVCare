@@ -46,10 +46,8 @@ export function NotificationBell() {
       refreshNotifications();
     },
     onConnected: () => {
-      console.log('✅ Notification WebSocket connected');
     },
     onDisconnected: () => {
-      console.log('❌ Notification WebSocket disconnected');
     }
   });
 

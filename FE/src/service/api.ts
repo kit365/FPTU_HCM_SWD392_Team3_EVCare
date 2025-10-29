@@ -11,6 +11,17 @@ export const apiClient = axios.create({
   validateStatus: (status) => status < 500 // Không throw error cho 4xx, chỉ throw cho 5xx
 });
 
+// Public API client (no authentication required)
+export const publicApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000,
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  withCredentials: true,
+  validateStatus: (status) => status < 500 // Không throw error cho 4xx, chỉ throw cho 5xx
+});
+
 // Request interceptor: Add access token to headers
 apiClient.interceptors.request.use(
   (config) => {

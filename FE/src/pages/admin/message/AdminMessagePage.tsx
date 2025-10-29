@@ -26,7 +26,6 @@ export function AdminMessagePage() {
 
   // Create stable callbacks using useCallback
   const handleWebSocketMessage = useCallback((message: MessageResponse) => {
-    console.log('🔔 AdminMessagePage: WebSocket message received:', message);
     
     // Set latest message to trigger ChatWindow update
     setLatestMessage(message);
@@ -83,11 +82,9 @@ export function AdminMessagePage() {
   }, []);
   
   const handleConnected = useCallback(() => {
-    console.log('WebSocket connected');
   }, []);
   
   const handleDisconnected = useCallback(() => {
-    console.log('WebSocket disconnected');
   }, []);
   
   const handleWebSocketError = useCallback((error: string) => {

@@ -8,6 +8,8 @@ import type {
   CreateAppointmentRequest,
   CreateAppointmentResponse,
   UserAppointmentResponse,
+  GuestAppointmentResponse,
+  SearchAppointmentParams,
 } from "../types/booking.types";
 import { apiClient } from "./api";
 
@@ -60,6 +62,30 @@ export const bookingService = {
       { params }
     );
     console.log("GET USER APPOINTMENTS RESPONSE:", response);
+    return response;
+  },
+
+  // Search appointments for guest (not logged in) - Public API
+  searchGuestAppointments: async (params: SearchAppointmentParams) => {
+    const response = await fetch(
+      `${API_BASE}/appointment/search/guest/?${new URLSearchParams({
+        page: (params.page || 0).toString(),
+        pageSize: (params.pageSize || 10).toString(),
+        ...(params.keyword && { keyword: params.keyword }),
+      })}`
+    );
+    const data = await response.json();
+    console.log("SEARCH GUEST APPOINTMENTS RESPONSE:", data);
+    return { data };
+  },
+
+  // Search appointments for customer (logged in)
+  searchCustomerAppointments: async (params: SearchAppointmentParams) => {
+    const response = await apiClient.get<UserAppointmentResponse>(
+      `${API_BASE}/appointment/search/customer/`,
+      { params }
+    );
+    console.log("SEARCH CUSTOMER APPOINTMENTS RESPONSE:", response);
     return response;
   },
 };

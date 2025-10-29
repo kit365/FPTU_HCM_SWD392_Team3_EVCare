@@ -19,7 +19,6 @@ export function MessagePage() {
   
   // Create stable callbacks using useCallback
   const handleWebSocketMessage = useCallback((message: MessageResponse) => {
-    console.log('🔔 MessagePage: WebSocket message received:', message);
     console.log('🔔 MessagePage: Current latestMessage:', latestMessage);
     
     // Set latest message to trigger ChatWindow update
@@ -40,12 +39,10 @@ export function MessagePage() {
   }, []);
   
   const handleConnected = useCallback(() => {
-    console.log('WebSocket connected');
     setIsWebSocketReady(true);
   }, []);
   
   const handleDisconnected = useCallback(() => {
-    console.log('WebSocket disconnected');
     setIsWebSocketReady(false);
   }, []);
   

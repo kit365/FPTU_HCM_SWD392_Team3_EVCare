@@ -51,7 +51,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
     
     // Prevent duplicate connections
     if (clientRef.current && clientRef.current.active) {
-      console.log('WebSocket already connected, skipping...');
       return;
     }
 
@@ -63,7 +62,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
       
       const wsUrl = `${baseWsUrl}?userId=${userId}`;
 
-      console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
 
       const client = new Client({
         brokerURL: undefined, // Disable native WebSocket, use SockJS only
@@ -98,7 +96,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
           console.log('STOMP Debug:', str);
         },
         onConnect: () => {
-          console.log('✅ STOMP WebSocket connected');
           setIsConnected(true);
           setError(null);
           reconnectAttemptsRef.current = 0;
@@ -173,7 +170,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
           onConnectedRef.current?.();
         },
         onDisconnect: () => {
-          console.log('🔌 WebSocket disconnected');
           setIsConnected(false);
           onDisconnectedRef.current?.();
 
@@ -227,7 +223,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
       return;
     }
     try {
-      console.log('🔄 Preparing to send WebSocket message...');
       console.log('🔄 Destination:', '/app/message/send');
       console.log('🔄 Request object:', request);
       console.log('🔄 JSON body:', JSON.stringify(request));
@@ -236,7 +231,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
         destination: '/app/message/send',
         body: JSON.stringify(request),
       });
-      console.log('📤 Sent message via WebSocket:', request);
     } catch (err) {
       console.error('Error sending message:', err);
       onError?.('Failed to send message');
@@ -277,7 +271,6 @@ export function useWebSocket(options: UseWebSocketOptions) {
         destination: '/app/message/mark-read',
         body: JSON.stringify(request),
       });
-      console.log('✅ Marked message as read via WebSocket:', request.messageId);
     } catch (err) {
       console.error('Error marking message as read:', err);
       onError?.('Failed to mark message as read');
@@ -285,12 +278,10 @@ export function useWebSocket(options: UseWebSocketOptions) {
   }, [isConnected, onError]);
   useEffect(() => {
     if (userId) {
-      console.log('🔌 useWebSocket: Attempting to connect for userId:', userId);
       connect();
     }
     
     return () => {
-      console.log('🔌 useWebSocket: Cleaning up connection for userId:', userId);
       disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

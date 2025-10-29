@@ -85,11 +85,9 @@ export function SimpleChatWidget() {
   }, []);
 
   const handleConnected = useCallback(() => {
-    console.log('✅ WebSocket connected in SimpleChatWidget');
   }, []);
 
   const handleDisconnected = useCallback(() => {
-    console.log('❌ WebSocket disconnected in SimpleChatWidget');
   }, []);
 
   const handleError = useCallback((error: string) => {
@@ -266,10 +264,8 @@ export function SimpleChatWidget() {
       setInputMessage('');
       
       // Gửi qua WebSocket
-      console.log('📤 Sending message via WebSocket:', wsPayload);
       sendMessage(wsPayload);
       
-      console.log('📤 Message sent, waiting for WebSocket confirmation');
       
     } catch (error: any) {
       console.error('Error sending message:', error);

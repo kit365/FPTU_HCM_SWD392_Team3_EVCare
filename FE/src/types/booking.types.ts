@@ -127,6 +127,7 @@ export interface GetServiceTypeParams {
   page?: number;
   pageSize?: number;
   keyword?: string;
+  isActive?: boolean;
 }
 
 // Service Mode Response
@@ -226,4 +227,20 @@ export interface UserAppointmentResponse {
   data: UserAppointmentListData;
   timestamp: string;
   errorCode?: string;
+}
+
+// Guest Appointment Search Response (same structure as UserAppointment)
+export interface GuestAppointmentResponse {
+  success: boolean;
+  message: string;
+  data: UserAppointmentListData;
+  timestamp: string;
+  errorCode?: string;
+}
+
+// Search params for guest and customer
+export interface SearchAppointmentParams {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
 }
