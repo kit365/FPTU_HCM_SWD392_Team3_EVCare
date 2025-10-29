@@ -26,6 +26,11 @@ export const TopbarAdmin = ({ onToggleSidebar, isSidebarOpen }: TopbarProps) => 
         setAnchorEl(null);
     };
 
+    const handleProfile = () => {
+        handleClose();
+        navigate('/admin/profile');
+    };
+
     const handleViewClientSite = () => {
         handleClose();
         navigate('/client');
@@ -92,6 +97,9 @@ export const TopbarAdmin = ({ onToggleSidebar, isSidebarOpen }: TopbarProps) => 
                                     {user?.email || ''}
                                 </Typography>
                             </Box>
+                            <MenuItem onClick={handleProfile}>
+                                Thông tin cá nhân
+                            </MenuItem>
                             <MenuItem onClick={handleViewClientSite}>
                                 Xem giao diện khách hàng
                             </MenuItem>

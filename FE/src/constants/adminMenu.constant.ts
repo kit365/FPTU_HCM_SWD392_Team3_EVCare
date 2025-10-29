@@ -74,16 +74,16 @@ export const adminMenuItems: AdminMenuItem[] = [
             STAFF: `/${pathAdmin}/shift`,
         }
     },
-    {
-        href: `/${pathAdmin}/my-maintenance`,
-        label: "Công việc bảo dưỡng",
-        icon: Tools,
-    },
-    {
-        href: `/${pathAdmin}/warranty`,
-        label: "Bảo hành",
-        icon: Codepen,
-    },
+    // {
+    //     href: `/${pathAdmin}/my-maintenance`,
+    //     label: "Công việc bảo dưỡng",
+    //     icon: Tools,
+    // },
+    // {
+    //     href: `/${pathAdmin}/warranty`,
+    //     label: "Bảo hành",
+    //     icon: Codepen,
+    // },
     {
         href: `/${pathAdmin}/message`,
         label: "Tin nhắn",

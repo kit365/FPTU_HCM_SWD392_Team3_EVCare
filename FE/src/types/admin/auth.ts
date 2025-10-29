@@ -13,6 +13,7 @@ export interface RegisterUserRequest {
     email: string;
     fullName: string;
     numberPhone: string;
+    avatarUrl?: string;
 }
 export interface RegisterUserResponse {
     userId: string;

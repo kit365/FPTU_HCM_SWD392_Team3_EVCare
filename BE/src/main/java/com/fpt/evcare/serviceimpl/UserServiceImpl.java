@@ -2,6 +2,7 @@ package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.UpdateProfileRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
@@ -350,5 +351,61 @@ public class UserServiceImpl implements UserService {
             return false;
         }
         return roleNames.stream().anyMatch(role -> !role.equals("CUSTOMER"));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateProfile(UUID userId, UpdateProfileRequest updateProfileRequest) {
+        // Find user
+        UserEntity user = userRepository.findByUserIdAndIsDeletedFalse(userId);
+        if (user == null) {
+            log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND, userId);
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        // Check for duplicate email (if changing)
+        if (updateProfileRequest.getEmail() != null && !updateProfileRequest.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(updateProfileRequest.getEmail())) {
+                throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+            }
+            user.setEmail(updateProfileRequest.getEmail());
+        }
+
+        // Check for duplicate phone (if changing)
+        if (updateProfileRequest.getNumberPhone() != null && !updateProfileRequest.getNumberPhone().isEmpty()
+                && !updateProfileRequest.getNumberPhone().equals(user.getNumberPhone())) {
+            if (userRepository.existsByNumberPhone(updateProfileRequest.getNumberPhone())) {
+                throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+            }
+            user.setNumberPhone(updateProfileRequest.getNumberPhone());
+        }
+
+        // Update other fields
+        if (updateProfileRequest.getFullName() != null) {
+            user.setFullName(updateProfileRequest.getFullName());
+        }
+        if (updateProfileRequest.getAddress() != null) {
+            user.setAddress(updateProfileRequest.getAddress());
+        }
+        if (updateProfileRequest.getAvatarUrl() != null) {
+            user.setAvatarUrl(updateProfileRequest.getAvatarUrl());
+        }
+
+
+
+        // Save and return
+        UserEntity updatedUser = userRepository.save(user);
+
+        List<String> roleNames = new ArrayList<>();
+        if (updatedUser.getRole() != null) {
+            roleNames.add(updatedUser.getRole().getRoleName().toString());
+        }
+
+        UserResponse response = userMapper.toResponse(updatedUser);
+        response.setRoleName(roleNames);
+        response.setIsAdmin(isAdminRole(roleNames));
+
+        log.info("✅ Updated profile for user: {}", userId);
+        return response;
     }
 }

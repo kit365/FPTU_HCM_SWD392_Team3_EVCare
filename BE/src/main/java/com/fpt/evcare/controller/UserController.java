@@ -4,6 +4,7 @@ import com.fpt.evcare.base.ApiResponse;
 import com.fpt.evcare.constants.PaginationConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.UpdateProfileRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.UserResponse;
@@ -166,6 +167,24 @@ public class UserController {
                         .success(true)
                         .message("Lấy danh sách kỹ thuật viên thành công")
                         .data(technicians)
+                        .build()
+                );
+    }
+
+    @PatchMapping("/profile/{id}")
+    @Operation(summary = "Cập nhật profile cá nhân", description = "🔐 **Roles:** Authenticated (All roles) - Chỉ update được email, fullName, phone, address, avatarUrl")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateProfileRequest updateProfileRequest
+    ) {
+        UserResponse userResponse = userService.updateProfile(id, updateProfileRequest);
+
+        return ResponseEntity
+                .ok(ApiResponse.<UserResponse>builder()
+                        .success(true)
+                        .message("Cập nhật thông tin cá nhân thành công")
+                        .data(userResponse)
                         .build()
                 );
     }

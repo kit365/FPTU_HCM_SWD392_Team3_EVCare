@@ -6,12 +6,14 @@ import { userService } from '../../../service/userService';
 import { notify } from '../../../components/admin/common/Toast';
 import type { UserResponse } from '../../../types/user.types';
 import { handleApiError } from '../../../utils/handleApiError';
+import { ImageUpload } from '../../../components/admin/common/ImageUpload';
 
 export const UserEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<UserResponse | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -37,6 +39,7 @@ export const UserEdit = () => {
     try {
       const data = await userService.getById(id);
       setUser(data);
+      setAvatarUrl(data.avatarUrl || '');
       setFormData({
         fullName: data.fullName || '',
         email: data.email || '',
@@ -94,11 +97,14 @@ export const UserEdit = () => {
 
     setLoading(true);
     try {
-      await userService.update(id, formData);
+      await userService.update(id, {
+        ...formData,
+        avatarUrl: avatarUrl || undefined,
+      });
       notify.success('Cập nhật thông tin thành công!');
-      // Navigate back and reload after a short delay
+      // Navigate back to staff management page
       setTimeout(() => {
-        window.location.href = '/admin/users/staff';
+        navigate('/admin/users/staff');
       }, 500);
     } catch (error: any) {
       handleApiError(error, 'Có lỗi xảy ra khi cập nhật thông tin');
@@ -257,7 +263,18 @@ export const UserEdit = () => {
                   placeholder="Nhập địa chỉ"
                 />
               </div>
+            </div>
 
+            {/* Avatar Upload */}
+            <div className="mt-6">
+              <ImageUpload
+                value={avatarUrl}
+                onChange={(url) => setAvatarUrl(url)}
+                label="Ảnh đại diện"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Status Toggle */}
               <div className="md:col-span-2">
                 <FormControlLabel

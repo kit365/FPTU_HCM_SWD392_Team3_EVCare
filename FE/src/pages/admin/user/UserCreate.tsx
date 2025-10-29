@@ -6,6 +6,7 @@ import { notify } from '../../../components/admin/common/Toast';
 import { userService } from '../../../service/userService';
 import { roleService, type RoleResponse } from '../../../service/roleService';
 import { handleApiError } from '../../../utils/handleApiError';
+import { ImageUpload } from '../../../components/admin/common/ImageUpload';
 
 export default function UserCreate() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function UserCreate() {
     fullName: '',
     numberPhone: '',
     address: '',
+    avatarUrl: '',
     roleIds: [] as string[],
     technicianSkills: '',
   });
@@ -139,15 +141,16 @@ export default function UserCreate() {
         fullName: formData.fullName || undefined,
         numberPhone: formData.numberPhone || undefined,
         address: formData.address || undefined,
+        avatarUrl: formData.avatarUrl || undefined,
         roleIds: formData.roleIds,
       });
 
       if (success) {
         const roleName = roles.find(r => r.roleId === formData.roleIds[0])?.roleName;
         notify.success(`Thêm ${roleName === 'STAFF' ? 'nhân viên' : 'kỹ thuật viên'} thành công!`);
-        // Navigate and reload after a short delay
+        // Navigate back to staff management page
         setTimeout(() => {
-          window.location.href = '/admin/users/staff';
+          navigate('/admin/users/staff');
         }, 500);
       }
     } catch (error: any) {
@@ -319,7 +322,17 @@ export default function UserCreate() {
                   Phải là 10 chữ số (hoặc để trống)
                 </p>
               </div>
+            </div>
 
+            {/* Avatar Upload */}
+            <ImageUpload
+              value={formData.avatarUrl}
+              onChange={(url) => setFormData(prev => ({ ...prev, avatarUrl: url }))}
+              label="Ảnh đại diện (tùy chọn)"
+            />
+
+            {/* Continue with other fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Address */}
               <div className={isTechnician ? '' : 'md:col-span-2'}>
                 <label className="block text-[1.3rem] font-medium text-gray-700 mb-2">

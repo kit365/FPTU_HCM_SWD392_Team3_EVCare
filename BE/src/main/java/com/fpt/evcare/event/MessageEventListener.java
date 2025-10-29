@@ -27,7 +27,7 @@ public class MessageEventListener implements ApplicationListener<MessageCreatedE
     MessageService messageService;
     
     @Override
-    // @Async  // ❌ REMOVED: Async causes issues with WebSocket message delivery
+    @Async
     public void onApplicationEvent(@Nonnull MessageCreatedEvent event) {
         log.info("🎉 ====== MESSAGE CREATED EVENT RECEIVED ======");
         log.info("🎉 Sender: {}", event.getSenderId());
@@ -39,16 +39,22 @@ public class MessageEventListener implements ApplicationListener<MessageCreatedE
             String receiverId = event.getReceiverId();
             var messageResponse = event.getMessageResponse();
             
-            // ✅ FIXED: FE now subscribes to /user/queue/messages (without userId in path)
-            // Spring auto-routes to correct user session based on principal
-            log.info("📤 Sending confirmation to sender {} via convertAndSendToUser", senderId);
-            log.info("📤 Message content: {}", messageResponse);
-            
-            messagingTemplate.convertAndSendToUser(senderId, "/queue/messages", messageResponse);
+            // Send to sender (confirmation)
+            log.info("📤 Sending confirmation to sender {} at /user/{}/queue/messages", senderId, senderId);
+            messagingTemplate.convertAndSendToUser(
+                    senderId,
+                    "/queue/messages",
+                    messageResponse
+            );
             log.info("✅ Confirmation sent to sender successfully");
             
-            log.info("📤 Sending new message to receiver {} via convertAndSendToUser", receiverId);
-            messagingTemplate.convertAndSendToUser(receiverId, "/queue/messages", messageResponse);
+            // Send to receiver (new message)
+            log.info("📤 Sending new message to receiver {} at /user/{}/queue/messages", receiverId, receiverId);
+            messagingTemplate.convertAndSendToUser(
+                    receiverId,
+                    "/queue/messages",
+                    messageResponse
+            );
             log.info("✅ New message sent to receiver successfully");
             
             // Send unread count update to receiver

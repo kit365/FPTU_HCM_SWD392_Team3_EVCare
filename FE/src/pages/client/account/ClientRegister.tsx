@@ -11,9 +11,7 @@ const ClientRegister = () => {
   const onSubmit = async (values: RegisterUserRequest) => {
     const response = await registerUser(values);
     if (response.data.success === true) {
-      // ✅ Auto-login: Nếu có token thì vào thẳng trang chủ
-      const hasToken = response.data.data?.token && response.data.data?.refreshToken;
-      navigate(hasToken ? "/client" : "/client/login");
+      navigate("/client/login");
     }
   };
 

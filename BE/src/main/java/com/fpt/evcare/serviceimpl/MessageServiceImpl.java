@@ -22,6 +22,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,6 +96,9 @@ public class MessageServiceImpl implements MessageService {
             request.getReceiverId().toString()
         ));
         log.info("📢 Event published successfully - listener should now be processing");
+        
+        // ✅ Auto-reply welcome message if this is customer's first message
+        sendWelcomeMessageIfFirstTime(sender, receiver);
         
         return messageResponse;
     }
@@ -236,6 +240,69 @@ public class MessageServiceImpl implements MessageService {
         
         log.info("Tìm thấy {} nhân viên STAFF có sẵn", response.size());
         return response;
+    }
+
+    /**
+     * Auto-send welcome message if this is customer's first message to staff/admin
+     */
+    private void sendWelcomeMessageIfFirstTime(UserEntity sender, UserEntity receiver) {
+        try {
+            // Only auto-reply if sender is CUSTOMER
+            if (sender.getRole() == null || !sender.getRole().getRoleName().equals(RoleEnum.CUSTOMER)) {
+                return;
+            }
+
+            // Check if this is the first message between sender and receiver
+            Page<MessageEntity> existingMessages = messageRepository.findConversation(
+                sender.getUserId(), 
+                receiver.getUserId(),
+                PageRequest.of(0, 10)  // Get up to 10 recent messages
+            );
+
+            // If there are more than 1 message (current + previous), not first time
+            if (existingMessages.getTotalElements() > 1) {
+                return;
+            }
+
+            log.info("🎉 First message from customer {} to {}, sending welcome message", 
+                sender.getUserId(), receiver.getUserId());
+
+            // Create welcome message from receiver back to sender
+            String customerName = sender.getFullName() != null ? sender.getFullName() : "Quý khách";
+            String welcomeContent = "Xin chào " + customerName + "! 👋\n\n" +
+                "Cảm ơn bạn đã liên hệ với EVCare. " +
+                "Chúng tôi đã nhận được tin nhắn của bạn và sẽ phản hồi trong thời gian sớm nhất.\n\n" +
+                "Vui lòng mô tả chi tiết vấn đề của bạn để chúng tôi có thể hỗ trợ tốt nhất. " +
+                "Thời gian làm việc: 8:00 - 17:30 từ Thứ 2 đến Thứ 7.\n\n" +
+                "Trân trọng!";
+
+            MessageEntity welcomeMessage = MessageEntity.builder()
+                    .sender(receiver)  // Admin/Staff sends back
+                    .receiver(sender)  // To customer
+                    .content(welcomeContent)
+                    .isRead(false)
+                    .status(MessageStatusEnum.SENT)
+                    .sentAt(LocalDateTime.now())
+                    .createdBy("System Auto-Reply")
+                    .updatedBy("System Auto-Reply")
+                    .build();
+
+            MessageEntity savedWelcome = messageRepository.save(welcomeMessage);
+            log.info("✅ Welcome message sent: {}", savedWelcome.getMessageId());
+
+            // Publish event for welcome message too
+            MessageResponse welcomeResponse = messageMapper.toResponse(savedWelcome);
+            eventPublisher.publishEvent(new MessageCreatedEvent(
+                this,
+                welcomeResponse,
+                receiver.getUserId().toString(),
+                sender.getUserId().toString()
+            ));
+
+        } catch (Exception e) {
+            // Don't fail the main message if welcome message fails
+            log.error("❌ Failed to send welcome message: {}", e.getMessage(), e);
+        }
     }
 }
 

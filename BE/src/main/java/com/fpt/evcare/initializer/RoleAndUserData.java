@@ -14,7 +14,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @Slf4j
 @Component
@@ -27,14 +29,34 @@ public class RoleAndUserData implements CommandLineRunner {
     RoleRepository roleRepository;
     UserRepository userRepository;
 
+    Random random = new Random();
+
+    // Sample Vietnamese names
+    String[] firstNames = {"Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương", "Lý"};
+    String[] middleNames = {"Văn", "Thị", "Đình", "Minh", "Hữu", "Quốc", "Thanh", "Anh", "Thu", "Hoàng"};
+    String[] lastNames = {"Hùng", "Linh", "An", "Bình", "Dũng", "Giang", "Hải", "Khánh", "Long", "Nam", "Phong", "Quân", "Sơn", "Tú", "Vinh", "Yến"};
+    String[] cities = {"Hà Nội", "TP.HCM", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Nha Trang", "Huế", "Vũng Tàu", "Đà Lạt", "Quy Nhơn"};
+
     @Override
     public void run(String... args) {
-        if (roleRepository.count() > 0 && userRepository.count() > 0) {
-            log.info("✅ Roles and Users already initialized, skipping...");
+        // Check if users already exist
+        long existingUserCount = userRepository.count();
+
+        // If we have many users (>= 800), assume sample data already created
+        if (existingUserCount >= 800) {
+            log.info("✅ Sample users already exist ({} users found), skipping...", existingUserCount);
             return;
         }
 
-        log.info("🚀 Initializing roles and default users...");
+        // If we have a few users (1-799), it's the old default data - recreate with samples
+        if (existingUserCount > 0 && existingUserCount < 800) {
+            log.info("🗑️  Found {} old users. Deleting to recreate with more sample data...", existingUserCount);
+            userRepository.deleteAll();
+            roleRepository.deleteAll();
+            log.info("✅ Old users deleted. Creating new sample users...");
+        }
+
+        log.info("🚀 Initializing roles and sample users (811 total: 1 Admin, 20 Staff, 750 Customers, 40 Technicians)...");
 
         // ===== 1. ADMIN =====
         RoleEntity adminRole = createRole(
@@ -42,7 +64,6 @@ public class RoleAndUserData implements CommandLineRunner {
                 "Quản trị viên hệ thống — có toàn quyền truy cập.",
                 List.of("MANAGE_USERS", "MANAGE_ROLES", "MANAGE_SERVICES", "VIEW_REPORTS")
         );
-
         RoleEntity a = roleRepository.save(adminRole);
 
         UserEntity adminUser = createUser(
@@ -55,6 +76,7 @@ public class RoleAndUserData implements CommandLineRunner {
                 a
         );
         userRepository.save(adminUser);
+        log.info("✅ Created 1 ADMIN user");
 
         // ===== 2. STAFF =====
         RoleEntity staffRole = createRole(
@@ -64,6 +86,7 @@ public class RoleAndUserData implements CommandLineRunner {
         );
         RoleEntity s = roleRepository.save(staffRole);
 
+        // Create default staff + 19 more = 20 staff total
         UserEntity staffUser = createUser(
                 "staff123A",
                 "staff@gmail.com",
@@ -75,6 +98,23 @@ public class RoleAndUserData implements CommandLineRunner {
         );
         userRepository.save(staffUser);
 
+        List<UserEntity> staffUsers = new ArrayList<>();
+        for (int i = 1; i <= 19; i++) {
+            String fullName = generateRandomName();
+            UserEntity staff = createUser(
+                    "staff" + i,
+                    "staff" + i + "@evcare.com",
+                    "Staff@123",
+                    fullName,
+                    generateRandomCity(),
+                    generateRandomPhone(901111110 + i),
+                    s
+            );
+            staffUsers.add(staff);
+        }
+        userRepository.saveAll(staffUsers);
+        log.info("✅ Created 20 STAFF users");
+
         // ===== 3. CUSTOMER =====
         RoleEntity customerRole = createRole(
                 RoleEnum.CUSTOMER,
@@ -83,6 +123,7 @@ public class RoleAndUserData implements CommandLineRunner {
         );
         RoleEntity c = roleRepository.save(customerRole);
 
+        // Create default customer + 749 more = 750 customers total
         UserEntity customerUser = createUser(
                 "customer123A",
                 "customer@gmail.com",
@@ -94,6 +135,23 @@ public class RoleAndUserData implements CommandLineRunner {
         );
         userRepository.save(customerUser);
 
+        List<UserEntity> customers = new ArrayList<>();
+        for (int i = 1; i <= 749; i++) {
+            String fullName = generateRandomName();
+            UserEntity customer = createUser(
+                    "customer" + i,
+                    "customer" + i + "@evcare.com",
+                    "@Customer123",
+                    fullName,
+                    generateRandomCity(),
+                    generateRandomPhone(902000000 + i * 11),  // Avoid phone number collision
+                    c
+            );
+            customers.add(customer);
+        }
+        userRepository.saveAll(customers);
+        log.info("✅ Created 750 CUSTOMER users");
+
         // ===== 4. TECHNICIAN =====
         RoleEntity technicianRole = createRole(
                 RoleEnum.TECHNICIAN,
@@ -102,6 +160,7 @@ public class RoleAndUserData implements CommandLineRunner {
         );
         RoleEntity t = roleRepository.save(technicianRole);
 
+        // Create default technician + 39 more = 40 technicians total
         UserEntity technicianUser = createUser(
                 "technician123A",
                 "technician@gmail.com",
@@ -113,10 +172,44 @@ public class RoleAndUserData implements CommandLineRunner {
         );
         userRepository.save(technicianUser);
 
-        log.info("✅ Roles and Users initialized successfully!");
+        List<UserEntity> technicians = new ArrayList<>();
+        for (int i = 1; i <= 39; i++) {
+            String fullName = generateRandomName();
+            UserEntity technician = createUser(
+                    "technician" + i,
+                    "technician" + i + "@evcare.com",
+                    "@Technician123",
+                    fullName,
+                    generateRandomCity(),
+                    generateRandomPhone(903333330 + i),
+                    t
+            );
+            technicians.add(technician);
+        }
+        userRepository.saveAll(technicians);
+        log.info("✅ Created 40 TECHNICIAN users");
+
+        log.info("🎉 Roles and Users initialized successfully! Total: 1 Admin, 20 Staff, 750 Customers, 40 Technicians = 811 users");
     }
 
-    // ===== Helper Methods =====
+    // ===== Helper Methods for Random Data =====
+
+    private String generateRandomName() {
+        String firstName = firstNames[random.nextInt(firstNames.length)];
+        String middleName = middleNames[random.nextInt(middleNames.length)];
+        String lastName = lastNames[random.nextInt(lastNames.length)];
+        return firstName + " " + middleName + " " + lastName;
+    }
+
+    private String generateRandomCity() {
+        return cities[random.nextInt(cities.length)] + ", Việt Nam";
+    }
+
+    private String generateRandomPhone(int baseNumber) {
+        return "0" + baseNumber;
+    }
+
+    // ===== Original Helper Methods =====
 
     private RoleEntity createRole(RoleEnum roleEnum, String description, List<String> permissions) {
         return RoleEntity.builder()
@@ -138,6 +231,4 @@ public class RoleAndUserData implements CommandLineRunner {
                 .role(role)
                 .build();
     }
-
-
 }

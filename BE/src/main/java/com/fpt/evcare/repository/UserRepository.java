@@ -1,7 +1,7 @@
 package com.fpt.evcare.repository;
 
 import com.fpt.evcare.entity.UserEntity;
-import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.repository.query.Param;
 import com.fpt.evcare.enums.RoleEnum;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,4 +39,11 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     // Search users by role
     @Query("SELECT u FROM UserEntity u WHERE u.role.roleName = :roleName AND u.isDeleted = false")
     List<UserEntity> findByRoleNameAndIsDeletedFalse(@Param("roleName") RoleEnum roleName);
+
+    // Count users by role
+    @Query("SELECT COUNT(u) FROM UserEntity u WHERE u.role.roleName = :roleName AND u.isDeleted = false")
+    Long countByRoleRoleNameAndIsDeletedFalse(@Param("roleName") RoleEnum roleName);
+
+    @Query("SELECT COUNT(u) FROM UserEntity u WHERE u.role.roleName = :roleName AND u.isActive = :isActive AND u.isDeleted = false")
+    Long countByRoleRoleNameAndIsActiveAndIsDeletedFalse(@Param("roleName") RoleEnum roleName, @Param("isActive") Boolean isActive);
 }

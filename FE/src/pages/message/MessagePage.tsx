@@ -20,14 +20,19 @@ export function MessagePage() {
   // Create stable callbacks using useCallback
   const handleWebSocketMessage = useCallback((message: MessageResponse) => {
     console.log('🔔 MessagePage: WebSocket message received:', message);
+    console.log('🔔 MessagePage: Current latestMessage:', latestMessage);
     
-    // ✅ Set latest message to trigger ChatWindow update
-    // ChatWindow đã có logic anti-duplicate, không cần clear về null
-    // Mỗi message có unique messageId nên React sẽ tự động trigger re-render
+    // Set latest message to trigger ChatWindow update
     setLatestMessage(message);
     
     // Refresh message list when a new message is received
     setRefreshTrigger(prev => prev + 1);
+    
+    // Clear latestMessage after a short delay so it can be set again for next message
+    setTimeout(() => {
+      console.log('🔔 Clearing latestMessage to allow next message to trigger update');
+      setLatestMessage(null);
+    }, 100);
   }, []);
   
   const handleUnreadCountUpdate = useCallback((count: number) => {
