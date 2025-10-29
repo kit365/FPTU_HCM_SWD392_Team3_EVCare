@@ -8,6 +8,7 @@ import type { UserResponse } from '../../../types/user.types';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { handleApiError } from '../../../utils/handleApiError';
+import { ImageUpload } from '../../../components/admin/common/ImageUpload';
 
 export default function CustomerEdit() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ export default function CustomerEdit() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState<UserResponse | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export default function CustomerEdit() {
       setLoading(true);
       const response = await userService.getById(id!);
       setData(response);
+      setAvatarUrl(response.avatarUrl || '');
       setIsActive(response.isActive ?? true);
     } catch (error: any) {
       notify.error(error.response?.data?.message || 'Không thể tải thông tin khách hàng');
@@ -52,19 +55,20 @@ export default function CustomerEdit() {
     try {
       setSubmitting(true);
 
-      // Only update isActive status (but include email as backend requires it)
+      // Update isActive status and avatarUrl (but include email as backend requires it)
       const updateData = {
         email: user.email,  // Required by backend validation
-        isActive: isActive
+        isActive: isActive,
+        avatarUrl: avatarUrl || undefined,
       };
 
       const success = await userService.update(id, updateData);
 
       if (success) {
         notify.success('Cập nhật trạng thái khách hàng thành công!');
-        // Navigate and reload after a short delay
+        // Navigate back to customers page
         setTimeout(() => {
-          window.location.href = '/admin/users/customers';
+          navigate('/admin/users/customers');
         }, 500);
       }
     } catch (error: any) {
@@ -213,7 +217,18 @@ export default function CustomerEdit() {
                   className="w-full px-4 py-3 text-[1.3rem] border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 />
               </div>
+            </div>
 
+            {/* Avatar Upload - EDITABLE */}
+            <div className="mt-6">
+              <ImageUpload
+                value={avatarUrl}
+                onChange={(url) => setAvatarUrl(url)}
+                label="Ảnh đại diện"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Status Toggle - EDITABLE */}
               <div className="md:col-span-2">
                 <FormControlLabel

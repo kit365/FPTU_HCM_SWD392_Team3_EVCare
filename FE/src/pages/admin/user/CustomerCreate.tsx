@@ -103,9 +103,9 @@ export default function CustomerCreate() {
 
       if (success) {
         notify.success('Thêm khách hàng thành công!');
-        // Navigate and reload after a short delay
+        // Navigate back to customers page
         setTimeout(() => {
-          window.location.href = '/admin/users/customers';
+          navigate('/admin/users/customers');
         }, 500);
       }
     } catch (error: any) {

@@ -37,6 +37,9 @@ public class RegisterUserRequest {
     private String numberPhone;
 
     @Nullable
+    private String avatarUrl;
+
+    @Nullable
     private String provider;
 
 }

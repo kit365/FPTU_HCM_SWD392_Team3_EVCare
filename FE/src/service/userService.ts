@@ -120,6 +120,28 @@ export const userService = {
       `/user/technicians`
     );
     return response.data.data;
+  },
+
+  // Update profile (no password, role, username changes)
+  updateProfile: async (userId: string, data: {
+    email?: string;
+    fullName?: string;
+    numberPhone?: string;
+    address?: string;
+    avatarUrl?: string;
+  }): Promise<UserResponse> => {
+    const response = await apiClient.patch<ApiResponse<UserResponse>>(
+      `/user/profile/${userId}`,
+      data
+    );
+    
+    if (!response.data?.success) {
+      const error = new Error(response.data?.message || 'Cập nhật profile thất bại');
+      (error as any).response = { data: response.data };
+      throw error;
+    }
+    
+    return response.data.data;
   }
 };
 

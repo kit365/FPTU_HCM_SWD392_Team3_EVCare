@@ -1,6 +1,7 @@
 package com.fpt.evcare.service;
 
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.UpdateProfileRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
 import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
@@ -34,6 +35,9 @@ public interface UserService {
 
     // Get users by role name
     List<UserResponse> getUsersByRole(String roleName);
+
+    // Update current user profile (no role/username change, no password required)
+    UserResponse updateProfile(UUID userId, UpdateProfileRequest updateProfileRequest);
 
 
 }
