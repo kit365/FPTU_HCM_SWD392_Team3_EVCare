@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react" ;
+import React, { useState, useEffect } from "react";
 import {
   Button,
   DatePicker,
@@ -10,6 +10,7 @@ import {
 } from "antd";
 import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
+import dayjs from "dayjs";
 import { bookingService } from "../../../service/bookingService";
 import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
@@ -29,6 +30,7 @@ export const ServiceBookingPage: React.FC = () => {
   const [loadingServices, setLoadingServices] = useState<boolean>(false);
   const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
   const [isUseOldData, setIsUseOldData] = useState(false);
+  const [pendingServiceIds, setPendingServiceIds] = useState<string[]>([]);
 
   // Lấy thông tin user từ AuthContext
   const { user } = useAuthContext();
@@ -58,6 +60,17 @@ export const ServiceBookingPage: React.FC = () => {
     }
   }, [selectedVehicleTypeId, form]);
 
+  // Auto-fill services when they are loaded and we have pending service IDs
+  useEffect(() => {
+    if (serviceTypes.length > 0 && pendingServiceIds.length > 0) {
+      console.log("🔧 [BOOKING DEBUG] Auto-filling services:", pendingServiceIds);
+      form.setFieldsValue({
+        services: pendingServiceIds,
+      });
+      setPendingServiceIds([]); // Clear pending IDs
+    }
+  }, [serviceTypes, pendingServiceIds, form]);
+
   const handleOldData = () => {
     setIsUseOldData(true);
   };
@@ -66,15 +79,9 @@ export const ServiceBookingPage: React.FC = () => {
     setIsUseOldData(false);
   };
 
-  const handleResetForm = () => {
-    form.resetFields();
-    setSelectedVehicleTypeId("");
-    setServiceType("");
-    setServiceTypes([]);
-  };
 
-  const handleSelectVehicle = (vehicleData: VehicleProfileData) => {
-    // Fill thông tin cơ bản từ hồ sơ xe (không disable)
+  const handleSelectVehicle = async (vehicleData: VehicleProfileData) => {
+    // Fill thông tin cơ bản từ hồ sơ xe
     form.setFieldsValue({
       customerName: vehicleData.customerName,
       phone: vehicleData.phone,
@@ -83,23 +90,44 @@ export const ServiceBookingPage: React.FC = () => {
       licensePlate: vehicleData.licensePlate,
     });
 
-    // Client có thể edit tất cả các field như bình thường
+    // Auto-fill mẫu xe nếu có
+    if (vehicleData.vehicleTypeId) {
+      form.setFieldsValue({
+        vehicleType: vehicleData.vehicleTypeId,
+      });
+      setSelectedVehicleTypeId(vehicleData.vehicleTypeId);
+      
+      // Set pending service IDs để auto-fill sau khi services được load
+      if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
+        setPendingServiceIds(vehicleData.serviceTypeIds);
+      }
+      
+      // Load services cho mẫu xe này
+      await fetchServiceTypes(vehicleData.vehicleTypeId);
+    }
 
-    // Reset các trường selection để user phải chọn lại
+    // Auto-fill thể loại dịch vụ nếu có
+    if (vehicleData.serviceType) {
+      form.setFieldsValue({
+        serviceType: vehicleData.serviceType,
+      });
+      setServiceType(vehicleData.serviceType);
+    }
+
+    // Auto-fill địa chỉ nếu có (cho MOBILE)
+    if (vehicleData.userAddress && vehicleData.serviceType === "MOBILE") {
+      form.setFieldsValue({
+        userAddress: vehicleData.userAddress,
+      });
+    }
+
+    // Reset thời gian để user phải chọn lại
     form.setFieldsValue({
-      vehicleType: undefined,
-      services: undefined,
-      serviceType: undefined,
       dateTime: undefined,
-      location: undefined, // Reset location cho STATIONARY
     });
 
-    // Reset state để không load services tự động
-    setSelectedVehicleTypeId("");
-    setServiceType("");
-
     // Hiển thị message
-    message.success("Đã điền thông tin cơ bản từ hồ sơ xe! Bạn có thể chỉnh sửa thông tin nếu cần. Vui lòng chọn Mẫu xe, Dịch vụ và Thời gian.");
+    message.success("Đã điền thông tin từ hồ sơ xe! Vui lòng chọn dịch vụ và thời gian hẹn.");
   };
 
   const fetchVehicleTypes = async () => {
@@ -534,13 +562,53 @@ export const ServiceBookingPage: React.FC = () => {
               <Form.Item
                 label="Thời gian hẹn"
                 name="dateTime"
-                rules={[{ required: true, message: "Vui lòng chọn thời gian" }]}
+                rules={[
+                  { required: true, message: "Vui lòng chọn thời gian" },
+                  {
+                    validator: (_, value) => {
+                      if (value && dayjs(value).isBefore(dayjs(), 'minute')) {
+                        return Promise.reject(new Error("Không thể chọn thời gian trong quá khứ"));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}
               >
                 <DatePicker
                   showTime
                   format="YYYY-MM-DD HH:mm:ss"
                   className="w-full"
                   placeholder="Chọn ngày và giờ"
+                  disabledDate={(current) => current && current < dayjs().startOf('day')}
+                  disabledTime={(current) => {
+                    if (!current) return {};
+                    const now = dayjs();
+                    const selectedDate = dayjs(current);
+                    
+                    // Nếu chọn ngày hôm nay, disable các giờ đã qua
+                    if (selectedDate.isSame(now, 'day')) {
+                      return {
+                        disabledHours: () => {
+                          const hours = [];
+                          for (let i = 0; i < now.hour(); i++) {
+                            hours.push(i);
+                          }
+                          return hours;
+                        },
+                        disabledMinutes: (selectedHour) => {
+                          if (selectedHour === now.hour()) {
+                            const minutes = [];
+                            for (let i = 0; i < now.minute(); i++) {
+                              minutes.push(i);
+                            }
+                            return minutes;
+                          }
+                          return [];
+                        },
+                      };
+                    }
+                    return {};
+                  }}
                 />
               </Form.Item>
             </div>
@@ -562,10 +630,10 @@ export const ServiceBookingPage: React.FC = () => {
             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 border border-blue-200">
               <div className="text-center space-x-4">
                 <Button
-                  type="primary"
+                  type="default"
                   htmlType="submit"
                   size="large"
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 border-0 text-white font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                  className="bg-white/80 backdrop-blur-sm border-2 border-blue-200 text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-blue-50"
                 >
                   Đặt lịch hẹn
                 </Button>
@@ -579,14 +647,6 @@ export const ServiceBookingPage: React.FC = () => {
                     Sử dụng hồ sơ xe
                   </Button>
                 )}
-                <Button
-                  type="default"
-                  onClick={handleResetForm}
-                  size="large"
-                  className="bg-white/80 backdrop-blur-sm border-2 border-orange-200 text-orange-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-orange-50"
-                >
-                  Nhập lại từ đầu
-                </Button>
               </div>
             </div>
           </Form>

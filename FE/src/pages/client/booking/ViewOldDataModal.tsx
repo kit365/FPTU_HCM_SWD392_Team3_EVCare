@@ -13,6 +13,7 @@ const { Title, Text } = Typography;
 export interface VehicleProfileData {
   appointmentId: string;
   vehicleName: string;
+  vehicleTypeId: string;
   licensePlate: string;
   customerName: string;
   phone: string;
@@ -20,6 +21,8 @@ export interface VehicleProfileData {
   mileage: string;
   lastServiceDate: string;
   serviceType: string;
+  serviceTypeIds: string[];
+  userAddress?: string;
 }
 
 interface ViewOldDataModalProps {
@@ -53,13 +56,16 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
         const profiles: VehicleProfileData[] = response.data.data.data.map((appointment: UserAppointment) => ({
           appointmentId: appointment.appointmentId,
           vehicleName: appointment.vehicleTypeResponse.vehicleTypeName,
+          vehicleTypeId: appointment.vehicleTypeResponse.vehicleTypeId,
           licensePlate: appointment.vehicleNumberPlate,
           customerName: appointment.customerFullName,
           phone: appointment.customerPhoneNumber,
           email: appointment.customerEmail,
           mileage: appointment.vehicleKmDistances,
           lastServiceDate: appointment.scheduledAt,
-          serviceType: appointment.serviceMode
+          serviceType: appointment.serviceMode,
+          serviceTypeIds: appointment.serviceTypeResponses?.map(service => service.serviceTypeId) || [],
+          userAddress: appointment.userAddress
         }));
         setVehicleProfiles(profiles);
       }
