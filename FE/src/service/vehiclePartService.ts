@@ -52,24 +52,36 @@ export const vehiclePartService = {
   // Create
   create: async (data: CreationVehiclePartRequest): Promise<boolean> => {
     const response = await apiClient.post<ApiResponse<string>>('/vehicle-part/', data);
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Tạo phụ tùng thất bại');
+    }
     return Boolean(response.data?.success);
   },
 
   // Update
   update: async (id: string, data: UpdationVehiclePartRequest): Promise<boolean> => {
     const response = await apiClient.patch<ApiResponse<string>>(`/vehicle-part/${id}`, data);
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Cập nhật phụ tùng thất bại');
+    }
     return Boolean(response.data?.success);
   },
 
   // Delete
   remove: async (id: string): Promise<boolean> => {
     const response = await apiClient.delete<ApiResponse<string>>(`/vehicle-part/${id}`);
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Xóa phụ tùng thất bại');
+    }
     return Boolean(response.data?.success);
   },
 
   // Restore
   restore: async (id: string): Promise<boolean> => {
     const response = await apiClient.patch<ApiResponse<string>>(`/vehicle-part/restore/${id}`);
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Khôi phục phụ tùng thất bại');
+    }
     return Boolean(response.data?.success);
   }
 };

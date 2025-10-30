@@ -173,11 +173,10 @@ export const AdminStaffManagement = () => {
             data.map((user, index) => (
               <tr
                 key={user.userId}
-                className={`border-b border-gray-200 text-center ${
-                  index !== data.length - 1
+                className={`border-b border-gray-200 text-center ${index !== data.length - 1
                     ? "border-dashed"
                     : "border-none"
-                } ${index % 2 !== 0 ? "bg-transparent" : "bg-[#FBFBFD]"}`}
+                  } ${index % 2 !== 0 ? "bg-transparent" : "bg-[#FBFBFD]"}`}
               >
                 <td className="p-[1.2rem]">
                   {(currentPage - 1) * pageSize + index + 1}
@@ -195,22 +194,20 @@ export const AdminStaffManagement = () => {
                 </td>
                 <td className="p-[1.2rem]">
                   <span
-                    className={`px-2 py-1 rounded-full text-[1.1rem] font-medium ${
-                      user.provider === 'GOOGLE'
+                    className={`px-2 py-1 rounded-full text-[1.1rem] font-medium ${user.provider === 'GOOGLE'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-100 text-gray-800'
-                    }`}
+                      }`}
                   >
                     {user.provider || 'LOCAL'}
                   </span>
                 </td>
                 <td className="p-[1.2rem]">
                   <span
-                    className={`px-2 py-1 rounded-full text-[1.1rem] font-medium ${
-                      user.isActive
+                    className={`px-2 py-1 rounded-full text-[1.1rem] font-medium ${user.isActive
                         ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-800'
-                    }`}
+                      }`}
                   >
                     {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
                   </span>
@@ -251,8 +248,8 @@ export const AdminStaffManagement = () => {
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', marginBottom: 3 }}>
             <Tabs value={tabValue} onChange={handleTabChange} aria-label="staff tabs">
-              <Tab label="Staff" id="staff-tab-0" aria-controls="staff-tabpanel-0" />
-              <Tab label="Technician" id="staff-tab-1" aria-controls="staff-tabpanel-1" />
+              <Tab label="Nhân viên" id="staff-tab-0" aria-controls="staff-tabpanel-0" />
+              <Tab label="Kĩ thuật viên" id="staff-tab-1" aria-controls="staff-tabpanel-1" />
             </Tabs>
           </Box>
 
@@ -262,7 +259,7 @@ export const AdminStaffManagement = () => {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-[#eff6ff] rounded-lg p-4 border border-[#bfdbfe]">
                 <div className="text-[#1e40af] text-[1.2rem] font-medium mb-1">
-                  Tổng số Staff
+                  Tổng số nhân viên
                 </div>
                 <div className="text-[#1e3a8a] text-[2.4rem] font-bold">
                   {staff.length}
@@ -270,7 +267,7 @@ export const AdminStaffManagement = () => {
               </div>
               <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#bbf7d0]">
                 <div className="text-[#15803d] text-[1.2rem] font-medium mb-1">
-                  Staff hoạt động
+                  Nhân viên hoạt động
                 </div>
                 <div className="text-[#14532d] text-[2.4rem] font-bold">
                   {staff.filter(s => s.isActive && !s.isDeleted).length}
@@ -288,7 +285,7 @@ export const AdminStaffManagement = () => {
                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
               >
                 <AddIcon className="!text-[1.8rem]" />
-                Thêm người dùng
+                Thêm nhân viên
               </button>
             </div>
 
@@ -319,7 +316,7 @@ export const AdminStaffManagement = () => {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#86efac]">
                 <div className="text-[#16a34a] text-[1.2rem] font-medium mb-1">
-                  Tổng số Technician
+                  Tổng số kĩ thuật viên
                 </div>
                 <div className="text-[#14532d] text-[2.4rem] font-bold">
                   {technicians.length}
@@ -327,7 +324,7 @@ export const AdminStaffManagement = () => {
               </div>
               <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#bbf7d0]">
                 <div className="text-[#15803d] text-[1.2rem] font-medium mb-1">
-                  Technician hoạt động
+                  Kỹ thuật viên hoạt động
                 </div>
                 <div className="text-[#14532d] text-[2.4rem] font-bold">
                   {technicians.filter(t => t.isActive && !t.isDeleted).length}
@@ -345,7 +342,7 @@ export const AdminStaffManagement = () => {
                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
               >
                 <AddIcon className="!text-[1.8rem]" />
-                Thêm người dùng
+                Thêm kỹ thuật viên
               </button>
             </div>
 
