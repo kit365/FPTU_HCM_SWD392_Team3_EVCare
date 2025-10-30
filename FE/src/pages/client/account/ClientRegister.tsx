@@ -1,18 +1,15 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Divider } from 'antd';
 import { useAuth } from '../../../hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import type { RegisterUserRequest } from '../../../types/admin/auth';
 import { GoogleLoginButton } from '../../../components/client/GoogleLoginButton';
 const ClientRegister = () => {
-  const { registerUser, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const { registerUser, isLoading } = useAuth({ type: 'client' });
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterUserRequest>();
   const onSubmit = async (values: RegisterUserRequest) => {
-    const response = await registerUser(values);
-    if (response.data.success === true) {
-      navigate("/client/login");
-    }
+    await registerUser(values);
+    // Auto-login logic handled in useAuth (type: 'client')
   };
 
   return (

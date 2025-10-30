@@ -1,75 +1,47 @@
 package com.fpt.evcare.event;
 
-import com.fpt.evcare.service.MessageService;
-import jakarta.annotation.Nonnull;
-import lombok.AccessLevel;
+import com.fpt.evcare.constants.MessageConstants;
+import com.fpt.evcare.dto.response.MessageResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
-/**
- * Event Listener để xử lý MessageCreatedEvent
- * Khi có tin nhắn mới được tạo, listener sẽ gửi qua WebSocket
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class MessageEventListener implements ApplicationListener<MessageCreatedEvent> {
-    
-    SimpMessagingTemplate messagingTemplate;
-    MessageService messageService;
-    
-    @Override
-    @Async
-    public void onApplicationEvent(@Nonnull MessageCreatedEvent event) {
-        log.info("🎉 ====== MESSAGE CREATED EVENT RECEIVED ======");
-        log.info("🎉 Sender: {}", event.getSenderId());
-        log.info("🎉 Receiver: {}", event.getReceiverId());
-        log.info("🎉 Message ID: {}", event.getMessageResponse().getMessageId());
-        
+public class MessageEventListener {
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    /**
+     * Khi có tin nhắn mới, gửi đến receiver qua WebSocket
+     */
+    @EventListener
+    public void handleMessageCreatedEvent(MessageCreatedEvent event) {
+        MessageResponse message = event.getMessage();
         try {
-            String senderId = event.getSenderId();
-            String receiverId = event.getReceiverId();
-            var messageResponse = event.getMessageResponse();
-            
-            // Send to sender (confirmation)
-            log.info("📤 Sending confirmation to sender {} at /user/{}/queue/messages", senderId, senderId);
+            // Send to receiver
             messagingTemplate.convertAndSendToUser(
-                    senderId,
-                    "/queue/messages",
-                    messageResponse
+                    message.getReceiverId().toString(),
+                    MessageConstants.WS_TOPIC_USER_MESSAGES, 
+                    message
             );
-            log.info("✅ Confirmation sent to sender successfully");
             
-            // Send to receiver (new message)
-            log.info("📤 Sending new message to receiver {} at /user/{}/queue/messages", receiverId, receiverId);
+            // Echo back to sender (for UI sync)
             messagingTemplate.convertAndSendToUser(
-                    receiverId,
-                    "/queue/messages",
-                    messageResponse
+                    message.getSenderId().toString(),
+                    MessageConstants.WS_TOPIC_USER_MESSAGES, 
+                    message
             );
-            log.info("✅ New message sent to receiver successfully");
-            
-            // Send unread count update to receiver
-            Long unreadCount = messageService.getUnreadCount(UUID.fromString(receiverId));
-            log.info("📊 Sending unread count ({}) to receiver {}", unreadCount, receiverId);
-            messagingTemplate.convertAndSendToUser(
-                    receiverId,
-                    "/queue/unread-count",
-                    unreadCount
-            );
-            log.info("✅ Unread count sent successfully");
-            
+
+            log.info("✅ Sent message: {} → {} (echoed to both)", 
+                    message.getSenderName(), message.getReceiverName());
         } catch (Exception e) {
-            log.error("❌ Error processing MessageCreatedEvent: {}", e.getMessage(), e);
+            log.error("❌ Failed to send WebSocket message", e);
         }
     }
-}
 
+
+}

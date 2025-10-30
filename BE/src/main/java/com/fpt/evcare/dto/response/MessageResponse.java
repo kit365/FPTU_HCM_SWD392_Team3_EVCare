@@ -1,43 +1,50 @@
 package com.fpt.evcare.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fpt.evcare.enums.MessageStatusEnum;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Data
 @Builder
-@ToString
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class MessageResponse implements Serializable {
-
+public class MessageResponse {
+    
     UUID messageId;
-
+    
+    // Sender info
     UUID senderId;
-
     String senderName;
-
+    String senderAvatarUrl;
+    
+    // Receiver info
     UUID receiverId;
-
     String receiverName;
-
+    String receiverAvatarUrl;
+    
+    // Content
     String content;
-
-    Boolean isRead;
-
-    LocalDateTime sentAt;
-
+    String imageUrl;
+    
+    // Status
     MessageStatusEnum status;
-
-    String attachmentUrl;
+    
+    // Timestamps
+    LocalDateTime sentAt;
+    LocalDateTime deliveredAt;
+    LocalDateTime readAt;
+    
+    // Helper methods
+    public boolean isRead() {
+        return status == MessageStatusEnum.READ;
+    }
+    
+    public boolean isDelivered() {
+        return status == MessageStatusEnum.DELIVERED || status == MessageStatusEnum.READ;
+    }
 }
-
 

@@ -1,62 +1,45 @@
 package com.fpt.evcare.constants;
 
 public class MessageConstants {
-
-    // ============================
-    // ✅ Success messages
-    // ============================
-    public static final String MESSAGE_SUCCESS_SENDING_MESSAGE = "Gửi tin nhắn thành công";
-    public static final String MESSAGE_SUCCESS_MARKING_MESSAGE_AS_READ = "Đánh dấu tin nhắn đã đọc thành công";
-    public static final String MESSAGE_SUCCESS_DELETING_MESSAGE = "Xóa tin nhắn thành công";
-    public static final String MESSAGE_SUCCESS_GETTING_MESSAGE = "Lấy thông tin tin nhắn thành công";
-    public static final String MESSAGE_SUCCESS_GETTING_CONVERSATION = "Lấy cuộc trò chuyện thành công";
-
-    // ============================
-    // ❌ Failed messages
-    // ============================
-    public static final String MESSAGE_ERR_MESSAGE_NOT_FOUND = "Không tìm thấy tin nhắn";
-    public static final String MESSAGE_ERR_USER_NOT_FOUND = "Không tìm thấy người dùng";
-    public static final String MESSAGE_ERR_CANNOT_SEND_TO_SELF = "Không thể gửi tin nhắn cho chính mình";
-    public static final String MESSAGE_ERR_UNAUTHORIZED = "Bạn không có quyền xem tin nhắn này";
+    
+    // Success Messages
+    public static final String MESSAGE_SUCCESS_SEND = "Gửi tin nhắn thành công";
+    public static final String MESSAGE_SUCCESS_MARK_READ = "Đánh dấu đã đọc thành công";
+    public static final String MESSAGE_SUCCESS_MARK_DELIVERED = "Đánh dấu đã nhận thành công";
+    public static final String MESSAGE_SUCCESS_DELETE = "Xóa tin nhắn thành công";
+    public static final String MESSAGE_SUCCESS_ASSIGN = "Phân công chat thành công";
+    public static final String MESSAGE_SUCCESS_REASSIGN = "Chuyển phân công chat thành công";
+    
+    // Error Messages
+    public static final String MESSAGE_ERR_NOT_FOUND = "Không tìm thấy tin nhắn";
+    public static final String MESSAGE_ERR_UNAUTHORIZED = "Bạn không có quyền truy cập tin nhắn này";
     public static final String MESSAGE_ERR_EMPTY_CONTENT = "Nội dung tin nhắn không được để trống";
-
-    // ============================
-    // ℹ️ Info logs
-    // ============================
-    public static final String LOG_INFO_SENDING_MESSAGE = "Đang gửi tin nhắn từ {} đến {}";
-    public static final String LOG_INFO_GETTING_CONVERSATION = "Đang lấy cuộc trò chuyện giữa {} và {}";
-    public static final String LOG_INFO_MARKING_MESSAGE_AS_READ = "Đang đánh dấu tin nhắn {} đã đọc";
-    public static final String LOG_INFO_DELETING_MESSAGE = "Đang xóa tin nhắn: {}";
-
-    // ============================
-    // ⚠️ Error logs
-    // ============================
-    public static final String LOG_ERR_MESSAGE_NOT_FOUND = "Không tìm thấy tin nhắn với id: {}";
-    public static final String LOG_ERR_USER_NOT_FOUND = "Không tìm thấy người dùng với id: {}";
-    public static final String LOG_ERR_CANNOT_SEND_TO_SELF = "Người dùng {} không thể gửi tin nhắn cho chính mình";
-    public static final String LOG_ERR_UNAUTHORIZED = "Người dùng {} không có quyền xem tin nhắn {}";
-    public static final String LOG_ERR_EMPTY_CONTENT = "Nội dung tin nhắn trống";
-
-    // ============================
-    // ✅ Success logs
-    // ============================
-    public static final String LOG_SUCCESS_SENDING_MESSAGE = "Gửi tin nhắn thành công: {}";
-    public static final String LOG_SUCCESS_MARKING_MESSAGE_AS_READ = "Đánh dấu tin nhắn đã đọc thành công: {}";
-    public static final String LOG_SUCCESS_DELETING_MESSAGE = "Xóa tin nhắn thành công: {}";
-    public static final String LOG_SUCCESS_GETTING_CONVERSATION = "Lấy cuộc trò chuyện thành công";
-
-    // ============================
-    // 🌐 Endpoint constants
-    // ============================
-    public static final String BASE_URL = EndpointConstants.V1.API + "/messages";
-    public static final String MESSAGE_LIST = "";
-    public static final String MESSAGE_DETAIL = "/{id}";
-    public static final String MESSAGE_SEND = "";
-    public static final String MESSAGE_MARK_READ = "/{id}/read";
-    public static final String MESSAGE_DELETE = "/{id}";
-    public static final String MESSAGE_CONVERSATION = "/conversation/{userId}";
-    public static final String MESSAGE_UNREAD_COUNT = "/unread-count";
-    public static final String MESSAGE_AVAILABLE_STAFF = "/staff/available";
+    public static final String MESSAGE_ERR_SENDER_NOT_FOUND = "Không tìm thấy người gửi";
+    public static final String MESSAGE_ERR_RECEIVER_NOT_FOUND = "Không tìm thấy người nhận";
+    public static final String MESSAGE_ERR_SEND_TO_SELF = "Không thể gửi tin nhắn cho chính mình";
+    public static final String MESSAGE_ERR_NO_ASSIGNMENT = "Customer chưa được phân công chat với staff nào";
+    public static final String MESSAGE_ERR_ASSIGNMENT_NOT_FOUND = "Không tìm thấy phân công chat";
+    public static final String MESSAGE_ERR_CUSTOMER_NOT_ASSIGNED = "Customer này chưa được phân công";
+    public static final String MESSAGE_ERR_INVALID_STAFF = "Staff không hợp lệ";
+    public static final String MESSAGE_ERR_CUSTOMER_ALREADY_ASSIGNED = "Customer đã được phân công cho staff khác";
+    
+    // Log Messages
+    public static final String LOG_SUCCESS_SEND_MESSAGE = "✅ Gửi tin nhắn thành công từ {} đến {}";
+    public static final String LOG_SUCCESS_MARK_READ = "✅ Đánh dấu tin nhắn {} đã đọc bởi {}";
+    public static final String LOG_SUCCESS_MARK_DELIVERED = "✅ Đánh dấu tin nhắn {} đã nhận bởi {}";
+    public static final String LOG_SUCCESS_ASSIGN = "✅ Phân công customer {} cho staff {}";
+    public static final String LOG_SUCCESS_REASSIGN = "✅ Chuyển customer {} từ staff {} sang {}";
+    public static final String LOG_ERR_MESSAGE_NOT_FOUND = "❌ Không tìm thấy tin nhắn với id: {}";
+    public static final String LOG_ERR_UNAUTHORIZED = "❌ User {} không có quyền truy cập tin nhắn {}";
+    public static final String LOG_ERR_NO_ASSIGNMENT = "❌ Customer {} chưa được phân công chat";
+    
+    // WebSocket Topics
+    public static final String WS_TOPIC_USER_MESSAGES = "/queue/messages";
+    public static final String WS_TOPIC_USER_TYPING = "/user/{userId}/queue/typing";
+    public static final String WS_TOPIC_USER_ONLINE = "/user/{userId}/queue/online-status";
+    public static final String WS_DESTINATION_SEND_MESSAGE = "/app/message/send";
+    public static final String WS_DESTINATION_MARK_READ = "/app/message/mark-read";
+    public static final String WS_DESTINATION_MARK_DELIVERED = "/app/message/mark-delivered";
+    public static final String WS_DESTINATION_TYPING = "/app/message/typing";
 }
-
 

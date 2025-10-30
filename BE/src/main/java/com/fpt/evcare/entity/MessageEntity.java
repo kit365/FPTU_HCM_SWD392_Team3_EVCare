@@ -1,11 +1,11 @@
 package com.fpt.evcare.entity;
 
-import com.fpt.evcare.base.BaseEntity;
 import com.fpt.evcare.enums.MessageStatusEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,41 +14,66 @@ import java.util.UUID;
 @Table(name = "messages")
 @Getter
 @Setter
-@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EqualsAndHashCode(callSuper = false)
-public class MessageEntity extends BaseEntity {
-
+public class MessageEntity {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
+    @Column(name = "message_id")
     UUID messageId;
-
+    
+ 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     UserEntity sender;
-
+    
+  
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id", nullable = false)
     UserEntity receiver;
-
-    @Column(name = "content", length = 500)
+    
+  
+    @Column(name = "content", columnDefinition = "TEXT")
     String content;
+    
+ 
+    @Column(name = "image_url")
+    String imageUrl;
+    
 
-    @Column(name = "is_read")
-    Boolean isRead = false;
-
-    @Column(name = "sent_at", nullable = false)
-    LocalDateTime sentAt;
-
-    @Column(name = "status")
     @Enumerated(EnumType.STRING)
-    MessageStatusEnum status = MessageStatusEnum.SENT;
+    @Column(name = "status", nullable = false)
+    MessageStatusEnum status;
+    
 
-    @Column(name = "attachment_url", length = 255)
-    String attachmentUrl;
+    @CreationTimestamp
+    @Column(name = "sent_at", nullable = false, updatable = false)
+    LocalDateTime sentAt;
+    
+ 
+    @Column(name = "delivered_at")
+    LocalDateTime deliveredAt;
+    
+
+    @Column(name = "read_at")
+    LocalDateTime readAt;
+    
+
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    Boolean isDeleted = false;
+    
+    @Column(name = "created_by")
+    String createdBy;
+    
+    @Column(name = "updated_by")
+    String updatedBy;
+    
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    LocalDateTime updatedAt;
 }
-
 

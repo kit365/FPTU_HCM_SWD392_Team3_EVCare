@@ -38,8 +38,9 @@ import MyShifts from "../pages/admin/shift/MyShifts";
 import MaintenanceManagementDetail from "../pages/admin/maintenance/MaintenanceManagementDetail";
 import MyMaintenanceManagement from "../pages/admin/maintenance/MyMaintenanceManagement";
 import Warranty from "../pages/admin/warranty_and_shift/Warranty";
-import { MessagePage } from "../pages/message/MessagePage";
 import { AdminCustomerManagement } from "../pages/admin/user/AdminCustomerManagement";
+import { AdminMessagePage } from "../pages/admin/message/AdminMessagePage";
+import { MessageAssignmentManagement } from "../pages/admin/message/MessageAssignmentManagement";
 import { AdminStaffManagement } from "../pages/admin/user/AdminStaffManagement";
 import { UserEdit } from "../pages/admin/user/UserEdit";
 import CustomerEdit from "../pages/admin/user/CustomerEdit";
@@ -87,7 +88,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "shift/edit/:id", element: <ShiftEdit/> },
     { path: "shift/view/:id", element: <ShiftDetail/> },
     { path: "warranty", element: <Warranty/> },
-    { path: "message", element: <MessagePage /> },
+    { path: "message", element: <AdminMessagePage /> },
+    { path: "message-assignments", element: <MessageAssignmentManagement /> },
     { path: "users/customers", element: <AdminCustomerManagement /> },
     { path: "customers/create", element: <CustomerCreate /> },
     { path: "customers/edit/:id", element: <CustomerEdit /> },

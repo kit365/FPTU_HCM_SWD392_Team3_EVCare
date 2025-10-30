@@ -5,21 +5,17 @@ import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 /**
- * Spring Event để thông báo khi có tin nhắn mới được tạo
- * Event listener sẽ handle việc gửi WebSocket message
+ * Event được publish khi có tin nhắn mới được tạo
+ * EventListener sẽ bắt event này và gửi qua WebSocket
  */
 @Getter
 public class MessageCreatedEvent extends ApplicationEvent {
     
-    private final MessageResponse messageResponse;
-    private final String senderId;
-    private final String receiverId;
+    private final MessageResponse message;
     
-    public MessageCreatedEvent(Object source, MessageResponse messageResponse, String senderId, String receiverId) {
+    public MessageCreatedEvent(Object source, MessageResponse message) {
         super(source);
-        this.messageResponse = messageResponse;
-        this.senderId = senderId;
-        this.receiverId = receiverId;
+        this.message = message;
     }
 }
 

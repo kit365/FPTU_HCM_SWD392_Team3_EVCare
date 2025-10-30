@@ -108,18 +108,36 @@ export const userService = {
 
   // Get users by role
   getUsersByRole: async (roleName: string): Promise<UserResponse[]> => {
+    console.log('📞 Calling getUsersByRole:', roleName);
     const response = await apiClient.get<ApiResponse<UserResponse[]>>(
       `/user/by-role?roleName=${encodeURIComponent(roleName)}`
     );
-    return response.data.data;
+    console.log('📦 Response data:', response.data);
+    
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Không thể tải danh sách user');
+    }
+    
+    const users = response.data.data || [];
+    console.log(`✅ Loaded ${users.length} users with role ${roleName}`);
+    return users;
   },
 
   // Get technicians (special endpoint with TechnicianResponse)
   getTechnicians: async (): Promise<UserResponse[]> => {
+    console.log('📞 Calling getTechnicians');
     const response = await apiClient.get<ApiResponse<UserResponse[]>>(
       `/user/technicians`
     );
-    return response.data.data;
+    console.log('📦 Response data:', response.data);
+    
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Không thể tải danh sách technicians');
+    }
+    
+    const technicians = response.data.data || [];
+    console.log(`✅ Loaded ${technicians.length} technicians`);
+    return technicians;
   },
 
   // Update profile (no password, role, username changes)

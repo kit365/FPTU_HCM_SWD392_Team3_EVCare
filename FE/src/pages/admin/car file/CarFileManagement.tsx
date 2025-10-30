@@ -4,8 +4,17 @@ import type { ButtonItemProps } from "../../../types/admin/button-item.types";
 import { pathAdmin } from "../../../constants/paths.constant";
 import { Plus } from "iconoir-react";
 import { TableAdmin } from "../../../components/admin/ui/Table";
+import { useVehicleProfile } from "../../../hooks/useVehicleProfile";
+import { useCallback, useEffect, useState } from "react";
+import { FormSearch } from "../../../components/admin/ui/FormSearch";
 
 const CarFileManagement = () => {
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const pageSize = 10;
+    const [keyword, setKeyword] = useState<string>("");
+
+    const { search: searchVehicles, list: vehicleList, totalPages, loading } = useVehicleProfile();
+
     const buttonsList: ButtonItemProps[] = [
         {
             icon: Plus,
@@ -15,90 +24,22 @@ const CarFileManagement = () => {
         },
     ]
 
-    interface CarFileProps {
-        vehicleId: string;
-        username: string;
-        email: string;
-        vehicleTypeName: string;
-        plateNumber: string;
-        lastMaintenanceDate: string; // có thể là Date nếu bạn xử lý ngày
-    }
-    //fake data
-    const carFileList: CarFileProps[] = [
-    {
-        vehicleId: "VH001",
-        username: "Nguyen Van A",
-        email: "nguyenvana@gmail.com",
-        vehicleTypeName: "Toyota Vios",
-        plateNumber: "51A-123.45",
-        lastMaintenanceDate: "2025-09-20",
-    },
-    {
-        vehicleId: "VH002",
-        username: "Tran Thi B",
-        email: "tranthib@example.com",
-        vehicleTypeName: "Honda Civic",
-        plateNumber: "60B-678.90",
-        lastMaintenanceDate: "2025-10-05",
-    },
-    {
-        vehicleId: "VH003",
-        username: "Le Van C",
-        email: "levanc@example.com",
-        vehicleTypeName: "Hyundai Accent",
-        plateNumber: "30F-456.78",
-        lastMaintenanceDate: "2025-08-15",
-    },
-    {
-        vehicleId: "VH004",
-        username: "Pham Thi D",
-        email: "phamthid@example.com",
-        vehicleTypeName: "Kia Morning",
-        plateNumber: "29A-987.65",
-        lastMaintenanceDate: "2025-07-10",
-    },
-    {
-        vehicleId: "VH005",
-        username: "Hoang Van E",
-        email: "hoangvane@example.com",
-        vehicleTypeName: "Mazda 3",
-        plateNumber: "51G-321.00",
-        lastMaintenanceDate: "2025-06-25",
-    },
-    {
-        vehicleId: "VH006",
-        username: "Nguyen Thi F",
-        email: "nguyenthif@example.com",
-        vehicleTypeName: "Ford Ranger",
-        plateNumber: "65C-112.34",
-        lastMaintenanceDate: "2025-05-30",
-    },
-    {
-        vehicleId: "VH007",
-        username: "Tran Van G",
-        email: "tranvang@example.com",
-        vehicleTypeName: "Chevrolet Spark",
-        plateNumber: "43A-556.78",
-        lastMaintenanceDate: "2025-04-18",
-    },
-    {
-        vehicleId: "VH008",
-        username: "Do Thi H",
-        email: "dothih@example.com",
-        vehicleTypeName: "VinFast Fadil",
-        plateNumber: "88B-999.88",
-        lastMaintenanceDate: "2025-03-12",
-    },
-    {
-        vehicleId: "VH009",
-        username: "Bui Van I",
-        email: "buivani@example.com",
-        vehicleTypeName: "Mitsubishi Xpander",
-        plateNumber: "36A-444.22",
-        lastMaintenanceDate: "2025-02-05",
-    },
-    
-];
+    const loadVehicles = useCallback(() => {
+        searchVehicles({
+            page: currentPage - 1,
+            size: pageSize,
+            keyword: keyword || undefined,
+        });
+    }, [currentPage, pageSize, keyword, searchVehicles]);
+
+    useEffect(() => {
+        loadVehicles();
+    }, [loadVehicles]);
+
+    const handleSearch = useCallback((value: string) => {
+        setKeyword(value);
+        setCurrentPage(1);
+    }, []);
 
 
     interface TableColumn {
@@ -111,9 +52,9 @@ const CarFileManagement = () => {
         { title: "", width: 5, align: "center", key: "checkbox" },
         { title: "Số thứ tự", width: 8, align: "left", key: "stt" },
         { title: "Id xe", width: 8, align: "left", key: "vehicleId" },
-        { title: "Tên khách hàng", width: 15, align: "left", key: "username" },
-        { title: "Email", width: 20, align: "left", key: "email" },
-        { title: "Tên xe", width: 10, align: "left", key: "vehicleTypeName" },
+        { title: "Tên khách hàng", width: 15, align: "left", key: "user.fullName" },
+        { title: "Email", width: 20, align: "left", key: "user.email" },
+        { title: "Tên xe", width: 10, align: "left", key: "vehicleType.vehicleTypeName" },
         { title: "Biển số xe", width: 10, align: "left", key: "plateNumber" },
         { title: "Ngày bảo trì gần nhất", width: 15, align: "left", key: "lastMaintenanceDate" },
         { title: "Hành động", width: 20, align: "center", key: "actions" },
@@ -130,13 +71,25 @@ const CarFileManagement = () => {
                         title="Danh sách hồ sơ xe người dùng"
                         buttons={buttonsList}
                     />
-                    {/* Content */}
-                    <TableAdmin
-                        dataList={carFileList}
-                        columns={columns}
-                        getEditUrl={(item) => `/${pathAdmin}/car-file-edit/${item.vehicleId}`}
-                        getViewUrl={(item) => `/${pathAdmin}/car-file-view/${item.vehicleId}`}
-                    />
+                    
+                    <div className="px-[2.4rem] pb-[2.4rem] h-full">
+                        <FormSearch onSearch={handleSearch} />
+                        
+                        {/* Content */}
+                        <TableAdmin
+                            dataList={vehicleList}
+                            columns={columns}
+                            getEditUrl={(item) => `/${pathAdmin}/car-file-edit/${item.vehicleId}`}
+                            getViewUrl={(item) => `/${pathAdmin}/car-file-view/${item.vehicleId}`}
+                            loading={loading}
+                            pagination={{
+                                current: currentPage,
+                                total: totalPages * pageSize,
+                                pageSize: pageSize,
+                                onChange: (page) => setCurrentPage(page),
+                            }}
+                        />
+                    </div>
                 </Card >
             </div >
         </>

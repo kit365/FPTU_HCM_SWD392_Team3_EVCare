@@ -90,7 +90,7 @@ export const useVehiclePart = () => {
       toast.error("Tạo phụ tùng thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi tạo phụ tùng!");
+      toast.error(error?.message || error?.response?.data?.message || "Lỗi khi tạo phụ tùng!");
       return false;
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ export const useVehiclePart = () => {
       toast.error("Cập nhật phụ tùng thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi cập nhật phụ tùng!");
+      toast.error(error?.message || error?.response?.data?.message || "Lỗi khi cập nhật phụ tùng!");
       return false;
     } finally {
       setLoading(false);
@@ -126,7 +126,7 @@ export const useVehiclePart = () => {
       toast.error("Xóa phụ tùng thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi xóa phụ tùng!");
+      toast.error(error?.message || error?.response?.data?.message || "Lỗi khi xóa phụ tùng!");
       return false;
     } finally {
       setLoading(false);
@@ -144,7 +144,7 @@ export const useVehiclePart = () => {
       toast.error("Khôi phục phụ tùng thất bại");
       return false;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi khôi phục phụ tùng!");
+      toast.error(error?.message || error?.response?.data?.message || "Lỗi khi khôi phục phụ tùng!");
       return false;
     } finally {
       setLoading(false);

@@ -20,6 +20,14 @@ export interface VehicleProfileData {
   mileage: string;
   lastServiceDate: string;
   serviceType: string;
+  // Thêm thông tin để fill tự động
+  vehicleTypeId: string;
+  vehicleTypeName: string;
+  serviceTypeIds: string[];
+  serviceTypeNames: string[];
+  serviceMode: string;
+  userAddress?: string;
+  notes?: string;
 }
 
 interface ViewOldDataModalProps {
@@ -59,7 +67,15 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
           email: appointment.customerEmail,
           mileage: appointment.vehicleKmDistances,
           lastServiceDate: appointment.scheduledAt,
-          serviceType: appointment.serviceMode
+          serviceType: appointment.serviceMode,
+          // Thêm thông tin để fill tự động
+          vehicleTypeId: appointment.vehicleTypeResponse.vehicleTypeId,
+          vehicleTypeName: appointment.vehicleTypeResponse.vehicleTypeName,
+          serviceTypeIds: appointment.serviceTypeResponses?.map(st => st.serviceTypeId) || [],
+          serviceTypeNames: appointment.serviceTypeResponses?.map(st => st.serviceName) || [],
+          serviceMode: appointment.serviceMode,
+          userAddress: appointment.userAddress,
+          notes: appointment.notes
         }));
         setVehicleProfiles(profiles);
       }
@@ -88,7 +104,7 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
         <div style={{ textAlign: 'center' }}>
           <CarOutlined style={{ fontSize: '24px', color: '#1890ff', marginRight: '8px' }} />
           <Title level={4} style={{ display: 'inline', margin: 0 }}>
-            Chọn xe để điền thông tin cơ bản
+            Chọn xe để tự động điền thông tin
           </Title>
         </div>
       }
@@ -149,8 +165,14 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
                       Ngày: {new Date(item.lastServiceDate).toLocaleDateString('vi-VN')}
                     </Text>
                     <br />
+                    {item.serviceTypeNames && item.serviceTypeNames.length > 0 && (
+                      <Text type="secondary" style={{ fontSize: '11px', color: '#1890ff' }}>
+                        Dịch vụ: {item.serviceTypeNames.join(', ')}
+                      </Text>
+                    )}
+                    <br />
                     <Text type="secondary" style={{ fontSize: '11px', color: '#999' }}>
-                      (Chỉ điền thông tin cơ bản)
+                      (Tự động điền đầy đủ thông tin)
                     </Text>
                   </div>
                 </div>

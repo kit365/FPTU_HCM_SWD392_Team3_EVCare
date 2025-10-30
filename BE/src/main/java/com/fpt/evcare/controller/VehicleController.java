@@ -103,7 +103,7 @@ public class VehicleController {
     @Operation(summary = "Khôi phục xe đã xóa", description = "👑 **Roles:** ADMIN only - Khôi phục xe đã bị xóa mềm")
     @PatchMapping(VehicleConstants.VEHICLE_RESTORE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<String>> restoreVehicle(@PathVariable("id") UUID vehicleId) {
+        public ResponseEntity<ApiResponse<String>> restoreVehicle(@PathVariable("id") UUID vehicleId) {
         vehicleService.restoreVehicle(vehicleId);
         return ResponseEntity
                 .ok(ApiResponse.<String>builder()

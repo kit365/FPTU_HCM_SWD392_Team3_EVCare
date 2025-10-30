@@ -1,3 +1,3 @@
-export { MessageList } from './MessageList';
 export { ChatWindow } from './ChatWindow';
-export { ChatWindowWithWebSocket } from './ChatWindowWithWebSocket';
+export { MessageList } from './MessageList';
+

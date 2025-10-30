@@ -1,152 +1,163 @@
-import React, { useState, useEffect } from 'react';
-import { messageService } from '../../service/messageService';
-import type { MessageResponse } from '../../types/message.types';
-import { notify } from '../admin/common/Toast';
+import React from 'react';
+import { List, Avatar, Badge, Empty, Spin } from 'antd';
+import { MessageOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import type { MessageAssignmentResponse } from '../../types/message.types';
+
 interface MessageListProps {
-  userId: string;
-  onSelectConversation: (otherUserId: string, otherUserName: string) => void;
-  refreshTrigger?: number; // Trigger to refresh the list
+  assignments: MessageAssignmentResponse[];
+  selectedUserId: string | null;
+  onSelectConversation: (userId: string, userName: string) => void;
+  loading?: boolean;
+  currentUserIsStaff?: boolean; // true = staff view (show customers), false = customer view (show staff)
 }
-interface Conversation {
-  otherUserId: string;
-  otherUserName: string;
-  lastMessage?: MessageResponse;
-  unreadCount: number;
-}
-export function MessageList({ userId, onSelectConversation, refreshTrigger }: MessageListProps) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Load from localStorage on mount
-  useEffect(() => {
-    if (userId) {
-      const stored = localStorage.getItem(`conversations_${userId}`);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setConversations(parsed);
-          setLoading(false);
-          console.log('📦 MessageList - Restored from localStorage:', parsed.length);
-        } catch (error) {
-          console.error('Error parsing stored conversations:', error);
-        }
-      }
-    }
-  }, [userId]);
-  
-  // Save to localStorage whenever conversations change
-  useEffect(() => {
-    if (userId && conversations.length > 0) {
-      localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-      console.log('💾 MessageList - Saved to localStorage:', conversations.length);
-    }
-  }, [conversations, userId]);
-  
-  useEffect(() => {
-    loadConversations();
-  }, [userId, refreshTrigger]); // Add refreshTrigger to dependencies
-  const loadConversations = async () => {
-    try {
-      setLoading(true);
-      const response = await messageService.getAllMessages(userId, 0, 100);
-      
-      if (response?.data?.success) {
-        // ApiResponse structure: { success, data: PageResponse<T> }
-        // PageResponse structure: { data: MessageResponse[], page, size, totalElements, totalPages, last }
-        const data = response.data.data;
-        
-        // Check if data is directly an array or wrapped in PageResponse
-        let messages: MessageResponse[] = [];
-        if (Array.isArray(data)) {
-          messages = data;
-        } else if (data?.data && Array.isArray(data.data)) {
-          // PageResponse structure
-          messages = data.data;
-        }
-        
-        console.log('📨 MessageList - Loaded messages:', messages.length);
-        
-        // Group messages by conversation
-        const messagesByUser = new Map<string, Conversation>();
-        messages.forEach((msg: MessageResponse) => {
-          const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
-          const otherUserName = msg.senderId === userId ? msg.receiverName : msg.senderName;
-          if (!messagesByUser.has(otherUserId)) {
-            messagesByUser.set(otherUserId, {
-              otherUserId,
-              otherUserName,
-              lastMessage: msg,
-              unreadCount: msg.receiverId === userId ? 1 : 0
-            });
-          } else {
-            const conv = messagesByUser.get(otherUserId)!;
-            // Update if this is a newer message
-            if (new Date(msg.sentAt) > new Date(conv.lastMessage?.sentAt || '')) {
-              conv.lastMessage = msg;
-            }
-            // Count unread
-            if (msg.receiverId === userId && !msg.isRead) {
-              conv.unreadCount++;
-            }
-          }
-        });
-        setConversations(Array.from(messagesByUser.values()));
-      }
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-      notify.error('Không thể tải danh sách cuộc trò chuyện');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+export const MessageList: React.FC<MessageListProps> = ({
+  assignments,
+  selectedUserId,
+  onSelectConversation,
+  loading = false,
+  currentUserIsStaff = true,
+}) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">Đang tải...</div>
+        <Spin size="large" />
       </div>
     );
   }
-  if (conversations.length === 0) {
+
+  if (assignments.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">Chưa có cuộc trò chuyện nào</div>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            currentUserIsStaff
+              ? 'Chưa có khách hàng nào được phân công'
+              : 'Chưa được phân công staff hỗ trợ'
+          }
+        />
       </div>
     );
   }
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      {conversations.map((conv) => (
-        <div
-          key={conv.otherUserId}
-          onClick={() => onSelectConversation(conv.otherUserId, conv.otherUserName)}
-          className="p-4 cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="font-semibold text-gray-900">
-                {conv.otherUserName}
-              </div>
-              {conv.lastMessage && (
-                <div className="text-sm text-gray-600 mt-1 truncate">
-                  {conv.lastMessage.content}
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col items-end ml-2">
-              {conv.lastMessage && (
-                <div className="text-xs text-gray-500">
-                  {new Date(conv.lastMessage.sentAt).toLocaleTimeString()}
-                </div>
-              )}
-              {conv.unreadCount > 0 && (
-                <div className="mt-1 bg-blue-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                  {conv.unreadCount}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="h-full overflow-y-auto bg-white">
+      <List
+        dataSource={assignments}
+        renderItem={(assignment) => {
+          const isSelected = currentUserIsStaff
+            ? selectedUserId === assignment.customerId
+            : selectedUserId === assignment.assignedStaffId;
+
+          const displayName = currentUserIsStaff
+            ? assignment.customerName
+            : assignment.assignedStaffName;
+
+          const displayEmail = currentUserIsStaff
+            ? assignment.customerEmail
+            : assignment.assignedStaffEmail;
+
+          const displayAvatar = currentUserIsStaff
+            ? assignment.customerAvatarUrl
+            : assignment.assignedStaffAvatarUrl;
+
+          const userId = currentUserIsStaff
+            ? assignment.customerId
+            : assignment.assignedStaffId;
+
+          return (
+            <List.Item
+              key={assignment.assignmentId}
+              onClick={() => onSelectConversation(userId, displayName)}
+              className={`
+                px-4 py-3 cursor-pointer transition-all duration-200 border-l-4
+                ${
+                  isSelected
+                    ? 'bg-blue-50 border-blue-600'
+                    : 'bg-white border-transparent hover:bg-gray-50'
+                }
+              `}
+              style={{
+                borderLeftWidth: '4px',
+              }}
+            >
+              <List.Item.Meta
+                avatar={
+                  <Badge count={assignment.unreadMessageCount || 0} offset={[-5, 5]}>
+                    <Avatar
+                      size={48}
+                      style={{
+                        backgroundColor: isSelected ? '#2563eb' : '#3b82f6',
+                        fontSize: '20px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {displayName.charAt(0).toUpperCase()}
+                    </Avatar>
+                  </Badge>
+                }
+                title={
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`font-semibold ${
+                        isSelected ? 'text-blue-900' : 'text-gray-900'
+                      }`}
+                    >
+                      {displayName}
+                    </span>
+                    {assignment.unreadMessageCount && assignment.unreadMessageCount > 0 ? (
+                      <Badge
+                        count={assignment.unreadMessageCount}
+                        style={{
+                          backgroundColor: '#ef4444',
+                          boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
+                        }}
+                      />
+                    ) : null}
+                  </div>
+                }
+                description={
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500 truncate">{displayEmail}</div>
+                    {assignment.lastMessageAt && (
+                      <div className="flex items-center text-xs text-gray-400">
+                        <ClockCircleOutlined className="mr-1" />
+                        <span>
+                          {new Date(assignment.lastMessageAt).toLocaleString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+            </List.Item>
+          );
+        }}
+      />
+
+      <style>{`
+        .ant-list-item {
+          border-bottom: 1px solid #f3f4f6 !important;
+        }
+        
+        .ant-list-item:last-child {
+          border-bottom: none !important;
+        }
+        
+        .ant-badge-count {
+          font-size: 11px;
+          height: 18px;
+          min-width: 18px;
+          line-height: 18px;
+        }
+      `}</style>
     </div>
   );
-}
+};
+

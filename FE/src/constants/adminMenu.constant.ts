@@ -85,8 +85,19 @@ export const adminMenuItems: AdminMenuItem[] = [
     //     icon: Codepen,
     // },
     {
-        href: `/${pathAdmin}/message`,
         label: "Tin nhắn",
         icon: Group,
+        children: [
+            {
+                href: `/${pathAdmin}/message`,
+                label: "Chat với khách hàng",
+                icon: Group
+            },
+            {
+                href: `/${pathAdmin}/message-assignments`,
+                label: "Phân công chat",
+                icon: UserCircle
+            }
+        ]
     },
 ]

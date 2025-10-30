@@ -1,55 +1,24 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuthContext } from '../../context/useAuthContext';
-import { useEffect, useState } from 'react';
-import { notify } from '../admin/common/Toast';
 
+/**
+ * RootRedirect - Smart routing component for "/" path
+ * 
+ * Redirects users based on authentication state and role:
+ * - Not logged in → /client (public homepage)
+ * - Admin/Staff/Technician → /admin/dashboard
+ * - Customer → /client
+ */
 export const RootRedirect = () => {
   const { user, isLoading } = useAuthContext();
-  const location = useLocation();
-  const [isProcessingGoogleAuth, setIsProcessingGoogleAuth] = useState(false);
 
-  // Handle Google OAuth callback
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const isGoogleAuth = urlParams.get('googleAuth') === 'true';
-    
-    if (isGoogleAuth) {
-      setIsProcessingGoogleAuth(true);
-      const accessToken = urlParams.get('accessToken');
-      const refreshToken = urlParams.get('refreshToken');
-      const encodedName = urlParams.get('name');
-      const email = urlParams.get('email');
-      
-      const name = encodedName ? decodeURIComponent(encodedName) : '';
-      
-      if (accessToken && refreshToken) {
-        // Save tokens
-        localStorage.setItem('access_token', accessToken);
-        localStorage.setItem('refresh_token', refreshToken);
-        
-        // Show success message
-        notify.success(`Đăng nhập Google thành công! Xin chào ${name || email}`);
-        
-        // Clean URL and reload to apply auth context
-        window.history.replaceState({}, document.title, '/');
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      } else {
-        notify.error('Đăng nhập Google thất bại. Vui lòng thử lại.');
-        setIsProcessingGoogleAuth(false);
-      }
-    }
-  }, [location.search]);
-
-  if (isLoading || isProcessingGoogleAuth) {
+  // Show loading state while checking authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-lg text-gray-600">
-            {isProcessingGoogleAuth ? 'Đang xử lý đăng nhập Google...' : 'Đang tải...'}
-          </div>
+          <div className="text-lg text-gray-600">Đang tải...</div>
         </div>
       </div>
     );

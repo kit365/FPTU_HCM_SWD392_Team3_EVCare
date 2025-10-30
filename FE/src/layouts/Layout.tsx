@@ -1,9 +1,9 @@
 import { Outlet } from "react-router-dom"
 import ClientHeader from '../components/client/ClientHeader'
 import { ClientFooter } from '../components/client/ClientFooter'
-import { SimpleChatWidget } from '../components/message/SimpleChatWidget'
-import { NotificationBell } from '../components/notification/NotificationBell'
+// import { NotificationBell } from '../components/notification/NotificationBell' // TODO: Implement NotificationController in BE
 import { ScrollToTopButton } from '../components/client/ScrollToTopButton'
+import { FacebookStyleChatWidget } from '../components/client/FacebookStyleChatWidget'
 
 export const Layout = () => {
     return (
@@ -13,9 +13,9 @@ export const Layout = () => {
                 <Outlet />
             </main>
             <ClientFooter />
-            <SimpleChatWidget />
-            <NotificationBell />
+            {/* <NotificationBell /> */}
             <ScrollToTopButton />
+            <FacebookStyleChatWidget />
         </div>
     )
 }

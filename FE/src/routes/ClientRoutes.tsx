@@ -3,10 +3,10 @@ import { ServiceBookingPage } from "../pages/client/booking/ServiceBooking";
 import { HomePage } from "../pages/client/home/Home";
 import CarManagement from "../pages/client/car/CarManagement";
 import ProtectedRoute from "../components/client/ProtectedRoute";
-import { MessagePage } from "../pages/message/MessagePage";
+import { ClientMessagePage } from "../pages/client/message/ClientMessagePage";
 export const ClientRoutes: RouteObject[] = [
     { path: "", element: <HomePage /> }, 
     { path: "service-booking", element: <ServiceBookingPage /> }, // /client/service-booking
     { path: "car-profile", element: <ProtectedRoute><CarManagement/></ProtectedRoute> }, // /client/car-profile
-    { path: "message", element: <ProtectedRoute><MessagePage /></ProtectedRoute> }, // /client/message
+    { path: "message", element: <ProtectedRoute><ClientMessagePage /></ProtectedRoute> }, // /client/message
 ];

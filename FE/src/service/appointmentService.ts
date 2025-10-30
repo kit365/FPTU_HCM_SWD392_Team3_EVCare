@@ -8,12 +8,16 @@ import type {
 
 // Appointment Service
 export const appointmentService = {
-  // Search with pagination - GET /api/v1/appointment/
+  // Search with pagination and filters - GET /api/v1/appointment/
   search: async (params: AppointmentSearchRequest) => {
     const queryParams = new URLSearchParams({
       page: String(params.page),
       pageSize: String(params.pageSize),
       ...(params.keyword ? { keyword: params.keyword } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.serviceMode ? { serviceMode: params.serviceMode } : {}),
+      ...(params.fromDate ? { fromDate: params.fromDate } : {}),
+      ...(params.toDate ? { toDate: params.toDate } : {}),
     }).toString();
     
     const response = await apiClient.get<AppointmentListApiResponse>(

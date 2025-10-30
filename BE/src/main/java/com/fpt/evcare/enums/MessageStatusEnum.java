@@ -1,9 +1,9 @@
 package com.fpt.evcare.enums;
 
-public enum MessageStatusEnum {
-    SENT,
-    DELIVERED,
-    FAILED
-}
 
+public enum MessageStatusEnum {
+    SENT,       
+    DELIVERED,  
+    READ       
+}
 
