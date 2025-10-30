@@ -1,5 +1,12 @@
-import type { ButtonProps } from "../../../types/admin/button-item.types";
 import { Link } from "react-router-dom";
+
+
+interface ButtonProps {
+    icon?: React.ComponentType<{ className?: string }>;
+    text: string;
+    className?: string;
+    href?: string;
+}
 
 export const ButtonAdmin = ({
     icon: Icon,

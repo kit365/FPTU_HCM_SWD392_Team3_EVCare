@@ -4,7 +4,8 @@ import { Card } from '@mui/material';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { notify } from '../../../components/admin/common/Toast';
 import { userService } from '../../../service/userService';
-import { roleService, type RoleResponse } from '../../../service/roleService';
+import { roleService } from '../../../service/roleService';
+import type { RoleResponse } from '../../../types/admin/role';
 import { handleApiError } from '../../../utils/handleApiError';
 import { ImageUpload } from '../../../components/admin/common/ImageUpload';
 
@@ -141,10 +142,9 @@ export default function UserCreate() {
         fullName: formData.fullName || undefined,
         numberPhone: formData.numberPhone || undefined,
         address: formData.address || undefined,
-        avatarUrl: formData.avatarUrl || undefined,
         roleIds: formData.roleIds,
       });
-
+      
       if (success) {
         const roleName = roles.find(r => r.roleId === formData.roleIds[0])?.roleName;
         notify.success(`Thêm ${roleName === 'STAFF' ? 'nhân viên' : 'kỹ thuật viên'} thành công!`);

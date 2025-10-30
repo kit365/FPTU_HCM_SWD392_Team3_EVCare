@@ -20,7 +20,10 @@ export default tseslint.config([
       globals: globals.browser,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off', // 👈Cho phép để any
+      '@typescript-eslint/no-explicit-any': 'off', // Cho phép dùng any
+      '@typescript-eslint/no-unused-vars': 'off', // Tắt cảnh báo biến không dùng
+      'no-unused-vars': 'off', // Tắt cảnh báo biến không dùng (JS)
+      '@typescript-eslint/no-unused-expressions': 'off', // Tắt cảnh báo expression không dùng
     },
   },
 ])
