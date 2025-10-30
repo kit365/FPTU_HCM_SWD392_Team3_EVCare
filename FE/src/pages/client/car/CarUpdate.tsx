@@ -60,6 +60,7 @@ const CarUpdate: React.FC<CarUpdateProps> = ({
             }
 
             const payload: UpdationVehicleProfileRequest = {
+                userId: dataUpdate.user.userId,
                 vehicleTypeId: values.vehicleTypeId,
                 plateNumber: values.plateNumber,
                 vin: values.vin,

@@ -47,6 +47,36 @@ export const VehicleProfileEdit = () => {
     setValue,
   } = useForm<FormData>();
 
+  // Validation function
+  const validateForm = (data: FormData): boolean => {
+    if (!data.userId || data.userId.trim() === "") {
+      toast.error("Vui lòng tìm kiếm và chọn khách hàng trước!");
+      return false;
+    }
+    if (!data.vehicleTypeId || data.vehicleTypeId.trim() === "") {
+      toast.error("Vui lòng chọn loại xe!");
+      return false;
+    }
+    if (!data.plateNumber || data.plateNumber.trim() === "") {
+      toast.error("Vui lòng nhập biển số xe!");
+      return false;
+    }
+    if (!data.vin || data.vin.trim() === "") {
+      toast.error("Vui lòng nhập số khung (VIN)!");
+      return false;
+    }
+    if (data.currentKm !== undefined && data.currentKm < 0) {
+      toast.error("Km hiện tại phải lớn hơn hoặc bằng 0!");
+      return false;
+    }
+    if (data.lastMaintenanceKm !== undefined && data.lastMaintenanceKm < 0) {
+      toast.error("Km bảo trì phải lớn hơn hoặc bằng 0!");
+      return false;
+    }
+
+    return true;
+  };
+
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoadingData(true);
@@ -103,15 +133,22 @@ export const VehicleProfileEdit = () => {
     if (user) {
       setFoundUser(user);
       setValue("userId", user.userId);
+      toast.success(`Đã tìm thấy khách hàng: ${user.fullName || user.username}`);
     } else {
       setFoundUser(null);
       setValue("userId", "");
+      toast.error("Không tìm thấy khách hàng với thông tin này!");
     }
     setSearchingUser(false);
   };
 
   const onSubmit = async (data: FormData) => {
     if (!id) return;
+
+    // Validate form
+    if (!validateForm(data)) {
+      return;
+    }
 
     // Convert date format from "YYYY-MM-DD" to "YYYY-MM-DDTHH:mm:ss" for BE LocalDateTime
     let formattedMaintenanceDate = data.lastMaintenanceDate;
