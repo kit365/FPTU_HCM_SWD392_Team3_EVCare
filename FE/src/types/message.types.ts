@@ -1,69 +1,62 @@
-// Message Status Enum
-export enum MessageStatusEnum {
-  SENT = "SENT",
-  DELIVERED = "DELIVERED",
-  FAILED = "FAILED"
-}
-// Message Response
 export interface MessageResponse {
   messageId: string;
   senderId: string;
   senderName: string;
+  senderAvatarUrl?: string;
   receiverId: string;
   receiverName: string;
+  receiverAvatarUrl?: string;
   content: string;
-  isRead: boolean;
+  imageUrl?: string;
+  status: 'SENT' | 'DELIVERED' | 'READ';
   sentAt: string;
-  status: MessageStatusEnum;
-  attachmentUrl?: string;
+  deliveredAt?: string;
+  readAt?: string;
 }
-// Creation Message Request
+
+export interface MessageAssignmentResponse {
+  assignmentId: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerAvatarUrl?: string;
+  assignedStaffId: string;
+  assignedStaffName: string;
+  assignedStaffEmail: string;
+  assignedStaffAvatarUrl?: string;
+  assignedByName: string;
+  assignedAt: string;
+  isActive: boolean;
+  notes?: string;
+  unreadMessageCount?: number;
+  lastMessageAt?: string;
+}
+
 export interface CreationMessageRequest {
+  senderId?: string;
   receiverId: string;
   content: string;
-  attachmentUrl?: string;
+  imageUrl?: string;
 }
-// Conversation with user
-export interface ConversationUser {
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  lastMessage?: string;
-  lastMessageTime?: string;
-  unreadCount?: number;
-  isOnline?: boolean;
+
+export interface MessageAssignmentRequest {
+  customerId: string;
+  staffId: string;
+  notes?: string;
 }
-// Chat message (for UI)
-export interface ChatMessage {
-  id: string;
-  messageId: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  sentAt: string;
-  isRead: boolean;
-  isOwn: boolean;
-  attachmentUrl?: string;
-  status?: MessageStatusEnum;
-}
-// WebSocket Message Request
+
 export interface WebSocketMessageRequest {
   senderId: string;
   receiverId: string;
   content: string;
-  attachmentUrl?: string;
+  imageUrl?: string;
 }
-// WebSocket Mark Read Request
-export interface WebSocketMarkReadRequest {
-  messageId: string;
-  userId: string;
-}
-// Page Response
+
 export interface PageResponse<T> {
   data: T[];
   page: number;
-  size: number;
+  pageSize: number;
   totalElements: number;
   totalPages: number;
-  last: boolean;
 }
+

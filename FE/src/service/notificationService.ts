@@ -4,7 +4,7 @@ import type {
   NotificationResponse,
   CreationNotificationRequest
 } from "../types/notification.types";
-import type { PageResponse } from "../types/message.types";
+import type { PageResponse } from "../types/pageResponse.types";
 import { apiClient } from "./api";
 
 const API_BASE = `${API_BASE_URL}/notifications`;

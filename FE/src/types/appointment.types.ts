@@ -149,6 +149,10 @@ export interface AppointmentSearchRequest {
   page: number;
   pageSize: number;
   keyword?: string;
+  status?: string;
+  serviceMode?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 // API Response Types

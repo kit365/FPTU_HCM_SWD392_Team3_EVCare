@@ -26,13 +26,13 @@ public class UserHandshakeHandler extends DefaultHandshakeHandler {
         String userId = extractUserId(request);
         
         if (userId != null && !userId.isEmpty()) {
-            log.info("🔐 WebSocket handshake: Assigning Principal with userId: {}", userId);
+            log.info("🔐 WebSocket connected: {}", userId);
             return new StompPrincipal(userId);
         }
         
         // Fallback: generate a random session ID
         String randomId = UUID.randomUUID().toString();
-        log.warn("⚠️ WebSocket handshake: No userId found, assigning random ID: {}", randomId);
+        log.warn("⚠️ WebSocket connected without userId");
         return new StompPrincipal(randomId);
     }
 
@@ -46,18 +46,14 @@ public class UserHandshakeHandler extends DefaultHandshakeHandler {
             String[] params = query.split("&");
             for (String param : params) {
                 if (param.startsWith("userId=")) {
-                    String userId = param.substring("userId=".length());
-                    log.debug("🔍 Found userId in query param: {}", userId);
-                    return userId;
+                    return param.substring("userId=".length());
                 }
             }
         }
         
         // Try header: user-id
         if (request.getHeaders().containsKey("user-id")) {
-            String userId = request.getHeaders().getFirst("user-id");
-            log.debug("🔍 Found userId in header: {}", userId);
-            return userId;
+            return request.getHeaders().getFirst("user-id");
         }
         
         return null;

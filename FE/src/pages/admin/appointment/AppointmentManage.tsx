@@ -12,7 +12,12 @@ import {
   Box,
   Typography,
   Chip,
-  Divider
+  Divider,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  TextField
 } from "@mui/material";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { FormSearch } from "../../../components/admin/ui/FormSearch";
@@ -44,6 +49,10 @@ const AppointmentManage = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
   const [keyword, setKeyword] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [serviceModeFilter, setServiceModeFilter] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [newStatus, setNewStatus] = useState<string>("");
@@ -51,8 +60,16 @@ const AppointmentManage = () => {
   const { list, totalPages, search, loading, updateStatus } = useAppointment();
 
   const load = useCallback(() => {
-    search({ page: currentPage - 1, pageSize, keyword });
-  }, [currentPage, pageSize, keyword, search]);
+    search({ 
+      page: currentPage - 1, 
+      pageSize, 
+      keyword,
+      status: statusFilter || undefined,
+      serviceMode: serviceModeFilter || undefined,
+      fromDate: fromDate || undefined,
+      toDate: toDate || undefined
+    });
+  }, [currentPage, pageSize, keyword, statusFilter, serviceModeFilter, fromDate, toDate, search]);
 
   useEffect(() => {
     load();
@@ -169,6 +186,106 @@ const AppointmentManage = () => {
 
         <div className="px-[2.4rem] pb-[2.4rem] h-full">
           <FormSearch onSearch={handleSearch} />
+
+          {/* ✅ Bộ lọc nâng cao */}
+          <Box className="mt-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <Typography className="text-[1.3rem] font-semibold mb-3">
+              🔍 Bộ lọc
+            </Typography>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Status Filter */}
+              <FormControl size="small" fullWidth>
+                <InputLabel className="text-[1.2rem]">Trạng thái</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Trạng thái"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-[1.2rem]"
+                >
+                  <MenuItem value="">
+                    <em>Tất cả</em>
+                  </MenuItem>
+                  <MenuItem value="PENDING">Chờ xử lý</MenuItem>
+                  <MenuItem value="CONFIRMED">Đã xác nhận</MenuItem>
+                  <MenuItem value="IN_PROGRESS">Đang thực hiện</MenuItem>
+                  <MenuItem value="PENDING_PAYMENT">Chờ thanh toán</MenuItem>
+                  <MenuItem value="COMPLETED">Hoàn thành</MenuItem>
+                  <MenuItem value="CANCELLED">Đã hủy</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Service Mode Filter */}
+              <FormControl size="small" fullWidth>
+                <InputLabel className="text-[1.2rem]">Loại dịch vụ</InputLabel>
+                <Select
+                  value={serviceModeFilter}
+                  label="Loại dịch vụ"
+                  onChange={(e) => {
+                    setServiceModeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-[1.2rem]"
+                >
+                  <MenuItem value="">
+                    <em>Tất cả</em>
+                  </MenuItem>
+                  <MenuItem value="STATIONARY">Tại chỗ</MenuItem>
+                  <MenuItem value="MOBILE">Di động</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* From Date */}
+              <TextField
+                size="small"
+                fullWidth
+                type="date"
+                label="Từ ngày"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ className: "text-[1.2rem]" }}
+              />
+
+              {/* To Date */}
+              <TextField
+                size="small"
+                fullWidth
+                type="date"
+                label="Đến ngày"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ className: "text-[1.2rem]" }}
+              />
+            </div>
+
+            {/* Clear Filters Button */}
+            {(statusFilter || serviceModeFilter || fromDate || toDate) && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  setStatusFilter("");
+                  setServiceModeFilter("");
+                  setFromDate("");
+                  setToDate("");
+                  setCurrentPage(1);
+                }}
+                className="mt-3 text-[1.1rem]"
+              >
+                Xóa bộ lọc
+              </Button>
+            )}
+          </Box>
 
           {loading ? (
             <div className="flex justify-center items-center py-8">

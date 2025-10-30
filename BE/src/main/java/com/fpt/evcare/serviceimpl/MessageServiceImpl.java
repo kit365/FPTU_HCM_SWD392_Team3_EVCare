@@ -1,309 +1,277 @@
 package com.fpt.evcare.serviceimpl;
-
+import com.fpt.evcare.constants.MessageConstants;
+import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.dto.response.UserResponse;
+import com.fpt.evcare.entity.MessageAssignmentEntity;
 import com.fpt.evcare.entity.MessageEntity;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.MessageStatusEnum;
 import com.fpt.evcare.enums.RoleEnum;
+import com.fpt.evcare.event.MessageCreatedEvent;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UnauthorizedException;
 import com.fpt.evcare.mapper.MessageMapper;
-import com.fpt.evcare.mapper.UserMapper;
+import com.fpt.evcare.repository.MessageAssignmentRepository;
 import com.fpt.evcare.repository.MessageRepository;
 import com.fpt.evcare.repository.UserRepository;
-import com.fpt.evcare.event.MessageCreatedEvent;
 import com.fpt.evcare.service.MessageService;
+import com.fpt.evcare.service.UserService;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MessageServiceImpl implements MessageService {
-
+    
     MessageRepository messageRepository;
     UserRepository userRepository;
+    MessageAssignmentRepository assignmentRepository;
     MessageMapper messageMapper;
-    UserMapper userMapper;
     ApplicationEventPublisher eventPublisher;
 
+    
     @Override
     @Transactional
     public MessageResponse sendMessage(UUID senderId, CreationMessageRequest request) {
         // Validate sender
         UserEntity sender = userRepository.findByUserIdAndIsDeletedFalse(senderId);
         if (sender == null) {
-            log.warn("Không tìm thấy người gửi với id: {}", senderId);
-            throw new ResourceNotFoundException("Không tìm thấy người gửi");
+            log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, senderId);
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_SENDER_NOT_FOUND);
         }
-
+        
         // Validate receiver
         UserEntity receiver = userRepository.findByUserIdAndIsDeletedFalse(request.getReceiverId());
         if (receiver == null) {
-            log.warn("Không tìm thấy người nhận với id: {}", request.getReceiverId());
-            throw new ResourceNotFoundException("Không tìm thấy người nhận");
+            log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, request.getReceiverId());
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_RECEIVER_NOT_FOUND);
         }
-
-        // Cannot send to self
+        
+        // Không thể gửi tin nhắn cho chính mình
         if (senderId.equals(request.getReceiverId())) {
-            log.warn("Người dùng {} không thể gửi tin nhắn cho chính mình", senderId);
-            throw new IllegalArgumentException("Không thể gửi tin nhắn cho chính mình");
+            log.warn("User {} tried to send message to themselves", senderId);
+            throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_SEND_TO_SELF);
         }
-
-        // Create message
-        MessageEntity messageEntity = MessageEntity.builder()
+        
+        // Kiểm tra assignment nếu sender là CUSTOMER
+        if (sender.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+            validateCustomerCanChat(senderId, request.getReceiverId());
+        }
+        
+        // Kiểm tra assignment nếu receiver là CUSTOMER
+        if (receiver.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+            validateCustomerCanChat(request.getReceiverId(), senderId);
+        }
+        
+        // Validate content
+        if (request.getContent() == null || request.getContent().trim().isEmpty()) {
+            throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_EMPTY_CONTENT);
+        }
+        
+        // Tạo message
+        MessageEntity message = MessageEntity.builder()
                 .sender(sender)
                 .receiver(receiver)
-                .content(request.getContent())
-                .attachmentUrl(request.getAttachmentUrl())
-                .isRead(false)
+                .content(request.getContent().trim())
+                .imageUrl(request.getImageUrl())
                 .status(MessageStatusEnum.SENT)
-                .sentAt(LocalDateTime.now())
                 .createdBy(sender.getFullName())
                 .updatedBy(sender.getFullName())
                 .build();
-
-        MessageEntity savedMessage = messageRepository.save(messageEntity);
-        log.info("Gửi tin nhắn thành công từ {} đến {}", senderId, request.getReceiverId());
-
-        // Convert to response
-        MessageResponse messageResponse = messageMapper.toResponse(savedMessage);
         
-        // Publish event để trigger WebSocket sending (via MessageEventListener)
-        log.info("📢 Publishing MessageCreatedEvent for message: {}", savedMessage.getMessageId());
-        log.info("📢 Event will be handled asynchronously by MessageEventListener");
-        eventPublisher.publishEvent(new MessageCreatedEvent(
-            this, 
-            messageResponse, 
-            senderId.toString(), 
-            request.getReceiverId().toString()
-        ));
-        log.info("📢 Event published successfully - listener should now be processing");
+        MessageEntity savedMessage = messageRepository.save(message);
+        log.info(MessageConstants.LOG_SUCCESS_SEND_MESSAGE, senderId, request.getReceiverId());
         
-        // ✅ Auto-reply welcome message if this is customer's first message
-        sendWelcomeMessageIfFirstTime(sender, receiver);
+
+        MessageResponse response = messageMapper.toResponse(savedMessage);
         
-        return messageResponse;
-    }
-
-    @Override
-    public MessageResponse getMessage(UUID messageId, UUID currentUserId) {
-        MessageEntity messageEntity = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
-        if (messageEntity == null) {
-            log.warn("Không tìm thấy tin nhắn với id: {}", messageId);
-            throw new ResourceNotFoundException("Không tìm thấy tin nhắn");
-        }
-
-        // Check authorization
-        if (!messageEntity.getSender().getUserId().equals(currentUserId) 
-            && !messageEntity.getReceiver().getUserId().equals(currentUserId)) {
-            log.warn("Người dùng {} không có quyền xem tin nhắn {}", currentUserId, messageId);
-            throw new UnauthorizedException("Không có quyền xem tin nhắn này");
-        }
-
-        // Mark as read if current user is the receiver
-        if (messageEntity.getReceiver().getUserId().equals(currentUserId) && !messageEntity.getIsRead()) {
-            messageEntity.setIsRead(true);
-            messageRepository.save(messageEntity);
-            log.info("Đánh dấu tin nhắn {} đã đọc", messageId);
-        }
-
-        return messageMapper.toResponse(messageEntity);
-    }
-
-    @Override
-    public PageResponse<MessageResponse> getConversation(UUID currentUserId, UUID otherUserId, Pageable pageable) {
-        // Validate users
-        UserEntity currentUser = userRepository.findByUserIdAndIsDeletedFalse(currentUserId);
-        UserEntity otherUser = userRepository.findByUserIdAndIsDeletedFalse(otherUserId);
-
-        if (currentUser == null || otherUser == null) {
-            log.warn("Không tìm thấy người dùng");
-            throw new ResourceNotFoundException("Không tìm thấy người dùng");
-        }
-
-        Page<MessageEntity> messagePage = messageRepository.findConversation(currentUserId, otherUserId, pageable);
-
-        List<MessageResponse> messageResponses = messagePage.getContent().stream()
-                .map(messageMapper::toResponse)
-                .collect(Collectors.toList());
-
-        log.info("Lấy cuộc trò chuyện giữa {} và {} thành công", currentUserId, otherUserId);
-
-        return PageResponse.<MessageResponse>builder()
-                .data(messageResponses)
-                .page(messagePage.getNumber())
-                .totalElements(messagePage.getTotalElements())
-                .totalPages(messagePage.getTotalPages())
-                .build();
-    }
-
-    @Override
-    @Transactional
-    public boolean markMessageAsRead(UUID messageId, UUID userId) {
-        MessageEntity messageEntity = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
-        if (messageEntity == null) {
-            log.warn("Không tìm thấy tin nhắn với id: {}", messageId);
-            throw new ResourceNotFoundException("Không tìm thấy tin nhắn");
-        }
-
-        // Check authorization
-        if (!messageEntity.getReceiver().getUserId().equals(userId)) {
-            log.warn("Người dùng {} không có quyền đánh dấu tin nhắn {}", userId, messageId);
-            throw new UnauthorizedException("Không có quyền đánh dấu tin nhắn này");
-        }
-
-        messageEntity.setIsRead(true);
-        messageEntity.setStatus(MessageStatusEnum.DELIVERED);
-        messageRepository.save(messageEntity);
-
-        log.info("Đánh dấu tin nhắn {} đã đọc thành công", messageId);
-        return true;
-    }
-
-    @Override
-    public Long getUnreadCount(UUID userId) {
-        Long count = messageRepository.countUnreadMessages(userId);
-        log.info("Số tin nhắn chưa đọc của người dùng {}: {}", userId, count);
-        return count;
-    }
-
-    @Override
-    @Transactional
-    public boolean deleteMessage(UUID messageId, UUID userId) {
-        MessageEntity messageEntity = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
-        if (messageEntity == null) {
-            log.warn("Không tìm thấy tin nhắn với id: {}", messageId);
-            throw new ResourceNotFoundException("Không tìm thấy tin nhắn");
-        }
-
-        // Check authorization
-        if (!messageEntity.getSender().getUserId().equals(userId) 
-            && !messageEntity.getReceiver().getUserId().equals(userId)) {
-            log.warn("Người dùng {} không có quyền xóa tin nhắn {}", userId, messageId);
-            throw new UnauthorizedException("Không có quyền xóa tin nhắn này");
-        }
-
-        messageEntity.setIsDeleted(true);
-        messageRepository.save(messageEntity);
-
-        log.info("Xóa tin nhắn {} thành công", messageId);
-        return true;
-    }
-
-    @Override
-    public PageResponse<MessageResponse> getAllMessages(UUID userId, Pageable pageable) {
-        Page<MessageEntity> messagePage = messageRepository.findAllByUserId(userId, pageable);
-
-        List<MessageResponse> messageResponses = messagePage.getContent().stream()
-                .map(messageMapper::toResponse)
-                .collect(Collectors.toList());
-
-        log.info("Lấy tất cả tin nhắn của người dùng {} thành công", userId);
-
-        return PageResponse.<MessageResponse>builder()
-                .data(messageResponses)
-                .page(messagePage.getNumber())
-                .totalElements(messagePage.getTotalElements())
-                .totalPages(messagePage.getTotalPages())
-                .build();
-    }
-
-    @Override
-    public List<UserResponse> getAvailableStaff() {
-        log.info("Lấy danh sách nhân viên có sẵn - chỉ lấy user có role STAFF");
+        eventPublisher.publishEvent(new MessageCreatedEvent(this, response));
         
-        // Chỉ lấy user có role STAFF, không bao gồm ADMIN hay TECHNICIAN
-        List<UserEntity> staffUsers = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.STAFF);
-        
-        // Map to UserResponse
-        List<UserResponse> response = staffUsers.stream()
-                .map(userMapper::toResponse)
-                .collect(Collectors.toList());
-        
-        log.info("Tìm thấy {} nhân viên STAFF có sẵn", response.size());
         return response;
     }
-
+    
     /**
-     * Auto-send welcome message if this is customer's first message to staff/admin
+     * Validate customer chỉ được chat với staff được assign
      */
-    private void sendWelcomeMessageIfFirstTime(UserEntity sender, UserEntity receiver) {
-        try {
-            // Only auto-reply if sender is CUSTOMER
-            if (sender.getRole() == null || !sender.getRole().getRoleName().equals(RoleEnum.CUSTOMER)) {
-                return;
-            }
-
-            // Check if this is the first message between sender and receiver
-            Page<MessageEntity> existingMessages = messageRepository.findConversation(
-                sender.getUserId(), 
-                receiver.getUserId(),
-                PageRequest.of(0, 10)  // Get up to 10 recent messages
-            );
-
-            // If there are more than 1 message (current + previous), not first time
-            if (existingMessages.getTotalElements() > 1) {
-                return;
-            }
-
-            log.info("🎉 First message from customer {} to {}, sending welcome message", 
-                sender.getUserId(), receiver.getUserId());
-
-            // Create welcome message from receiver back to sender
-            String customerName = sender.getFullName() != null ? sender.getFullName() : "Quý khách";
-            String welcomeContent = "Xin chào " + customerName + "! 👋\n\n" +
-                "Cảm ơn bạn đã liên hệ với EVCare. " +
-                "Chúng tôi đã nhận được tin nhắn của bạn và sẽ phản hồi trong thời gian sớm nhất.\n\n" +
-                "Vui lòng mô tả chi tiết vấn đề của bạn để chúng tôi có thể hỗ trợ tốt nhất. " +
-                "Thời gian làm việc: 8:00 - 17:30 từ Thứ 2 đến Thứ 7.\n\n" +
-                "Trân trọng!";
-
-            MessageEntity welcomeMessage = MessageEntity.builder()
-                    .sender(receiver)  // Admin/Staff sends back
-                    .receiver(sender)  // To customer
-                    .content(welcomeContent)
-                    .isRead(false)
-                    .status(MessageStatusEnum.SENT)
-                    .sentAt(LocalDateTime.now())
-                    .createdBy("System Auto-Reply")
-                    .updatedBy("System Auto-Reply")
-                    .build();
-
-            MessageEntity savedWelcome = messageRepository.save(welcomeMessage);
-            log.info("✅ Welcome message sent: {}", savedWelcome.getMessageId());
-
-            // Publish event for welcome message too
-            MessageResponse welcomeResponse = messageMapper.toResponse(savedWelcome);
-            eventPublisher.publishEvent(new MessageCreatedEvent(
-                this,
-                welcomeResponse,
-                receiver.getUserId().toString(),
-                sender.getUserId().toString()
-            ));
-
-        } catch (Exception e) {
-            // Don't fail the main message if welcome message fails
-            log.error("❌ Failed to send welcome message: {}", e.getMessage(), e);
+    private void validateCustomerCanChat(UUID customerId, UUID staffId) {
+        Optional<MessageAssignmentEntity> assignment = 
+            assignmentRepository.findActiveByCustomerId(customerId);
+        
+        if (assignment.isEmpty()) {
+            log.warn(MessageConstants.LOG_ERR_NO_ASSIGNMENT, customerId);
+            throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_NO_ASSIGNMENT);
+        }
+        
+        // Kiểm tra customer có được phép chat với staff này không
+        if (!assignment.get().getAssignedStaff().getUserId().equals(staffId)) {
+            log.warn("Customer {} tried to chat with unassigned staff {}", customerId, staffId);
+            throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_NO_ASSIGNMENT);
         }
     }
-}
+    
+    @Override
+    public MessageResponse getMessage(UUID messageId, UUID currentUserId) {
+        MessageEntity message = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
+        if (message == null) {
+            log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
+        }
+        
+        // Check authorization
+        boolean isSender = message.getSender().getUserId().equals(currentUserId);
+        boolean isReceiver = message.getReceiver().getUserId().equals(currentUserId);
+        
+        if (!isSender && !isReceiver) {
+            log.warn(MessageConstants.LOG_ERR_UNAUTHORIZED, currentUserId, messageId);
+            throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_UNAUTHORIZED);
+        }
+        
+        return messageMapper.toResponse(message);
+    }
+    
+    @Override
+    public PageResponse<MessageResponse> getConversation(UUID currentUserId, UUID otherUserId, Pageable pageable) {
+        UserEntity currentUser = userRepository.findByUserIdAndIsDeletedFalse(currentUserId);
+        UserEntity otherUser = userRepository.findByUserIdAndIsDeletedFalse(otherUserId);
+        
+        if (currentUser == null || otherUser == null) {
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+        
+        if (currentUser.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+            validateCustomerCanChat(currentUserId, otherUserId);
+        }
+        if (otherUser.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+            validateCustomerCanChat(otherUserId, currentUserId);
+        }
+        
+        Page<MessageEntity> messagePage = messageRepository.findConversation(currentUserId, otherUserId, pageable);
+        
+        List<MessageResponse> messageResponses = messagePage.getContent().stream()
+                .map(messageMapper::toResponse)
+                .collect(Collectors.toList());
+        
+        return PageResponse.<MessageResponse>builder()
+                .page(messagePage.getNumber())
+                .size(messagePage.getSize())
+                .totalElements(messagePage.getTotalElements())
+                .totalPages(messagePage.getTotalPages())
+                .data(messageResponses)
+                .build();
+    }
+    
 
+    @Override
+    @Transactional
+    public MessageResponse markAsRead(UUID messageId, UUID userId) {
+        MessageEntity message = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
+        if (message == null) {
+            log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
+        }
+        
+        // Chỉ receiver mới có thể mark as read
+        if (!message.getReceiver().getUserId().equals(userId)) {
+            log.warn(MessageConstants.LOG_ERR_UNAUTHORIZED, userId, messageId);
+            throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_UNAUTHORIZED);
+        }
+        
+        // Update status
+        if (message.getStatus() != MessageStatusEnum.READ) {
+            message.setStatus(MessageStatusEnum.READ);
+            message.setReadAt(LocalDateTime.now());
+            messageRepository.save(message);
+            log.info(MessageConstants.LOG_SUCCESS_MARK_READ, messageId, userId);
+        }
+        
+        return messageMapper.toResponse(message);
+    }
+    
+    @Override
+    @Transactional
+    public int markConversationAsRead(UUID currentUserId, UUID otherUserId) {
+        // Mark all messages from otherUserId to currentUserId as READ
+        return messageRepository.markAllAsRead(otherUserId, currentUserId, LocalDateTime.now());
+    }
+    
+    @Override
+    @Transactional
+    public MessageResponse markAsDelivered(UUID messageId, UUID userId) {
+        MessageEntity message = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
+        if (message == null) {
+            log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
+        }
+        
+        // Chỉ receiver mới có thể mark as delivered
+        if (!message.getReceiver().getUserId().equals(userId)) {
+            log.warn(MessageConstants.LOG_ERR_UNAUTHORIZED, userId, messageId);
+            throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_UNAUTHORIZED);
+        }
+        
+        // Update status
+        if (message.getStatus() == MessageStatusEnum.SENT) {
+            message.setStatus(MessageStatusEnum.DELIVERED);
+            message.setDeliveredAt(LocalDateTime.now());
+            messageRepository.save(message);
+            log.info(MessageConstants.LOG_SUCCESS_MARK_DELIVERED, messageId, userId);
+        }
+        
+        return messageMapper.toResponse(message);
+    }
+    
+    @Override
+    public long countUnreadMessages(UUID userId) {
+        return messageRepository.countUnreadMessages(userId);
+    }
+    
+    @Override
+    public PageResponse<MessageResponse> getRecentConversations(UUID userId, Pageable pageable) {
+        // TODO: Implement this properly với distinct conversations
+        // Hiện tại return empty
+        return PageResponse.<MessageResponse>builder()
+                .page(0)
+                .size(pageable.getPageSize())
+                .totalElements(0L)
+                .totalPages(0)
+                .data(List.of())
+                .build();
+    }
+    
+    @Override
+    @Transactional
+    public void deleteMessage(UUID messageId, UUID currentUserId) {
+        MessageEntity message = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
+        if (message == null) {
+            log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
+        }
+        
+        // Chỉ sender mới có thể xóa
+        if (!message.getSender().getUserId().equals(currentUserId)) {
+            log.warn(MessageConstants.LOG_ERR_UNAUTHORIZED, currentUserId, messageId);
+            throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_UNAUTHORIZED);
+        }
+        
+        message.setIsDeleted(true);
+        messageRepository.save(message);
+        log.info("Deleted message: {}", messageId);
+    }
+}
 

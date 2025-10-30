@@ -1,27 +1,25 @@
 package com.fpt.evcare.dto.request.message;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.UUID;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@Builder
-public class CreationMessageRequest implements Serializable {
-
-    @NotNull(message = "Receiver ID không được để trống")
+public class CreationMessageRequest {
+    
+    UUID senderId;
+    @NotNull(message = "ID người nhận không được để trống")
     UUID receiverId;
-
-    @NotNull(message = "Nội dung không được để trống")
-    @Size(max = 500, message = "Nội dung không được vượt quá 500 ký tự")
+    @NotBlank(message = "Nội dung tin nhắn không được để trống")
     String content;
-
-    String attachmentUrl;
+    String imageUrl;
 }
 

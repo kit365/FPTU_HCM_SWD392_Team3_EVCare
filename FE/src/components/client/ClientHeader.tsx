@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthClient } from '../../hooks/useAuthClient';
+import { useAuth } from '../../hooks/useAuth';
 import { useAuthContext } from '../../context/useAuthContext';
 import { notification } from 'antd';
 import { useEffect, useState, useRef } from 'react';
@@ -10,7 +10,7 @@ const ClientHeader = () => {
     const location = useLocation().pathname;
     const [openMenu, setOpenMenu] = useState(false);
     const { user } = useAuthContext();
-    const { logout } = useAuthClient();
+    const { logout } = useAuth({ type: 'client' });
     const navigate = useNavigate();
     const menuRef = useRef<HTMLDivElement>(null);
 

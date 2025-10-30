@@ -1,281 +1,144 @@
 package com.fpt.evcare.controller;
 
+import com.fpt.evcare.constants.MessageConstants;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.service.MessageService;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Controller;
 
 import java.util.UUID;
 
+/**
+ * WebSocket Controller cho real-time messaging
+ * 
+ * Endpoints:
+ * - /app/message/send -> Gửi tin nhắn real-time
+ * - /app/message/mark-delivered -> Đánh dấu đã nhận
+ * - /app/message/mark-read -> Đánh dấu đã đọc
+ * - /app/message/typing -> Thông báo đang typing (future)
+ * 
+ * Subscriptions:
+ * - /user/{userId}/queue/messages -> Nhận tin nhắn mới
+ * - /user/{userId}/queue/typing -> Nhận typing status (future)
+ */
 @Slf4j
 @Controller
-@AllArgsConstructor
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MessageWebSocketController {
-
+    
     MessageService messageService;
     SimpMessagingTemplate messagingTemplate;
-    SimpUserRegistry userRegistry;
 
-    /**
-     * Client subscribe: /user/{userId}/queue/messages
-     * Client gửi tin nhắn đến: /app/message/send
-     * Server tự động forward đến: /user/{receiverId}/queue/messages
-     */
     @MessageMapping("/message/send")
-    public void handleSendMessage(
-            @Payload MessageRequest messageRequest) {
-
-        log.info("🔥 ====== RECEIVED WebSocket MESSAGE ======");
-        log.info("🔥 Raw MessageRequest: senderId={}, receiverId={}, content={}",
-                messageRequest.getSenderId(), messageRequest.getReceiverId(), messageRequest.getContent());
-
-        try {
-            // Convert String to UUID
-            UUID senderUUID = UUID.fromString(messageRequest.getSenderId());
-            UUID receiverUUID = UUID.fromString(messageRequest.getReceiverId());
-
-            log.info("🔄 Converted UUIDs: sender={}, receiver={}", senderUUID, receiverUUID);
-
-            // Save message và publish event
-            // Event listener sẽ tự động gửi WebSocket message
-            log.info("🔄 Calling messageService.sendMessage()...");
-            MessageResponse response = messageService.sendMessage(
-                    senderUUID,
-                    new CreationMessageRequest(
-                            receiverUUID,
-                            messageRequest.getContent(),
-                            messageRequest.getAttachmentUrl()
-                    )
-            );
-
-            log.info("✅ Message saved successfully, response ID: {}", response.getMessageId());
-            log.info("✅ MessageCreatedEvent published - WebSocket sending handled by MessageEventListener");
-            
-            // ALSO send directly via WebSocket as backup (in case event listener is delayed)
-            log.info("📤 Sending message directly to sender {} at /queue/messages", messageRequest.getSenderId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getSenderId(),
-                    "/queue/messages",
-                    response
-            );
-            
-            log.info("📤 Sending message directly to receiver {} at /queue/messages", messageRequest.getReceiverId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/messages",
-                    response
-            );
-            
-            // Send unread count update to receiver
-            Long unreadCount = messageService.getUnreadCount(receiverUUID);
-            log.info("📊 Sending unread count ({}) to receiver {}", unreadCount, messageRequest.getReceiverId());
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/unread-count",
-                    unreadCount
-            );
-            
-            // Check connected users for debugging
-            log.info("🔍 Checking connected WebSocket sessions...");
-            log.info("🔍 Total connected users: {}", userRegistry.getUserCount());
-            log.info("🔍 Sender {} is connected: {}", messageRequest.getSenderId(), 
-                    userRegistry.getUser(messageRequest.getSenderId()) != null);
-            log.info("🔍 Receiver {} is connected: {}", messageRequest.getReceiverId(), 
-                    userRegistry.getUser(messageRequest.getReceiverId()) != null);
-
-        } catch (Exception e) {
-            log.error("Lỗi khi gửi tin nhắn qua WebSocket: {}", e.getMessage(), e);
-            // Gửi error message về sender
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getSenderId().toString(),
-                    "/queue/errors",
-                    "Lỗi khi gửi tin nhắn: " + e.getMessage()
-            );
+    public void sendMessage(@Payload CreationMessageRequest request) {
+        // Lấy senderId từ request payload (FE đã gửi)
+        UUID senderId = request.getSenderId();
+        if (senderId == null) {
+            log.error("❌ WS message: senderId is null in request");
+            return;
         }
+        
+        log.info("💬 WS message: sender={} → receiver={}", senderId, request.getReceiverId());
+        messageService.sendMessage(senderId, request);
     }
-
-    /**
-     * Client subscribe: /user/{userId}/queue/unread-count
-     * Server gửi updates khi có tin nhắn mới
-     */
-    @MessageMapping("/message/mark-read")
-    public void handleMarkAsRead(@Payload MarkReadRequest request) {
-        try {
-            messageService.markMessageAsRead(request.getMessageId(), request.getUserId());
-            
-            log.info("Đánh dấu tin nhắn {} đã đọc qua WebSocket", request.getMessageId());
-
-            // Notify sender rằng receiver đã đọc tin nhắn
-            // Có thể lấy senderId từ messageId
-            // messagingTemplate.convertAndSendToUser(senderId, "/queue/message-read", messageId);
-            
-        } catch (Exception e) {
-            log.error("Lỗi khi đánh dấu tin nhắn đã đọc qua WebSocket: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Test connection - Ping/Pong
-     * Client subscribe: /topic/test
-     * Client gửi: /app/test
-     */
-    @MessageMapping("/test")
-    public void handleTest(@Payload String message) {
-        log.info("Received test message from WebSocket: {}", message);
-        try {
-            // Broadcast đến tất cả clients subscribe /topic/test
-            String response = "✅ Server received: " + message + " | Time: " + java.time.LocalDateTime.now();
-            messagingTemplate.convertAndSend("/topic/test", response);
-            log.info("Sent response to /topic/test: {}", response);
-        } catch (Exception e) {
-            log.error("Error sending test message: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Debug: Test user-specific messaging
-     * Client gửi: /app/debug/user-message
-     */
-    @MessageMapping("/debug/user-message")
-    public void handleDebugUserMessage(@Payload MessageRequest messageRequest) {
-        log.info("🧪 Debug user message received: sender={}, receiver={}, content={}",
-                messageRequest.getSenderId(), messageRequest.getReceiverId(), messageRequest.getContent());
-
-        try {
-            // Test send to specific user
-            String testMessage = "🧪 DEBUG: Test message to " + messageRequest.getReceiverId() + " at " + java.time.LocalDateTime.now();
-            log.info("🧪 Sending debug message to user: {}", messageRequest.getReceiverId());
-
-            messagingTemplate.convertAndSendToUser(
-                    messageRequest.getReceiverId(),
-                    "/queue/messages",
-                    testMessage
-            );
-
-            log.info("🧪 Debug message sent successfully to user: {}", messageRequest.getReceiverId());
-        } catch (Exception e) {
-            log.error("🧪 Error sending debug message: {}", e.getMessage(), e);
-        }
-    }
-
-    // ========== NOTIFICATION METHODS ==========
     
     /**
-     * Send notification via WebSocket
-     * This method can be called from any service to send real-time notifications
-     * 
-     * @param userId - Target user to receive notification
-     * @param notification - Notification object to send
+     * Đánh dấu tin nhắn đã nhận (DELIVERED)
+     * Client gửi đến: /app/message/mark-delivered
      */
-    public void sendNotification(UUID userId, NotificationWebSocketDTO notification) {
-        log.info("📬 Sending notification to user: {}", userId);
-        log.info("📬 Notification: {}", notification);
-        
-        messagingTemplate.convertAndSendToUser(
-                userId.toString(),
-                "/queue/notifications",
-                notification
-        );
-        
-        log.info("✅ Notification sent successfully to user: {}", userId);
-    }
-    
-    // ========== DTOs cho WebSocket ==========
-    
-    static class MessageRequest {
-        String senderId;  // Changed from UUID to String
-        String receiverId; // Changed from UUID to String
-        String content;
-        String attachmentUrl;
-
-        public String getSenderId() { return senderId; }
-        public void setSenderId(String senderId) { this.senderId = senderId; }
-
-        public String getReceiverId() { return receiverId; }
-        public void setReceiverId(String receiverId) { this.receiverId = receiverId; }
-
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
-
-        public String getAttachmentUrl() { return attachmentUrl; }
-        public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
-    }
-
-    static class MarkReadRequest {
-        UUID messageId;
-        UUID userId;
-
-        public UUID getMessageId() { return messageId; }
-        public void setMessageId(UUID messageId) { this.messageId = messageId; }
-
-        public UUID getUserId() { return userId; }
-        public void setUserId(UUID userId) { this.userId = userId; }
-    }
-    
-    // Notification DTO for WebSocket
-    public static class NotificationWebSocketDTO {
-        private String notificationId;
-        private String title;
-        private String content;
-        private String notificationType;
-        private Long unreadCount;
-        private String sentAt;
-        private String appointmentId;
-        private String messageId;
-        private String maintenanceManagementId;
-        private String invoiceId;
-        
-        // Getters and Setters
-        public String getNotificationId() { return notificationId; }
-        public void setNotificationId(String notificationId) { this.notificationId = notificationId; }
-        
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-        
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
-        
-        public String getNotificationType() { return notificationType; }
-        public void setNotificationType(String notificationType) { this.notificationType = notificationType; }
-        
-        public Long getUnreadCount() { return unreadCount; }
-        public void setUnreadCount(Long unreadCount) { this.unreadCount = unreadCount; }
-        
-        public String getSentAt() { return sentAt; }
-        public void setSentAt(String sentAt) { this.sentAt = sentAt; }
-        
-        public String getAppointmentId() { return appointmentId; }
-        public void setAppointmentId(String appointmentId) { this.appointmentId = appointmentId; }
-        
-        public String getMessageId() { return messageId; }
-        public void setMessageId(String messageId) { this.messageId = messageId; }
-        
-        public String getMaintenanceManagementId() { return maintenanceManagementId; }
-        public void setMaintenanceManagementId(String maintenanceManagementId) { this.maintenanceManagementId = maintenanceManagementId; }
-        
-        public String getInvoiceId() { return invoiceId; }
-        public void setInvoiceId(String invoiceId) { this.invoiceId = invoiceId; }
-        
-        @Override
-        public String toString() {
-            return "NotificationWebSocketDTO{" +
-                    "notificationId='" + notificationId + '\'' +
-                    ", title='" + title + '\'' +
-                    ", content='" + content + '\'' +
-                    ", notificationType='" + notificationType + '\'' +
-                    ", unreadCount=" + unreadCount +
-                    ", sentAt='" + sentAt + '\'' +
-                    '}';
-        }
-    }
+//    @MessageMapping("/message/mark-delivered")
+//    public void markAsDelivered(@Payload Map<String, String> payload, Principal principal) {
+//        try {
+//            UUID messageId = UUID.fromString(payload.get("messageId"));
+//            UUID userId = UUID.fromString(principal.getName());
+//
+//            log.info("✓ WebSocket: Mark as delivered - Message: {}, User: {}", messageId, userId);
+//
+//            MessageResponse response = messageService.markAsDelivered(messageId, userId);
+//
+//            // Gửi update về cho sender để update UI (hiện ✓)
+//            String destination = MessageConstants.WS_TOPIC_USER_MESSAGES
+//                    .replace("{userId}", response.getSenderId().toString());
+//
+//            messagingTemplate.convertAndSend(destination, Map.of(
+//                "type", "status_update",
+//                "messageId", response.getMessageId(),
+//                "status", "DELIVERED",
+//                "deliveredAt", response.getDeliveredAt()
+//            ));
+//
+//            log.info("✅ WebSocket: Marked as delivered and notified sender");
+//
+//        } catch (Exception e) {
+//            log.error("❌ WebSocket: Error marking as delivered: {}", e.getMessage(), e);
+//        }
+//    }
+//
+//    /**
+//     * Đánh dấu tin nhắn đã đọc (READ)
+//     * Client gửi đến: /app/message/mark-read
+//     */
+//    @MessageMapping("/message/mark-read")
+//    public void markAsRead(@Payload Map<String, String> payload, Principal principal) {
+//        try {
+//            UUID messageId = UUID.fromString(payload.get("messageId"));
+//            UUID userId = UUID.fromString(principal.getName());
+//
+//            log.info("✓✓ WebSocket: Mark as read - Message: {}, User: {}", messageId, userId);
+//
+//            // Mark as read using service
+//            MessageResponse response = messageService.markAsRead(messageId, userId);
+//
+//            // Gửi update về cho sender để update UI (hiện ✓✓)
+//            String destination = MessageConstants.WS_TOPIC_USER_MESSAGES
+//                    .replace("{userId}", response.getSenderId().toString());
+//
+//            messagingTemplate.convertAndSend(destination, Map.of(
+//                "type", "status_update",
+//                "messageId", response.getMessageId(),
+//                "status", "READ",
+//                "readAt", response.getReadAt()
+//            ));
+//
+//            log.info("✅ WebSocket: Marked as read and notified sender");
+//
+//        } catch (Exception e) {
+//            log.error("❌ WebSocket: Error marking as read: {}", e.getMessage(), e);
+//        }
+//    }
+//
+//    /**
+//     * Typing indicator (future feature)
+//     * Client gửi đến: /app/message/typing
+//     */
+//    @MessageMapping("/message/typing")
+//    public void sendTypingIndicator(@Payload Map<String, String> payload, Principal principal) {
+//        try {
+//            UUID receiverId = UUID.fromString(payload.get("receiverId"));
+//            boolean isTyping = Boolean.parseBoolean(payload.getOrDefault("isTyping", "true"));
+//
+//            log.info("⌨️ WebSocket: Typing indicator from {} to {}: {}", principal.getName(), receiverId, isTyping);
+//
+//            // Gửi typing indicator đến receiver
+//            String destination = MessageConstants.WS_TOPIC_USER_TYPING
+//                    .replace("{userId}", receiverId.toString());
+//
+//            messagingTemplate.convertAndSend(destination, Map.of(
+//                "senderId", principal.getName(),
+//                "isTyping", isTyping
+//            ));
+//
+//        } catch (Exception e) {
+//            log.error("❌ WebSocket: Error sending typing indicator: {}", e.getMessage());
+//        }
+//    }
 }
 

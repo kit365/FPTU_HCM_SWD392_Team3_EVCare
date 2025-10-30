@@ -43,7 +43,9 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
                 SignedJWT signedJWT = SignedJWT.parse(jwt);
                 JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
                 
-                String username = claims.getStringClaim("username");
+                // Lấy userId từ subject claim (QUAN TRỌNG: Principal phải là userId)
+                String userId = claims.getSubject();  // ← subject chứa userId (UUID)
+                String username = claims.getStringClaim("username");  // username chỉ để log
                 
                 // Lấy role từ JWT (single role)
                 List<SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
@@ -61,12 +63,12 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 // Log để debug
-                log.debug("User {} authenticated with role: {}", username, authorities);
+                log.debug("User {} (userId: {}) authenticated with role: {}", username, userId, authorities);
 
-                // Tạo authentication token
+                // Tạo authentication token với userId làm principal
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                username,
+                                userId,  // ← Principal là userId (UUID string)
                                 null,
                                 authorities
                         );

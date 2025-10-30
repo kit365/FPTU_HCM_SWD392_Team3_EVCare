@@ -1,5 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import { apiClient } from '../service/api.ts';
+import { notify } from '../components/admin/common/Toast';
+
 // Định nghĩa type cho user
 type User = {
     userId: string,
@@ -74,8 +76,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsLoading(false);
         }
     };
-    // useEffect để refresh khi app khởi động và check F5
+    // Handle Google OAuth callback - extract tokens from URL
     useEffect(() => {
+        const handleGoogleCallback = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isGoogleAuth = urlParams.get('googleAuth') === 'true';
+            
+            if (isGoogleAuth) {
+                const accessToken = urlParams.get('accessToken');
+                const refreshToken = urlParams.get('refreshToken');
+                const encodedName = urlParams.get('name');
+                const email = urlParams.get('email');
+                
+                const name = encodedName ? decodeURIComponent(encodedName) : '';
+                
+                if (accessToken && refreshToken) {
+                    console.log('✅ Google OAuth callback: Saving tokens...');
+                    
+                    // Save tokens to localStorage
+                    localStorage.setItem('access_token', accessToken);
+                    localStorage.setItem('refresh_token', refreshToken);
+                    
+                    // Clean URL params
+                    window.history.replaceState({}, document.title, '/');
+                    
+                    // Show success notification
+                    notify.success(`Đăng nhập Google thành công! Xin chào ${name || email}`);
+                    
+                    console.log('✅ Google OAuth callback: Tokens saved, will refresh user');
+                } else {
+                    console.error('❌ Google OAuth callback: No tokens received');
+                    notify.error('Đăng nhập Google thất bại. Vui lòng thử lại.');
+                }
+            }
+        };
+
+        // Handle Google OAuth callback first (if exists)
+        handleGoogleCallback();
+        
+        // Then refresh user (will use tokens from localStorage)
         refreshUser();
     }, []);
     const value = {

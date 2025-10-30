@@ -1,29 +1,30 @@
-import { API_BASE_URL } from "../constants/apiConstants";
+import { apiClient } from "./api";
 import type { ApiResponse } from "../types/api";
 import type {
   MessageResponse,
   CreationMessageRequest,
-  PageResponse
+  PageResponse,
 } from "../types/message.types";
-import type { UserResponse } from "../types/user.types";
-import { apiClient } from "./api";
-const API_BASE = `${API_BASE_URL}/messages`;
+
+const API_BASE = "/messages";
+
 export const messageService = {
   /**
-   * Gửi tin nhắn
+   * Gửi tin nhắn (REST API - fallback)
    */
-  sendMessage: async (senderId: string, data: CreationMessageRequest) => {
+  sendMessage: async (data: CreationMessageRequest, userId: string) => {
     const response = await apiClient.post<ApiResponse<MessageResponse>>(
-      `${API_BASE}`,
+      `${API_BASE}/send`,
       data,
       {
         headers: {
-          "user-id": senderId
-        }
+          "user-id": userId,
+        },
       }
     );
     return response;
   },
+
   /**
    * Lấy chi tiết tin nhắn
    */
@@ -32,64 +33,83 @@ export const messageService = {
       `${API_BASE}/${messageId}`,
       {
         headers: {
-          "user-id": userId
-        }
+          "user-id": userId,
+        },
       }
     );
     return response;
   },
+
   /**
-   * Lấy cuộc trò chuyện giữa 2 người dùng
+   * Lấy cuộc trò chuyện
    */
   getConversation: async (
-    currentUserId: string,
     otherUserId: string,
+    userId: string,
     page: number = 0,
     pageSize: number = 50
   ) => {
-    const response = await apiClient.get<ApiResponse<PageResponse<MessageResponse>>>(
-      `${API_BASE}/conversation/${otherUserId}`,
-      {
-        params: {
-          page,
-          pageSize
-        },
-        headers: {
-          "user-id": currentUserId
-        }
-      }
-    );
+    const response = await apiClient.get<
+      ApiResponse<PageResponse<MessageResponse>>
+    >(`${API_BASE}/conversation/${otherUserId}`, {
+      params: { page, pageSize },
+      headers: {
+        "user-id": userId,
+      },
+    });
     return response;
   },
+
   /**
-   * Đánh dấu tin nhắn đã đọc
+   * Đánh dấu conversation đã đọc
    */
-  markMessageAsRead: async (messageId: string, userId: string) => {
-    const response = await apiClient.put<ApiResponse<string>>(
-      `${API_BASE}/${messageId}/read`,
+  markConversationAsRead: async (otherUserId: string, userId: string) => {
+    const response = await apiClient.put<ApiResponse<number>>(
+      `${API_BASE}/conversation/${otherUserId}/mark-read`,
       {},
       {
         headers: {
-          "user-id": userId
-        }
+          "user-id": userId,
+        },
       }
     );
     return response;
   },
+
   /**
-   * Lấy số tin nhắn chưa đọc
+   * Đếm tin nhắn chưa đọc
    */
   getUnreadCount: async (userId: string) => {
     const response = await apiClient.get<ApiResponse<number>>(
       `${API_BASE}/unread-count`,
       {
         headers: {
-          "user-id": userId
-        }
+          "user-id": userId,
+        },
       }
     );
     return response;
   },
+
+  /**
+   * Lấy danh sách conversations
+   */
+  getRecentConversations: async (
+    userId: string,
+    page: number = 0,
+    pageSize: number = 20
+  ) => {
+    const response = await apiClient.get<
+      ApiResponse<PageResponse<MessageResponse>>
+    >(`${API_BASE}/conversations`, {
+      params: { page, pageSize },
+      headers: {
+        "user-id": userId,
+      },
+    });
+    return response;
+  },
+
   /**
    * Xóa tin nhắn
    */
@@ -98,37 +118,11 @@ export const messageService = {
       `${API_BASE}/${messageId}`,
       {
         headers: {
-          "user-id": userId
-        }
-      }
-    );
-    return response;
-  },
-  /**
-   * Lấy tất cả tin nhắn
-   */
-  getAllMessages: async (userId: string, page: number = 0, pageSize: number = 20) => {
-    const response = await apiClient.get<ApiResponse<PageResponse<MessageResponse>>>(
-      `${API_BASE}`,
-      {
-        params: {
-          page,
-          pageSize
+          "user-id": userId,
         },
-        headers: {
-          "user-id": userId
-        }
       }
     );
     return response;
   },
-  /**
-   * Lấy danh sách nhân viên có sẵn
-   */
-  getAvailableStaff: async () => {
-    const response = await apiClient.get<ApiResponse<UserResponse[]>>(
-      `${API_BASE}/staff/available`
-    );
-    return response;
-  }
 };
+

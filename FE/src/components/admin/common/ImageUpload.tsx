@@ -54,7 +54,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     // Show preview immediately
     const previewUrl = URL.createObjectURL(file);
     setPreviewImage(previewUrl);
-    setSelectedFile(file);
 
     // Upload to Cloudinary
     try {
@@ -89,7 +88,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       alert(`Upload hình ảnh thất bại: ${error.message || 'Vui lòng thử lại.'}`);
       // Revert preview
       setPreviewImage(value || null);
-      setSelectedFile(null);
     } finally {
       setUploading(false);
     }

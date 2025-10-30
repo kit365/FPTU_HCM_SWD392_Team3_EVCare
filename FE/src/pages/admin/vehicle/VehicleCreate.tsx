@@ -213,7 +213,7 @@ export const VehicleCreate = () => {
                                         alt="Preview"
                                         className="w-[220px] h-[160px] object-cover rounded-lg shadow-sm border"
                                     />
-                                    {/* <button
+                                    <button
                                         type="button"
                                         onClick={() => {
                                             setPreviewImage(null);
@@ -222,7 +222,7 @@ export const VehicleCreate = () => {
                                         className="mt-3 text-[13px] text-red-500 hover:underline cursor-pointer"
                                     >
                                         Xóa hình
-                                    </button> */}
+                                    </button>
                                 </div>
                             )}
                         </div>

@@ -1,10 +1,11 @@
 import { Button } from "antd";
-import { useGoogleAuth } from "../../hooks/useGoogleAuth";
+import { useAuth } from "../../hooks/useAuth";
 
 interface GoogleLoginButtonProps {
   fullWidth?: boolean;
   size?: "small" | "middle" | "large";
   text?: string;
+  type?: 'admin' | 'client';
 }
 
 // Google logo SVG
@@ -22,9 +23,10 @@ const GoogleIcon = () => (
 export const GoogleLoginButton = ({ 
   fullWidth = true, 
   size = "large",
-  text = "Đăng nhập bằng Google" 
+  text = "Đăng nhập bằng Google",
+  type = 'client'
 }: GoogleLoginButtonProps) => {
-  const { loginWithGoogle, isLoading } = useGoogleAuth();
+  const { loginWithGoogle, isLoading } = useAuth({ type });
 
   return (
     <Button

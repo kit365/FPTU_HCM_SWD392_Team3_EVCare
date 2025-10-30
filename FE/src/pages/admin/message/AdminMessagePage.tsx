@@ -1,365 +1,240 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MessageOutlined, UserOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useWebSocket } from '../../../hooks/useWebSocket';
-import type { MessageResponse } from '../../../types/message.types';
-import { messageService } from '../../../service/messageService';
+import { ChatWindow } from '../../../components/message/ChatWindow';
+import type { MessageResponse, MessageAssignmentResponse } from '../../../types/message.types';
+import { messageAssignmentService } from '../../../service/messageAssignmentService';
 import { notify } from '../../../components/admin/common/Toast';
 import { useAuthContext } from '../../../context/useAuthContext';
-import { ChatWindowWithWebSocket } from '../../../components/message/ChatWindowWithWebSocket';
+import { MessageOutlined } from '@ant-design/icons';
 
-interface Conversation {
-  otherUserId: string;
-  otherUserName: string;
-  lastMessage?: MessageResponse;
-  unreadCount: number;
-}
-
-export function AdminMessagePage() {
+export const AdminMessagePage = () => {
   const { user } = useAuthContext();
   const userId = user?.userId || '';
-  const [selectedOtherUserId, setSelectedOtherUserId] = useState<string>('');
-  const [selectedOtherUserName, setSelectedOtherUserName] = useState<string>('');
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [assignments, setAssignments] = useState<MessageAssignmentResponse[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>('');
+  const [loading, setLoading] = useState(false);
   const [latestMessage, setLatestMessage] = useState<MessageResponse | null>(null);
 
-  // Create stable callbacks using useCallback
-  const handleWebSocketMessage = useCallback((message: MessageResponse) => {
-    console.log('🔔 AdminMessagePage: WebSocket message received:', message);
+  // Load assignments - memoized to prevent infinite loop
+  const loadAssignments = useCallback(async () => {
+    if (!userId) return;
     
-    // Set latest message to trigger ChatWindow update
-    setLatestMessage(message);
-    
-    // Update conversations list immediately WITHOUT reload
-    setConversations(prev => {
-        const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
-        const otherUserName = message.senderId === userId ? message.receiverName : message.senderName;
-        
-        // Check if conversation already exists
-        const existingIndex = prev.findIndex(c => c.otherUserId === otherUserId);
-        
-        if (existingIndex >= 0) {
-          // Update existing conversation
-          const updated = [...prev];
-          const conv = updated[existingIndex];
-          
-          // Update last message if this is newer
-          if (!conv.lastMessage || new Date(message.sentAt) > new Date(conv.lastMessage.sentAt)) {
-            conv.lastMessage = message;
-          }
-          
-          // Update unread count
-          if (message.receiverId === userId && !message.isRead) {
-            conv.unreadCount++;
-          }
-          
-          // Move to top
-          updated.splice(existingIndex, 1);
-          updated.unshift(conv);
-          
-          return updated;
-        } else {
-          // Add new conversation
-          const newConv: Conversation = {
-            otherUserId,
-            otherUserName,
-            lastMessage: message,
-            unreadCount: message.receiverId === userId && !message.isRead ? 1 : 0
-          };
-          
-          return [newConv, ...prev];
-        }
-      });
-      
-    // Show notification for new message
-    if (message.senderId !== userId) {
-      notify.info(`Tin nhắn mới từ ${message.senderName}`);
-    }
-  }, [userId, selectedOtherUserId]);
-  
-  const handleUnreadCountUpdate = useCallback((count: number) => {
-    setUnreadCount(count);
-  }, []);
-  
-  const handleConnected = useCallback(() => {
-    console.log('WebSocket connected');
-  }, []);
-  
-  const handleDisconnected = useCallback(() => {
-    console.log('WebSocket disconnected');
-  }, []);
-  
-  const handleWebSocketError = useCallback((error: string) => {
-    console.error('WebSocket error:', error);
-  }, []);
-
-  // WebSocket connection
-  const { markAsRead, sendMessage, isConnected } = useWebSocket({
-    userId,
-    onMessage: handleWebSocketMessage,
-    onUnreadCountUpdate: handleUnreadCountUpdate,
-    onConnected: handleConnected,
-    onDisconnected: handleDisconnected,
-    onError: handleWebSocketError
-  });
-
-  useEffect(() => {
-    if (userId) {
-      loadConversations();
-      loadUnreadCount();
-    }
-    // Cleanup function is not needed for this case
-  }, [userId]);
-
-  // Load conversations from localStorage on mount if userId is the same
-  useEffect(() => {
-    if (userId) {
-      const storedConversations = localStorage.getItem(`conversations_${userId}`);
-      if (storedConversations) {
-        try {
-          const parsed = JSON.parse(storedConversations);
-          setConversations(parsed);
-          setLoading(false);
-          console.log('📦 Restored conversations from localStorage:', parsed.length);
-        } catch (error) {
-          console.error('Error parsing stored conversations:', error);
-        }
-      }
-    }
-  }, []); // Only run once on mount
-
-  // Save conversations to localStorage whenever they change
-  useEffect(() => {
-    if (userId && conversations.length > 0) {
-      localStorage.setItem(`conversations_${userId}`, JSON.stringify(conversations));
-      console.log('💾 Saved conversations to localStorage:', conversations.length);
-    }
-  }, [conversations, userId]);
-
-  const loadConversations = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await messageService.getAllMessages(userId, 0, 100);
-      console.log('📦 Load Conversations Response:', response);
-      console.log('📦 Data structure:', response?.data);
-      
+      const response = await messageAssignmentService.getAssignmentsByStaffId(userId, 0, 100);
       if (response?.data?.success) {
-        // ApiResponse structure: { success, data: PageResponse<T> }
-        // PageResponse structure: { data: MessageResponse[], page, size, totalElements, totalPages, last }
-        const data = response.data.data;
-        
-        // Check if data is directly an array or wrapped in PageResponse
-        let messages: MessageResponse[] = [];
-        if (Array.isArray(data)) {
-          messages = data;
-        } else if (data?.data && Array.isArray(data.data)) {
-          // PageResponse structure
-          messages = data.data;
-        }
-        
-        console.log('📨 Messages array:', messages);
-        console.log('📨 Messages count:', messages.length);
-        
-        if (messages && messages.length > 0) {
-          const messagesByUser = new Map<string, Conversation>();
-          messages.forEach((msg: MessageResponse) => {
-            const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
-            const otherUserName = msg.senderId === userId ? msg.receiverName : msg.senderName;
-            
-            console.log('Processing message:', { otherUserId, otherUserName, msg });
-            
-            if (!messagesByUser.has(otherUserId)) {
-              messagesByUser.set(otherUserId, {
-                otherUserId,
-                otherUserName,
-                lastMessage: msg,
-                unreadCount: 0
-              });
-            } else {
-              const conv = messagesByUser.get(otherUserId)!;
-              if (new Date(msg.sentAt) > new Date(conv.lastMessage?.sentAt || '')) {
-                conv.lastMessage = msg;
-              }
-              if (msg.receiverId === userId && !msg.isRead) {
-                conv.unreadCount++;
-              }
-            }
-          });
-          
-          const sortedConversations = Array.from(messagesByUser.values())
-            .sort((a, b) => {
-              const timeA = new Date(a.lastMessage?.sentAt || 0).getTime();
-              const timeB = new Date(b.lastMessage?.sentAt || 0).getTime();
-              return timeB - timeA;
-            });
-          
-          console.log('💬 Processed conversations:', sortedConversations);
-          setConversations(sortedConversations);
-        } else {
-          console.log('No messages found');
-          setConversations([]);
-        }
+        const assignmentsData = response.data.data.data;
+        console.log('📋 [AdminMessagePage] Loaded assignments:', assignmentsData);
+        console.log('📋 [AdminMessagePage] First assignment customerId:', assignmentsData[0]?.customerId);
+        setAssignments(assignmentsData);
       }
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-      notify.error('Không thể tải danh sách cuộc trò chuyện');
+    } catch (error: any) {
+      console.error('Error loading assignments:', error);
+      notify.error('Không thể tải danh sách khách hàng');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
-  const loadUnreadCount = async () => {
-    try {
-      const response = await messageService.getUnreadCount(userId);
-      if (response?.data?.success) {
-        setUnreadCount(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error loading unread count:', error);
-    }
-  };
+  // WebSocket connection
+  const { isConnected, sendMessage } = useWebSocket({
+    userId,
+    onMessage: (message: MessageResponse) => {
+      console.log('========================================');
+      console.log('📨 [AdminMessagePage] CALLBACK TRIGGERED!');
+      console.log('📨 [AdminMessagePage] Received message:', message);
+      console.log('📨 [AdminMessagePage] Message details:', {
+        messageId: message.messageId,
+        from: message.senderId,
+        to: message.receiverId,
+        content: message.content,
+        currentUserId: userId,
+        timestamp: Date.now()
+      });
+      console.log('📨 [AdminMessagePage] About to call setLatestMessage...');
+      
+      // Set latest message (will trigger ChatWindow update)
+      setLatestMessage(message);
+      
+      console.log('✅ [AdminMessagePage] setLatestMessage called');
+      console.log('📨 [AdminMessagePage] About to loadAssignments...');
+      
+      // Refresh assignments to update unread count
+      loadAssignments();
+      
+      console.log('✅ [AdminMessagePage] Callback completed!');
+      console.log('========================================');
+    },
+    onConnect: () => {
+      console.log('✅ WebSocket connected for userId:', userId);
+    },
+    onDisconnect: () => {
+      console.log('❌ WebSocket disconnected');
+    },
+    onError: (error: string) => {
+      console.error('❌ WebSocket error:', error);
+      notify.error('Lỗi kết nối WebSocket');
+    },
+  });
 
-  const handleSelectConversation = (otherUserId: string, otherUserName: string) => {
-    setSelectedOtherUserId(otherUserId);
-    setSelectedOtherUserName(otherUserName);
+  useEffect(() => {
+    loadAssignments();
+  }, [loadAssignments]);
+
+  const handleSelectConversation = (customerId: string, customerName: string, customerAvatar?: string) => {
+    console.log('👤 [AdminMessagePage] Selected conversation:', {
+      customerId,
+      customerName,
+      isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId)
+    });
+    setSelectedUserId(customerId);
+    setSelectedUserName(customerName);
+    setSelectedUserAvatar(customerAvatar || '');
   };
 
   if (!userId) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-500">Vui lòng đăng nhập</div>
+        <div className="text-gray-500 text-center">
+          <MessageOutlined className="text-6xl mb-4" />
+          <p>Vui lòng đăng nhập</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full w-full bg-gray-50">
+    <div className="flex h-[calc(100vh-64px)] bg-white overflow-hidden">
       {/* Sidebar - Messenger Style */}
-      <div className={`border-r border-gray-200 bg-white flex flex-col ${selectedOtherUserId ? 'hidden lg:flex w-80' : 'flex w-full lg:w-96'}`}>
+      <div className={`w-[360px] bg-white border-r border-gray-200 flex flex-col ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}>
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-800">Tin nhắn</h3>
-            {unreadCount > 0 && (
-              <span className="bg-red-500 text-white text-sm font-semibold rounded-full px-2.5 py-1">
-                {unreadCount}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl font-bold text-gray-900">Đoạn chat</h1>
+            {/* WebSocket Status */}
+            <div className="flex items-center text-xs">
+              <span className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400 animate-pulse'}`}></span>
+              <span className={isConnected ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                {isConnected ? 'Online' : 'Đang kết nối...'}
               </span>
-            )}
+            </div>
+          </div>
+          {/* Search */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Tìm kiếm trong Messenger"
+              className="w-full px-4 py-2 bg-gray-100 rounded-full text-sm outline-none focus:bg-gray-200 transition-colors"
+            />
+            <svg className="absolute right-3 top-2.5 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
         </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-hidden">
+        {/* Conversations List */}
+        <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex flex-col p-3 space-y-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center space-x-3 animate-pulse p-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-200"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
-          ) : conversations.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-                  <UserOutlined className="text-2xl text-gray-400" />
-                </div>
-                <p className="text-gray-600 font-medium">Chưa có cuộc trò chuyện</p>
-                <p className="text-sm text-gray-400 mt-1">Các cuộc trò chuyện sẽ hiển thị ở đây</p>
-              </div>
+          ) : assignments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+              <MessageOutlined className="text-5xl text-gray-300 mb-3" />
+              <p className="text-gray-500 text-sm">Chưa có khách hàng nào</p>
             </div>
           ) : (
-            <div className="flex flex-col h-full overflow-y-auto">
-              {conversations.map((conv) => (
-                <div
-                  key={conv.otherUserId}
-                  onClick={() => handleSelectConversation(conv.otherUserId, conv.otherUserName)}
-                  className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-l-4 ${
-                    selectedOtherUserId === conv.otherUserId
-                      ? 'bg-blue-50 border-blue-500'
-                      : 'border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                        {conv.otherUserName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
-                    </div>
+            assignments.map((assignment) => (
+              <div
+                key={assignment.customerId}
+                onClick={() => handleSelectConversation(assignment.customerId, assignment.customerName, assignment.customerAvatarUrl)}
+                className={`flex items-center px-3 py-3 cursor-pointer transition-colors hover:bg-gray-100 ${
+                  selectedUserId === assignment.customerId ? 'bg-blue-50' : ''
+                }`}
+              >
+                {/* Avatar */}
+                <div className="relative flex-shrink-0 mr-3">
+                  {assignment.customerAvatarUrl ? (
+                    <img
+                      src={assignment.customerAvatarUrl}
+                      alt={assignment.customerName}
+                      className="w-14 h-14 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-lg ${assignment.customerAvatarUrl ? 'hidden' : ''}`}>
+                    {assignment.customerName.charAt(0).toUpperCase()}
+                  </div>
+                  {/* Online Status */}
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-0.5">
-                        <div className="font-semibold text-gray-900 text-sm truncate">
-                          {conv.otherUserName}
-                        </div>
-                        {conv.lastMessage && (
-                          <div className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                            {new Date(conv.lastMessage.sentAt).toLocaleTimeString('vi-VN', { 
-                              hour: '2-digit', 
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      {conv.lastMessage && (
-                        <div className="text-sm text-gray-600 truncate">
-                          {conv.lastMessage.content}
-                        </div>
-                      )}
-                      {conv.unreadCount > 0 && (
-                        <div className="flex justify-end mt-1">
-                          <span className="text-xs font-semibold bg-blue-500 text-white rounded-full px-2 py-0.5">
-                            {conv.unreadCount}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <h3 className="font-semibold text-gray-900 text-sm truncate">
+                      {assignment.customerName}
+                    </h3>
+                    {assignment.lastMessageAt && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        {new Date(assignment.lastMessageAt).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500 truncate">
+                      {assignment.customerEmail}
+                    </p>
+                    {(assignment.unreadMessageCount || 0) > 0 && (
+                      <span className="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded-full">
+                        {assignment.unreadMessageCount}
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {/* Chat Window */}
-      {selectedOtherUserId ? (
-        <div className="flex-1 flex flex-col bg-gray-50 relative">
-          <div className="absolute lg:hidden top-3 left-3 z-10">
-            <button
-              onClick={() => setSelectedOtherUserId('')}
-              className="bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 transition-colors"
-            >
-              <ArrowLeftOutlined className="text-gray-700" />
-            </button>
-          </div>
-          <ChatWindowWithWebSocket
-            currentUserId={userId}
-            otherUserId={selectedOtherUserId}
-            otherUserName={selectedOtherUserName}
-            sendMessage={sendMessage}
-            markAsRead={markAsRead}
-            isConnected={isConnected}
-            onWebSocketMessage={latestMessage}
-          />
-        </div>
+      {/* Chat Window - Messenger Style */}
+      {selectedUserId ? (
+        <ChatWindow
+          currentUserId={userId}
+          otherUserId={selectedUserId}
+          otherUserName={selectedUserName}
+          otherUserAvatar={selectedUserAvatar}
+          sendMessage={sendMessage}
+          isConnected={isConnected}
+          onWebSocketMessage={latestMessage}
+        />
       ) : (
-        <div className="flex-1 flex items-center justify-center hidden lg:flex">
-          <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-              <MessageOutlined className="text-4xl text-blue-500" />
+        <div className="flex-1 items-center justify-center bg-white hidden lg:flex">
+          <div className="text-center px-8">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-6">
+              <MessageOutlined className="text-5xl text-white" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-1">Chọn cuộc trò chuyện</h3>
-            <p className="text-gray-500 text-sm">Chọn một khách hàng để xem tin nhắn</p>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Messenger của bạn</h2>
+            <p className="text-gray-500 max-w-sm mx-auto">
+              {assignments.length === 0
+                ? 'Bạn chưa được phân công khách hàng nào. Liên hệ admin để được hỗ trợ.'
+                : `Chọn một trong ${assignments.length} khách hàng để bắt đầu trò chuyện`}
+            </p>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default AdminMessagePage;
+

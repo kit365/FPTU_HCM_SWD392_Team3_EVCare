@@ -2,13 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { BellOutlined, CloseOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useAuthContext } from '../../context/useAuthContext';
 import { useNotification } from '../../hooks/useNotification';
-import { useWebSocket } from '../../hooks/useWebSocket';
-import type { WebSocketNotification } from '../../types/notification.types';
-import { notification as antdNotification } from 'antd';
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
-  const [realtimeNotifications, setRealtimeNotifications] = useState<WebSocketNotification[]>([]);
   const { user } = useAuthContext();
 
   // Load notifications from API
@@ -24,34 +20,17 @@ export function NotificationBell() {
     deleteNotification
   } = useNotification(user?.userId || "");
 
-  // WebSocket for real-time notifications
-  useWebSocket({
-    userId: user?.userId || "",
-    onNotification: (notification) => {
-      console.log('🔔 Received real-time notification:', notification);
-      
-      // Add to realtime notifications list
-      setRealtimeNotifications(prev => [notification, ...prev]);
-      
-      // Show toast notification
-      antdNotification.info({
-        message: notification.title,
-        description: notification.content,
-        placement: 'topRight',
-        duration: 5,
-      });
-      
-      // Refresh unread count
-      refreshUnreadCount();
+  // Auto-refresh notifications every 30 seconds (polling)
+  useEffect(() => {
+    if (!user?.userId) return;
+    
+    const interval = setInterval(() => {
       refreshNotifications();
-    },
-    onConnected: () => {
-      console.log('✅ Notification WebSocket connected');
-    },
-    onDisconnected: () => {
-      console.log('❌ Notification WebSocket disconnected');
-    }
-  });
+      refreshUnreadCount();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [user?.userId, refreshNotifications, refreshUnreadCount]);
 
   // References for button and dropdown
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -80,24 +59,13 @@ export function NotificationBell() {
     setIsOpen(!isOpen);
   };
 
-  // Combine API notifications + realtime notifications
-  // Remove duplicates based on notificationId
-  const allNotifications = [...realtimeNotifications, ...notifications]
-    .filter((notif, index, self) => 
-      index === self.findIndex(n => n.notificationId === notif.notificationId)
-    )
-    .sort((a, b) => {
-      // Sort by sentAt (newest first)
-      const dateA = new Date(a.sentAt || 0).getTime();
-      const dateB = new Date(b.sentAt || 0).getTime();
-      return dateB - dateA;
-    });
-
   if (!user?.userId) {
     return null;
   }
 
-  const unreadCountTotal = allNotifications.filter(n => !('isRead' in n) || !(n as any).isRead).length;
+  // Use notifications from API
+  const allNotifications = notifications;
+  const unreadCountTotal = unreadCount;
 
   return (
     <>

@@ -3,173 +3,200 @@ package com.fpt.evcare.controller;
 import com.fpt.evcare.base.ApiResponse;
 import com.fpt.evcare.constants.MessageConstants;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
+
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.dto.response.UserResponse;
+import com.fpt.evcare.service.AuthService;
 import com.fpt.evcare.service.MessageService;
+import com.fpt.evcare.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.UUID;
 
 @Slf4j
 @RestController
-@AllArgsConstructor
+@RequestMapping("/api/v1/messages")
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequestMapping(MessageConstants.BASE_URL)
+@Tag(name = "Message API", description = "REST API cho quản lý tin nhắn")
 public class MessageController {
 
     MessageService messageService;
 
-    @PostMapping(MessageConstants.MESSAGE_SEND)
-    @Operation(summary = "Gửi tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Gửi tin nhắn đến người dùng khác")
+    @PostMapping("/send")
+    @Operation(summary = "Gửi tin nhắn", description = "Authenticated - Gửi tin nhắn đến user khác")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<MessageResponse>> sendMessage(
-            @RequestHeader("user-id") UUID senderId,
-            @Valid @RequestBody CreationMessageRequest request) {
-        
+            Principal principal,
+            @Valid @RequestBody CreationMessageRequest request
+    ) {
+        UUID senderId = UUID.fromString(principal.getName());
         MessageResponse response = messageService.sendMessage(senderId, request);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<MessageResponse>builder()
-                        .success(true)
-                        .message(MessageConstants.MESSAGE_SUCCESS_SENDING_MESSAGE)
-                        .data(response)
-                        .build()
-        );
+
+        return ResponseEntity.ok(ApiResponse.<MessageResponse>builder()
+                .success(true)
+                .message(MessageConstants.MESSAGE_SUCCESS_SEND)
+                .data(response)
+                .build());
     }
 
-    @GetMapping(MessageConstants.MESSAGE_DETAIL)
-    @Operation(summary = "Lấy chi tiết tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy thông tin chi tiết của một tin nhắn cụ thể")
+
+
+    /**
+     * Lấy chi tiết 1 tin nhắn
+     */
+    @GetMapping("/{messageId}")
+    @Operation(summary = "Lấy chi tiết tin nhắn", description = "🔐 Authenticated - Chỉ sender/receiver mới xem được")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<MessageResponse>> getMessage(
-            @PathVariable("id") UUID messageId,
-            @RequestHeader("user-id") UUID userId) {
-        
+            @PathVariable UUID messageId,
+            java.security.Principal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
         MessageResponse response = messageService.getMessage(messageId, userId);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<MessageResponse>builder()
-                        .success(true)
-                        .message(MessageConstants.MESSAGE_SUCCESS_GETTING_MESSAGE)
-                        .data(response)
-                        .build()
-        );
+
+        return ResponseEntity.ok(ApiResponse.<MessageResponse>builder()
+                .success(true)
+                .message("Lấy tin nhắn thành công")
+                .data(response)
+                .build());
     }
 
-    @GetMapping(MessageConstants.MESSAGE_CONVERSATION)
-    @Operation(summary = "Lấy cuộc trò chuyện", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tất cả tin nhắn giữa 2 người dùng")
+    /**
+     * Lấy cuộc trò chuyện với user khác (phân trang)
+     */
+    @GetMapping("/conversation/{otherUserId}")
+    @Operation(summary = "Lấy cuộc trò chuyện", description = "🔐 Authenticated - Lấy lịch sử chat với user khác (phân trang)")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getConversation(
-            @RequestHeader("user-id") UUID currentUserId,
-            @PathVariable("userId") UUID otherUserId,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "pageSize", defaultValue = "50") int pageSize) {
-        
+            @PathVariable UUID otherUserId,
+            java.security.Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int pageSize
+    ) {
+        UUID currentUserId = UUID.fromString(principal.getName());
         Pageable pageable = PageRequest.of(page, pageSize);
         PageResponse<MessageResponse> response = messageService.getConversation(currentUserId, otherUserId, pageable);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<PageResponse<MessageResponse>>builder()
-                        .success(true)
-                        .message(MessageConstants.MESSAGE_SUCCESS_GETTING_CONVERSATION)
-                        .data(response)
-                        .build()
-        );
+
+        return ResponseEntity.ok(ApiResponse.<PageResponse<MessageResponse>>builder()
+                .success(true)
+                .message("Lấy cuộc trò chuyện thành công")
+                .data(response)
+                .build());
     }
 
-    @PutMapping(MessageConstants.MESSAGE_MARK_READ)
-    @Operation(summary = "Đánh dấu tin nhắn đã đọc", description = "🔐 **Roles:** Authenticated (All roles) - Đánh dấu một tin nhắn là đã đọc")
+    /**
+     * Đánh dấu 1 tin nhắn đã đọc
+     */
+    @PutMapping("/{messageId}/mark-read")
+    @Operation(summary = "Đánh dấu tin nhắn đã đọc", description = "🔐 Authenticated - Đánh dấu 1 tin nhắn cụ thể là đã đọc")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> markMessageAsRead(
-            @PathVariable("id") UUID messageId,
-            @RequestHeader("user-id") UUID userId) {
-        
-        boolean result = messageService.markMessageAsRead(messageId, userId);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<String>builder()
-                        .success(result)
-                        .message(MessageConstants.MESSAGE_SUCCESS_MARKING_MESSAGE_AS_READ)
-                        .build()
-        );
+    public ResponseEntity<ApiResponse<MessageResponse>> markMessageAsRead(
+            @PathVariable UUID messageId,
+            java.security.Principal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
+        MessageResponse response = messageService.markAsRead(messageId, userId);
+
+        return ResponseEntity.ok(ApiResponse.<MessageResponse>builder()
+                .success(true)
+                .message(MessageConstants.MESSAGE_SUCCESS_MARK_READ)
+                .data(response)
+                .build());
     }
 
-    @GetMapping(MessageConstants.MESSAGE_UNREAD_COUNT)
-    @Operation(summary = "Lấy số tin nhắn chưa đọc", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tổng số tin nhắn chưa đọc của người dùng")
+    /**
+     * Đánh dấu tất cả tin nhắn từ otherUserId là đã đọc
+     */
+    @PutMapping("/conversation/{otherUserId}/mark-read")
+    @Operation(summary = "Đánh dấu conversation đã đọc", description = "🔐 Authenticated - Đánh dấu tất cả tin nhắn từ user khác là đã đọc")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Long>> getUnreadCount(@RequestHeader("user-id") UUID userId) {
-        
-        Long count = messageService.getUnreadCount(userId);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<Long>builder()
-                        .success(true)
-                        .data(count)
-                        .build()
-        );
+    public ResponseEntity<ApiResponse<Integer>> markConversationAsRead(
+            @PathVariable UUID otherUserId,
+            java.security.Principal principal
+    ) {
+        UUID currentUserId = UUID.fromString(principal.getName());
+        int count = messageService.markConversationAsRead(currentUserId, otherUserId);
+
+        return ResponseEntity.ok(ApiResponse.<Integer>builder()
+                .success(true)
+                .message(MessageConstants.MESSAGE_SUCCESS_MARK_READ)
+                .data(count)
+                .build());
     }
 
-    @DeleteMapping(MessageConstants.MESSAGE_DELETE)
-    @Operation(summary = "Xóa tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Xóa một tin nhắn (soft delete)")
+    /**
+     * Đếm số tin nhắn chưa đọc
+     */
+    @GetMapping("/unread-count")
+    @Operation(summary = "Đếm tin nhắn chưa đọc", description = "🔐 Authenticated - Đếm tổng số tin nhắn chưa đọc của user")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount(
+            java.security.Principal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
+        long count = messageService.countUnreadMessages(userId);
+
+        return ResponseEntity.ok(ApiResponse.<Long>builder()
+                .success(true)
+                .message("Lấy số tin nhắn chưa đọc thành công")
+                .data(count)
+                .build());
+    }
+
+    /**
+     * Lấy danh sách recent conversations
+     */
+    @GetMapping("/conversations")
+    @Operation(summary = "Lấy danh sách cuộc trò chuyện", description = "🔐 Authenticated - Lấy danh sách users đã chat với")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getRecentConversations(
+            java.security.Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int pageSize
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
+        Pageable pageable = PageRequest.of(page, pageSize);
+        PageResponse<MessageResponse> response = messageService.getRecentConversations(userId, pageable);
+
+        return ResponseEntity.ok(ApiResponse.<PageResponse<MessageResponse>>builder()
+                .success(true)
+                .message("Lấy danh sách cuộc trò chuyện thành công")
+                .data(response)
+                .build());
+    }
+
+    /**
+     * Xóa tin nhắn (soft delete)
+     */
+    @DeleteMapping("/{messageId}")
+    @Operation(summary = "Xóa tin nhắn", description = "🔐 Authenticated - Chỉ sender mới có thể xóa")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> deleteMessage(
-            @PathVariable("id") UUID messageId,
-            @RequestHeader("user-id") UUID userId) {
-        
-        boolean result = messageService.deleteMessage(messageId, userId);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<String>builder()
-                        .success(result)
-                        .message(MessageConstants.MESSAGE_SUCCESS_DELETING_MESSAGE)
-                        .build()
-        );
-    }
+            @PathVariable UUID messageId,
+            java.security.Principal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
+        messageService.deleteMessage(messageId, userId);
 
-    @GetMapping(MessageConstants.MESSAGE_LIST)
-    @Operation(summary = "Lấy tất cả tin nhắn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy tất cả tin nhắn liên quan đến người dùng hiện tại")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<PageResponse<MessageResponse>>> getAllMessages(
-            @RequestHeader("user-id") UUID userId,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "pageSize", defaultValue = "20") int pageSize) {
-        
-        Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<MessageResponse> response = messageService.getAllMessages(userId, pageable);
-        
-        return ResponseEntity.ok(
-                ApiResponse.<PageResponse<MessageResponse>>builder()
-                        .success(true)
-                        .data(response)
-                        .build()
-        );
-    }
-
-    @GetMapping(MessageConstants.MESSAGE_AVAILABLE_STAFF)
-    @Operation(summary = "Lấy danh sách nhân viên có sẵn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy danh sách tất cả nhân viên có thể đường liên lạc")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> getAvailableStaff() {
-        
-        java.util.List<UserResponse> response = messageService.getAvailableStaff();
-        
-        return ResponseEntity.ok(
-                ApiResponse.<java.util.List<UserResponse>>builder()
-                        .success(true)
-                        .message("Lấy danh sách nhân viên thành công")
-                        .data(response)
-                        .build()
-        );
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message(MessageConstants.MESSAGE_SUCCESS_DELETE)
+                .data("Message deleted successfully")
+                .build());
     }
 }
-
 

@@ -31,6 +31,7 @@ public class DashboardDataInitializer implements CommandLineRunner {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final UserRepository userRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
+    private final ShiftRepository shiftRepository;
     
     @PersistenceContext
     private EntityManager entityManager;
@@ -43,25 +44,18 @@ public class DashboardDataInitializer implements CommandLineRunner {
     }
     
     public void recreateDashboardData() {
-        // Check and clean existing sample data
-        long existingCount = appointmentRepository.count();
-        if (existingCount > 0) {
-            log.info("🗑️ Found {} existing appointments. Cleaning up old sample data...", existingCount);
-            
-            // Delete all payment transactions first (foreign key constraint)
-            long paymentCount = paymentTransactionRepository.count();
-            if (paymentCount > 0) {
-                paymentTransactionRepository.deleteAll();
-                log.info("✅ Deleted {} payment transactions", paymentCount);
-            }
-            
-            // Delete all appointments
-            appointmentRepository.deleteAll();
-            log.info("✅ Deleted {} appointments", existingCount);
-            log.info("🔄 Recreating dashboard sample data...");
-        } else {
-            log.info("🚀 Initializing dashboard sample data...");
+        // ✅ Check if appointments already exist - ONLY create if empty
+        long existingAppointments = appointmentRepository.count();
+        long existingShifts = shiftRepository.count();
+        
+        if (existingAppointments > 0 || existingShifts > 0) {
+            log.info("✅ Found {} appointments and {} shifts. Skipping initialization to preserve data.", 
+                existingAppointments, existingShifts);
+            log.info("💡 To recreate data, run: BE/FORCE_RECREATE_DATA.sql then restart server.");
+            return; // ✅ Skip initialization if data already exists
         }
+        
+        log.info("🚀 Initializing dashboard sample data (first time only)...");
 
         try {
             // Get required entities (use many customers/technicians to avoid duplicate data)
@@ -100,7 +94,7 @@ public class DashboardDataInitializer implements CommandLineRunner {
                 return;
             }
 
-            log.info("📊 Creating sample appointments (up to current month only)...");
+            log.info("📊 Creating sample appointments (up to current month + upcoming weeks)...");
             List<AppointmentEntity> appointments = new ArrayList<>();
 
             // Create appointments only for months up to current month (don't create future data)
@@ -124,6 +118,40 @@ public class DashboardDataInitializer implements CommandLineRunner {
                 log.info("✅ Created {} appointments for month {}, {} will be COMPLETED", 
                         count, month, (int)(count * 0.7));
             }
+
+            // ✅ Create recent appointments for better testing
+            log.info("📅 Creating test appointments for recent days...");
+            LocalDateTime now = LocalDateTime.now();
+            
+            // Last week - COMPLETED
+            for (int i = 0; i < 10; i++) {
+                LocalDateTime pastDate = now.minusDays(random.nextInt(7) + 1);
+                AppointmentEntity appointment = createRecentAppointment(
+                    pastDate, AppointmentStatusEnum.COMPLETED, customers, technicians, serviceTypes, vehicleTypes
+                );
+                appointments.add(appointment);
+            }
+            
+            // This week - IN_PROGRESS and CONFIRMED
+            for (int i = 0; i < 8; i++) {
+                LocalDateTime thisWeek = now.minusDays(random.nextInt(3));
+                AppointmentStatusEnum status = i < 4 ? AppointmentStatusEnum.IN_PROGRESS : AppointmentStatusEnum.CONFIRMED;
+                AppointmentEntity appointment = createRecentAppointment(
+                    thisWeek, status, customers, technicians, serviceTypes, vehicleTypes
+                );
+                appointments.add(appointment);
+            }
+            
+            // Next 2 weeks - PENDING and CONFIRMED
+            for (int i = 0; i < 15; i++) {
+                LocalDateTime futureDate = now.plusDays(random.nextInt(14) + 1);
+                AppointmentStatusEnum status = i < 7 ? AppointmentStatusEnum.PENDING : AppointmentStatusEnum.CONFIRMED;
+                AppointmentEntity appointment = createRecentAppointment(
+                    futureDate, status, customers, technicians, serviceTypes, vehicleTypes
+                );
+                appointments.add(appointment);
+            }
+            log.info("✅ Created 33 recent test appointments (10 past, 8 current, 15 upcoming)");
 
             // Save all appointments
             List<AppointmentEntity> savedAppointments = appointmentRepository.saveAll(appointments);
@@ -158,6 +186,11 @@ public class DashboardDataInitializer implements CommandLineRunner {
             }
             log.info("📊 Payment distribution by appointment scheduled month: {}", paymentsByMonth);
             log.info("💡 Note: Revenue query now uses appointment.scheduled_at instead of payment.created_at");
+
+            // ✅ Create shifts from appointments
+            log.info("📅 Creating shifts from appointments...");
+            createShiftsFromAppointments(savedAppointments);
+
             log.info("🎉 Dashboard sample data initialization completed!");
 
         } catch (Exception e) {
@@ -240,6 +273,58 @@ public class DashboardDataInitializer implements CommandLineRunner {
         return appointment;
     }
 
+    private AppointmentEntity createRecentAppointment(
+            LocalDateTime scheduledAt,
+            AppointmentStatusEnum status,
+            List<UserEntity> customers,
+            List<UserEntity> technicians,
+            List<ServiceTypeEntity> serviceTypes,
+            List<VehicleTypeEntity> vehicleTypes
+    ) {
+        // Random customer
+        UserEntity customer = customers.get(random.nextInt(customers.size()));
+        
+        // Random vehicle type
+        VehicleTypeEntity vehicleType = vehicleTypes.get(random.nextInt(vehicleTypes.size()));
+        
+        // Random 1-3 services
+        List<ServiceTypeEntity> selectedServices = new ArrayList<>();
+        int serviceCount = random.nextInt(3) + 1;
+        for (int i = 0; i < serviceCount; i++) {
+            ServiceTypeEntity service = serviceTypes.get(random.nextInt(serviceTypes.size()));
+            if (!selectedServices.contains(service)) {
+                selectedServices.add(service);
+            }
+        }
+        
+        // Calculate random quote price (500k - 3.5M VND)
+        BigDecimal quotePrice = BigDecimal.valueOf(500000 + random.nextInt(3000000));
+        
+        AppointmentEntity appointment = new AppointmentEntity();
+        appointment.setCustomer(customer);  // ✅ Fixed: use setCustomer() not setCustomerEntity()
+        appointment.setCustomerFullName(customer.getFullName());
+        appointment.setCustomerPhoneNumber(customer.getNumberPhone());
+        appointment.setCustomerEmail(customer.getEmail());
+        appointment.setStatus(status);
+        appointment.setScheduledAt(scheduledAt);
+        appointment.setServiceMode(random.nextBoolean() ? ServiceModeEnum.STATIONARY : ServiceModeEnum.MOBILE);
+        appointment.setVehicleTypeEntity(vehicleType);
+        appointment.setVehicleNumberPlate(generateRandomPlate());
+        appointment.setVehicleKmDistances(String.valueOf(random.nextInt(100000) + 10000));
+        appointment.setUserAddress(customer.getAddress());
+        appointment.setQuotePrice(quotePrice);
+        appointment.setServiceTypeEntities(selectedServices);
+        appointment.setNotes("Test appointment - " + status.name());
+        appointment.setSearch(customer.getFullName() + " " + customer.getNumberPhone());
+        
+        // Assign technician for non-PENDING statuses
+        if (status != AppointmentStatusEnum.PENDING && status != AppointmentStatusEnum.CANCELLED && !technicians.isEmpty()) {
+            appointment.setTechnicianEntities(List.of(technicians.get(random.nextInt(technicians.size()))));
+        }
+        
+        return appointment;
+    }
+
     private PaymentTransactionEntity createSamplePayment(AppointmentEntity appointment) {
         BigDecimal amount = appointment.getQuotePrice() != null 
                 ? appointment.getQuotePrice() 
@@ -254,6 +339,62 @@ public class DashboardDataInitializer implements CommandLineRunner {
                 .status(PaymentTransactionStatusEnum.SUCCESS)
                 .transactionResponse("Sample payment transaction")
                 .build();
+    }
+
+    private void createShiftsFromAppointments(List<AppointmentEntity> appointments) {
+        // Get all staff users for shift creation
+        List<UserEntity> staffUsers = userRepository.findAll().stream()
+                .filter(u -> u.getRole() != null && u.getRole().getRoleName() == RoleEnum.STAFF)
+                .toList();
+        
+        if (staffUsers.isEmpty()) {
+            log.warn("⚠️ No staff users found. Skipping shift creation.");
+            return;
+        }
+
+        // Group appointments by date and technician
+        java.util.Map<String, List<AppointmentEntity>> appointmentsByDateAndTech = new java.util.HashMap<>();
+        
+        for (AppointmentEntity appointment : appointments) {
+            if (appointment.getTechnicianEntities() != null && !appointment.getTechnicianEntities().isEmpty()) {
+                for (UserEntity technician : appointment.getTechnicianEntities()) {
+                    String key = appointment.getScheduledAt().toLocalDate() + "_" + technician.getUserId();
+                    appointmentsByDateAndTech.computeIfAbsent(key, k -> new ArrayList<>()).add(appointment);
+                }
+            }
+        }
+
+        // Create shifts for each date/technician combination
+        List<ShiftEntity> shifts = new ArrayList<>();
+        for (java.util.Map.Entry<String, List<AppointmentEntity>> entry : appointmentsByDateAndTech.entrySet()) {
+            List<AppointmentEntity> appts = entry.getValue();
+            if (appts.isEmpty()) continue;
+
+            // Get first appointment to extract date and technician
+            AppointmentEntity firstAppt = appts.getFirst();
+            UserEntity technician = firstAppt.getTechnicianEntities().get(0);
+            LocalDateTime shiftDate = firstAppt.getScheduledAt();
+            
+            // Create shift for this technician on this date
+            ShiftEntity shift = ShiftEntity.builder()
+                    .staff(staffUsers.get(random.nextInt(staffUsers.size())))  // Random staff created shift
+                    .technicians(List.of(technician))
+                    .assignee(technician)  // Auto-assign
+                    .shiftType(ShiftTypeEnum.APPOINTMENT)
+                    .startTime(shiftDate.toLocalDate().atTime(8, 0))
+                    .endTime(shiftDate.toLocalDate().atTime(17, 30))
+                    .status(ShiftStatusEnum.PENDING_ASSIGNMENT)
+                    .totalHours(BigDecimal.valueOf(9.5))
+                    .notes("Auto-created shift for " + appts.size() + " appointments")
+                    .search(technician.getFullName() + " " + shiftDate.toLocalDate())
+                    .build();
+            
+            shifts.add(shift);
+        }
+
+        // Save all shifts
+        List<ShiftEntity> savedShifts = shiftRepository.saveAll(shifts);
+        log.info("✅ Created {} shifts from appointments", savedShifts.size());
     }
 
     private String generateRandomPlate() {
