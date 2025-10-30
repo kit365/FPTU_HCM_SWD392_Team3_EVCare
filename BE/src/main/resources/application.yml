@@ -31,8 +31,8 @@ spring:
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:}
-    password: ${SPRING_MAIL_PASSWORD:}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
     default-encoding: UTF-8
     properties:
       mail:
@@ -42,13 +42,17 @@ spring:
         smtp:
           auth: ${SPRING_MAIL_SMTP_AUTH:true}
           starttls:
-            enable: ${SPRING_MAIL_SMTP_STARTTLS:true}
+            enable: true
             required: true
           ssl:
-            enable: ${SPRING_MAIL_SMTP_SSL:false}
+            enable: ${SPRING_MAIL_SMTP_SSL_ENABLE:false}
 
 server:
   port: 8080
+
+# JWT Configuration
+jwt:
+  signer-key: ${JWT_SIGNER_KEY}
 
 payment:
   vnpay:
