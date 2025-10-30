@@ -67,9 +67,16 @@ public class VehicleController {
                         .build()
                 );
     }
+<<<<<<< Updated upstream
     @Operation(summary = "Cập nhật xe")
     @PatchMapping(VehicleConstants.VEHICLE_UPDATE)
     public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@RequestParam("vehicleId") UUID vehicleId,
+=======
+    @Operation(summary = "Cập nhật xe", description = "👨‍💼 **Roles:** ADMIN, STAFF, CUSTOMER - Cập nhật thông tin xe")
+    @PatchMapping(VehicleConstants.VEHICLE_UPDATE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
+    public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@PathVariable("id") UUID vehicleId,
+>>>>>>> Stashed changes
                                                              @Valid @RequestBody UpdationVehicleRequest request) {
         VehicleResponse response = vehicleService.updateVehicle(vehicleId, request);
         return ResponseEntity
