@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Input, Button, Spin, Empty } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Spin, Empty } from 'antd';
 import { SendOutlined, CheckOutlined } from '@ant-design/icons';
 import type { MessageResponse, WebSocketMessageRequest } from '../../types/message.types';
 import { messageService } from '../../service/messageService';
@@ -174,7 +174,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       } else {
         console.error('❌ [ChatWindow] API response not successful:', response?.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [ChatWindow] Error loading conversation:', error);
       if (error?.response) {
         console.error('❌ [ChatWindow] Error response:', error.response.status, error.response.data);

@@ -1,10 +1,6 @@
+import type { ApiResponse } from '../types/api';
+import type { RoleResponse } from '../types/admin/role';
 import { apiClient } from './api';
-import type { ApiResponse } from '../types/common';
-
-export interface RoleResponse {
-  roleId: string;
-  roleName: string;
-}
 
 export const roleService = {
   // Get all roles

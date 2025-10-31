@@ -1,7 +1,6 @@
 import { apiClient } from './api';
 import type { 
   CreatePaymentRequest, 
-  PaymentResponse, 
   PaymentStatusResponse,
   PagePaymentResponse 
 } from '../types/payment.types';

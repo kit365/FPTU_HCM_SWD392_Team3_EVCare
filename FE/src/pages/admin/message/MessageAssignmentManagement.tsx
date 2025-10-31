@@ -23,7 +23,7 @@ import { userService } from '../../../service/userService';
 import { notify } from '../../../components/admin/common/Toast';
 import { useAuthContext } from '../../../context/useAuthContext';
 import type { MessageAssignmentResponse } from '../../../types/message.types';
-import type { UserResponse } from '../../../types/admin/user';
+import type { UserResponse } from '../../../types/user.types';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Search } = Input;
@@ -380,7 +380,7 @@ export const MessageAssignmentManagement = () => {
               className="w-full"
               size="large"
               filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+                (option?.label?.toString() || '').toLowerCase().includes(input.toLowerCase())
               }
             >
               {unassignedCustomers.map((customer) => (
@@ -405,7 +405,7 @@ export const MessageAssignmentManagement = () => {
               loading={staffLoading}
               notFoundContent={staffLoading ? <Spin size="small" /> : 'Không có staff khả dụng'}
               filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+                (option?.label?.toString() || '').toLowerCase().includes(input.toLowerCase())
               }
             >
               {staffList.map((staff) => (
@@ -466,7 +466,7 @@ export const MessageAssignmentManagement = () => {
                 loading={staffLoading}
                 notFoundContent={staffLoading ? <Spin size="small" /> : 'Không có staff khả dụng'}
                 filterOption={(input, option) =>
-                  (option?.children as string).toLowerCase().includes(input.toLowerCase())
+                  (option?.label?.toString() || '').toLowerCase().includes(input.toLowerCase())
                 }
               >
                 {staffList

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, Select, Button, Input, Alert, Spin, message } from 'antd';
-import { ArrowLeftOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { paymentService } from '../../../service/paymentService';
-import { PAYMENT_GATEWAY_LABELS, PAYMENT_STATUS_LABELS } from '../../../constants/paymentConstants';
+import { PAYMENT_GATEWAY_LABELS } from '../../../constants/paymentConstants';
 import type { PaymentGateway } from '../../../types/payment.types';
 
 const { Option } = Select;

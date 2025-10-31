@@ -5,7 +5,8 @@ import type {
   MessageAssignmentRequest,
   PageResponse,
 } from "../types/message.types";
-import type { UserResponse } from "../types/admin/user";
+import type { UserResponse } from "../types/user.types";
+
 
 const API_BASE = "/message-assignments";
 

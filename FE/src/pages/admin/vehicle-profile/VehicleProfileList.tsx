@@ -206,7 +206,7 @@ export const VehicleProfileList = () => {
               ) : (
                 <tr>
                   <td colSpan={columns.length}>
-                    <FormEmpty />
+                    <FormEmpty colspan={columns.length} />
                   </td>
                 </tr>
               )}
