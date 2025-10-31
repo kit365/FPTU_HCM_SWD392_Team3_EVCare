@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,6 +22,15 @@ public interface MessageAssignmentRepository extends JpaRepository<MessageAssign
            "AND ma.isActive = true " +
            "AND ma.customer.userId = :customerId")
     Optional<MessageAssignmentEntity> findActiveByCustomerId(@Param("customerId") UUID customerId);
+    
+    /**
+     * Tìm assignment theo customer ID (bất kể is_active, để UPDATE khi reassign)
+     */
+    @Query("SELECT ma FROM MessageAssignmentEntity ma " +
+           "WHERE ma.isDeleted = false " +
+           "AND ma.customer.userId = :customerId " +
+           "ORDER BY ma.assignedAt DESC")
+    Optional<MessageAssignmentEntity> findByCustomerId(@Param("customerId") UUID customerId);
     
     /**
      * Lấy tất cả assignments của 1 staff (active only)
@@ -80,5 +88,11 @@ public interface MessageAssignmentRepository extends JpaRepository<MessageAssign
            "AND ma.isActive = true " +
            "AND ma.assignedStaff.userId = :staffId")
     long countActiveByStaffId(@Param("staffId") UUID staffId);
+    
+    /**
+     * Update assignment để reassign customer sang staff mới (dùng @Modifying)
+     * Lưu ý: Phải tìm assignment entity trước, set staff vào, rồi save
+     * Không thể update relationship trực tiếp trong JPQL
+     */
 }
 

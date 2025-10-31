@@ -116,5 +116,23 @@ public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
         @Param("receiverId") UUID receiverId,
         @Param("readAt") LocalDateTime readAt
     );
+    
+    /**
+     * Tìm welcome message gần đây từ staff đến customer (created by SYSTEM, trong vòng X phút)
+     * Để tránh spam welcome message khi polling
+     */
+    @Query("SELECT m FROM MessageEntity m " +
+           "WHERE m.isDeleted = false " +
+           "AND m.sender.userId = :staffId " +
+           "AND m.receiver.userId = :customerId " +
+           "AND m.createdBy = 'SYSTEM' " +
+           "AND m.sentAt >= :sinceTime " +
+           "ORDER BY m.sentAt DESC")
+    List<MessageEntity> findRecentWelcomeMessages(
+        @Param("staffId") UUID staffId,
+        @Param("customerId") UUID customerId,
+        @Param("sinceTime") LocalDateTime sinceTime,
+        org.springframework.data.domain.Pageable pageable
+    );
 }
 

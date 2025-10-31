@@ -14,6 +14,7 @@ export const AdminMessagePage = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [selectedUserAvatar, setSelectedUserAvatar] = useState<string>('');
+  const [selectedUserIsActive, setSelectedUserIsActive] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [latestMessage, setLatestMessage] = useState<MessageResponse | null>(null);
 
@@ -29,6 +30,16 @@ export const AdminMessagePage = () => {
         console.log('📋 [AdminMessagePage] Loaded assignments:', assignmentsData);
         console.log('📋 [AdminMessagePage] First assignment customerId:', assignmentsData[0]?.customerId);
         setAssignments(assignmentsData);
+        
+        // Update selectedUserIsActive nếu đang có conversation được chọn
+        if (selectedUserId) {
+          const currentAssignment = assignmentsData.find(
+            (a: MessageAssignmentResponse) => a.customerId === selectedUserId
+          );
+          if (currentAssignment) {
+            setSelectedUserIsActive(currentAssignment.customerIsActive ?? false);
+          }
+        }
       }
     } catch (error: any) {
       console.error('Error loading assignments:', error);
@@ -36,7 +47,7 @@ export const AdminMessagePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, selectedUserId]);
 
   // WebSocket connection
   const { isConnected, sendMessage } = useWebSocket({
@@ -83,15 +94,24 @@ export const AdminMessagePage = () => {
     loadAssignments();
   }, [loadAssignments]);
 
-  const handleSelectConversation = (customerId: string, customerName: string, customerAvatar?: string) => {
+  // Refresh assignments khi có tin nhắn mới (có thể status đã thay đổi)
+  useEffect(() => {
+    if (latestMessage) {
+      loadAssignments();
+    }
+  }, [latestMessage, loadAssignments]);
+
+  const handleSelectConversation = (customerId: string, customerName: string, customerAvatar?: string, customerIsActive?: boolean) => {
     console.log('👤 [AdminMessagePage] Selected conversation:', {
       customerId,
       customerName,
+      customerIsActive,
       isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId)
     });
     setSelectedUserId(customerId);
     setSelectedUserName(customerName);
     setSelectedUserAvatar(customerAvatar || '');
+    setSelectedUserIsActive(customerIsActive ?? false);
   };
 
   if (!userId) {
@@ -149,7 +169,7 @@ export const AdminMessagePage = () => {
             assignments.map((assignment) => (
               <div
                 key={assignment.customerId}
-                onClick={() => handleSelectConversation(assignment.customerId, assignment.customerName, assignment.customerAvatarUrl)}
+                onClick={() => handleSelectConversation(assignment.customerId, assignment.customerName, assignment.customerAvatarUrl, assignment.customerIsActive)}
                 className={`flex items-center px-3 py-3 cursor-pointer transition-colors hover:bg-gray-100 ${
                   selectedUserId === assignment.customerId ? 'bg-blue-50' : ''
                 }`}
@@ -171,7 +191,9 @@ export const AdminMessagePage = () => {
                     {assignment.customerName.charAt(0).toUpperCase()}
                   </div>
                   {/* Online Status */}
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className={`absolute bottom-0 right-0 w-4 h-4 border-2 border-white rounded-full ${
+                    assignment.customerIsActive ? 'bg-green-500' : 'bg-gray-400'
+                  }`}></div>
                 </div>
 
                 {/* Content */}
@@ -213,6 +235,7 @@ export const AdminMessagePage = () => {
           otherUserId={selectedUserId}
           otherUserName={selectedUserName}
           otherUserAvatar={selectedUserAvatar}
+          otherUserIsActive={selectedUserIsActive}
           sendMessage={sendMessage}
           isConnected={isConnected}
           onWebSocketMessage={latestMessage}

@@ -20,12 +20,14 @@ public class MessageAssignmentResponse {
     String customerName;
     String customerEmail;
     String customerAvatarUrl;
+    Boolean customerIsActive; // Trạng thái online/offline của customer
     
     // Assigned staff info
     UUID assignedStaffId;
     String assignedStaffName;
     String assignedStaffEmail;
     String assignedStaffAvatarUrl;
+    Boolean assignedStaffIsActive; // Trạng thái online/offline của staff
     
     // Assignment info
     String assignedByName;

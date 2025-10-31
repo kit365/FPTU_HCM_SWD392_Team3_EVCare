@@ -23,10 +23,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOrigins(
                         "http://localhost:3000",
                         "http://localhost:5000",
-                        "http://localhost:5173",   // Vite dev
-                        "http://localhost:4173",   // Vite preview
+                        "http://localhost:5173",  
+                        "http://localhost:4173",  
                         "http://127.0.0.1:5173",
-                        "https://evcare.vercel.app"  // Production
+                        "https://evcare.vercel.app"  
                 )
                 .setHandshakeHandler(new UserHandshakeHandler())  
                 .withSockJS();

@@ -22,3 +22,7 @@ export interface RegisterUserResponse {
     token: string;
     refreshToken: string;
 }
+
+export interface LogoutRequest {
+    userId: string;
+}

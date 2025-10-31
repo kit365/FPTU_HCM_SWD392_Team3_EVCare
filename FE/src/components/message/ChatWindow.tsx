@@ -10,6 +10,7 @@ interface ChatWindowProps {
   otherUserId: string;
   otherUserName: string;
   otherUserAvatar?: string;
+  otherUserIsActive?: boolean; // Trạng thái online/offline của user kia (customer hoặc staff)
   sendMessage: (request: WebSocketMessageRequest) => boolean;
   isConnected: boolean;
   onWebSocketMessage?: MessageResponse | null;
@@ -20,6 +21,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   otherUserId,
   otherUserName,
   otherUserAvatar,
+  otherUserIsActive,
   sendMessage,
   isConnected,
   onWebSocketMessage,
@@ -303,7 +305,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <div>
             <h3 className="font-semibold text-gray-900">{otherUserName}</h3>
             <div className="flex items-center space-x-1 text-xs text-gray-500">
-              {isConnected ? (
+              {otherUserIsActive ? (
                 <>
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-green-600 font-medium">Đang hoạt động</span>

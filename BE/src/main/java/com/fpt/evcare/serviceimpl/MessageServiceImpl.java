@@ -2,6 +2,7 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.MessageConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
+import com.fpt.evcare.dto.response.MessageAssignmentResponse;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.entity.MessageAssignmentEntity;
@@ -16,8 +17,8 @@ import com.fpt.evcare.mapper.MessageMapper;
 import com.fpt.evcare.repository.MessageAssignmentRepository;
 import com.fpt.evcare.repository.MessageRepository;
 import com.fpt.evcare.repository.UserRepository;
+import com.fpt.evcare.service.MessageAssignmentService;
 import com.fpt.evcare.service.MessageService;
-import com.fpt.evcare.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,6 +45,7 @@ public class MessageServiceImpl implements MessageService {
     MessageAssignmentRepository assignmentRepository;
     MessageMapper messageMapper;
     ApplicationEventPublisher eventPublisher;
+    MessageAssignmentService messageAssignmentService;
 
     
     @Override
@@ -69,14 +71,54 @@ public class MessageServiceImpl implements MessageService {
             throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_SEND_TO_SELF);
         }
         
-        // Kiểm tra assignment nếu sender là CUSTOMER
+        // Kiểm tra nếu receiver là STAFF và offline → tự động reassign sang staff online khác
+        // Logic: Khi customer gửi tin nhắn đến staff offline, tự động chuyển sang staff online khác
+        // Phải làm TRƯỚC validation để đảm bảo assignment đúng với staff mới
         if (sender.getRole().getRoleName() == RoleEnum.CUSTOMER) {
-            validateCustomerCanChat(senderId, request.getReceiverId());
+            if (receiver.getRole().getRoleName() == RoleEnum.STAFF || receiver.getRole().getRoleName() == RoleEnum.ADMIN) {
+                if (receiver.getIsActive() == null || !receiver.getIsActive()) {
+                    UUID offlineStaffId = receiver.getUserId();
+                    log.warn("⚠️ Staff {} is OFFLINE, customer {} sent message. Auto-reassigning to online staff...", 
+                            offlineStaffId, senderId);
+                    
+                    // Tự động reassign customer sang staff online khác (nếu có)
+                    try {
+                        MessageAssignmentResponse assignmentResponse = messageAssignmentService.autoAssignCustomerToStaff(senderId);
+                        
+                        // Lấy staff mới từ assignment response
+                        UUID newStaffId = assignmentResponse.getAssignedStaffId();
+                        
+                        // Refresh receiver entity với staff mới
+                        UserEntity newStaff = userRepository.findByUserIdAndIsDeletedFalse(newStaffId);
+                        if (newStaff == null) {
+                            log.error("❌ New staff {} not found after auto-assignment", newStaffId);
+                            throw new UnauthorizedException("Không thể tìm thấy nhân viên online khả dụng. Vui lòng thử lại sau.");
+                        }
+                        
+                        // Cập nhật receiver sang staff online mới
+                        receiver = newStaff;
+                        log.info("✅ Auto-reassigned customer {} from offline staff {} to online staff {} (message will be sent to new staff)", 
+                                senderId, offlineStaffId, newStaffId);
+                    } catch (ResourceNotFoundException e) {
+                        // Không có staff online khả dụng
+                        log.error("❌ No online staff available for auto-reassignment. Customer: {}", senderId);
+                        throw new UnauthorizedException("Hiện tại không có nhân viên online. Vui lòng thử lại sau.");
+                    } catch (Exception e) {
+                        log.error("❌ Error during auto-reassignment for customer {}: {}", senderId, e.getMessage(), e);
+                        throw new UnauthorizedException("Nhân viên đang offline, không thể nhận tin nhắn. Vui lòng thử lại sau.");
+                    }
+                }
+            }
+        }
+        
+        // Kiểm tra assignment nếu sender là CUSTOMER (sau khi có thể đã reassign)
+        if (sender.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+            validateCustomerCanChat(senderId, receiver.getUserId());
         }
         
         // Kiểm tra assignment nếu receiver là CUSTOMER
         if (receiver.getRole().getRoleName() == RoleEnum.CUSTOMER) {
-            validateCustomerCanChat(request.getReceiverId(), senderId);
+            validateCustomerCanChat(receiver.getUserId(), senderId);
         }
         
         // Validate content
@@ -84,10 +126,10 @@ public class MessageServiceImpl implements MessageService {
             throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_EMPTY_CONTENT);
         }
         
-        // Tạo message
+        // Tạo message (receiver đã được cập nhật nếu có auto-reassign)
         MessageEntity message = MessageEntity.builder()
                 .sender(sender)
-                .receiver(receiver)
+                .receiver(receiver)  // Có thể đã được cập nhật sang staff mới nếu staff cũ offline
                 .content(request.getContent().trim())
                 .imageUrl(request.getImageUrl())
                 .status(MessageStatusEnum.SENT)
@@ -96,7 +138,7 @@ public class MessageServiceImpl implements MessageService {
                 .build();
         
         MessageEntity savedMessage = messageRepository.save(message);
-        log.info(MessageConstants.LOG_SUCCESS_SEND_MESSAGE, senderId, request.getReceiverId());
+        log.info(MessageConstants.LOG_SUCCESS_SEND_MESSAGE, senderId, receiver.getUserId());
         
 
         MessageResponse response = messageMapper.toResponse(savedMessage);

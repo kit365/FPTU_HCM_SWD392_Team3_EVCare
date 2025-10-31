@@ -9,10 +9,13 @@ import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.MessageAssignmentEntity;
 import com.fpt.evcare.entity.MessageEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.MessageStatusEnum;
 import com.fpt.evcare.enums.RoleEnum;
+import com.fpt.evcare.event.MessageCreatedEvent;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.MessageAssignmentMapper;
+import com.fpt.evcare.mapper.MessageMapper;
 import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.MessageAssignmentRepository;
 import com.fpt.evcare.repository.MessageRepository;
@@ -22,6 +25,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,7 +47,9 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
     MessageRepository messageRepository;
     UserRepository userRepository;
     MessageAssignmentMapper assignmentMapper;
+    MessageMapper messageMapper;
     UserMapper userMapper;
+    ApplicationEventPublisher eventPublisher;
     
     @Override
     @Transactional
@@ -235,34 +241,6 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             throw new UserValidationException("User không phải là customer");
         }
         
-        // Check if customer already has assignment
-        Optional<MessageAssignmentEntity> existing = 
-            assignmentRepository.findActiveByCustomerId(customerId);
-        
-        if (existing.isPresent()) {
-            UserEntity currentStaff = existing.get().getAssignedStaff();
-            
-            // Check if current staff is still online/active
-            if (currentStaff.getIsActive() != null && currentStaff.getIsActive()) {
-                log.info("✅ Customer {} already assigned to ONLINE staff {}, keeping assignment", 
-                        customerId, currentStaff.getUserId());
-                MessageAssignmentResponse response = assignmentMapper.toResponse(existing.get());
-                enrichAssignmentResponse(response);
-                return response;
-            }
-            
-            // Current staff is OFFLINE -> reassign to online staff
-            log.warn("⚠️ Current staff {} is OFFLINE, reassigning customer {} to online staff", 
-                    currentStaff.getUserId(), customerId);
-            
-            // Deactivate old assignment
-            MessageAssignmentEntity oldAssignment = existing.get();
-            oldAssignment.setIsActive(false);
-            oldAssignment.setUpdatedBy("SYSTEM");
-            oldAssignment.setNotes("Auto-reassigned: staff offline");
-            assignmentRepository.save(oldAssignment);
-        }
-        
         // Find online staff with least customers (load balancing)
         UserEntity selectedStaff = findOnlineStaffWithLeastCustomers();
         
@@ -270,21 +248,140 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             throw new ResourceNotFoundException("Không tìm thấy staff online khả dụng");
         }
         
-        // Create new assignment
-        MessageAssignmentEntity assignment = MessageAssignmentEntity.builder()
-                .customer(customer)
-                .assignedStaff(selectedStaff)
-                .assignedBy(null)  // Auto-assigned by system
-                .notes(existing.isPresent() ? "Auto-reassigned: previous staff offline" : "Auto-assigned by system")
-                .createdBy("SYSTEM")
-                .updatedBy("SYSTEM")
-                .build();
+        // Check if customer already has assignment (bất kể is_active)
+        Optional<MessageAssignmentEntity> existingAny = 
+            assignmentRepository.findByCustomerId(customerId);
         
-        MessageAssignmentEntity savedAssignment = assignmentRepository.save(assignment);
+        MessageAssignmentEntity savedAssignment;
         
-        String action = existing.isPresent() ? "reassigned" : "assigned";
+        MessageAssignmentEntity oldAssignment = null;
+        UUID oldStaffId = null;
+        
+        if (existingAny.isPresent()) {
+            MessageAssignmentEntity existing = existingAny.get();
+            UserEntity currentStaff = existing.getAssignedStaff();
+            oldStaffId = currentStaff.getUserId(); // Lưu staff cũ để check sau
+            
+            // Check if current staff is still online/active and same staff
+            if (currentStaff.getIsActive() != null && currentStaff.getIsActive() 
+                    && currentStaff.getUserId().equals(selectedStaff.getUserId())) {
+                log.info("✅ Customer {} already assigned to ONLINE staff {}, keeping assignment", 
+                        customerId, currentStaff.getUserId());
+                MessageAssignmentResponse response = assignmentMapper.toResponse(existing);
+                enrichAssignmentResponse(response);
+                return response;
+            }
+            
+            // Current staff is OFFLINE or different -> UPDATE assignment hiện có (không INSERT mới)
+            log.warn("⚠️ Current staff {} is OFFLINE or different, reassigning customer {} to online staff {}", 
+                    currentStaff.getUserId(), customerId, selectedStaff.getUserId());
+            
+            oldAssignment = existing; // Lưu để check sau
+            
+            // UPDATE assignment hiện có (tránh unique constraint violation)
+            // Dùng entity management để update (JPA tự động xử lý relationship)
+            existing.setAssignedStaff(selectedStaff);
+            existing.setIsActive(true);
+            existing.setUpdatedBy("SYSTEM");
+            existing.setNotes("Auto-reassigned: staff offline");
+            // assignedAt không thể update (updatable = false), giữ nguyên thời gian tạo ban đầu
+            
+            savedAssignment = assignmentRepository.save(existing);
+            log.info("✅ Updated existing assignment for customer {} to online staff {}", 
+                    customerId, selectedStaff.getUserId());
+        } else {
+            // Chưa có assignment -> tạo mới
+            MessageAssignmentEntity assignment = MessageAssignmentEntity.builder()
+                    .customer(customer)
+                    .assignedStaff(selectedStaff)
+                    .assignedBy(null)  // Auto-assigned by system
+                    .notes("Auto-assigned by system")
+                    .createdBy("SYSTEM")
+                    .updatedBy("SYSTEM")
+                    .build();
+            
+            savedAssignment = assignmentRepository.save(assignment);
+            log.info("✅ Created new assignment for customer {} to online staff {}", 
+                    customerId, selectedStaff.getUserId());
+        }
+        
+        String action = existingAny.isPresent() ? "reassigned" : "assigned";
         log.info("✅ Auto-{} customer {} to online staff {} (least loaded)", 
                 action, customerId, selectedStaff.getUserId());
+        
+        // Tạo tin nhắn tự động chào mừng từ staff mới đến customer
+        // CHỈ gửi khi: 
+        // 1. First assign (chưa có assignment) - oldStaffId == null
+        // 2. Reassign sang staff KHÁC (staff cũ != staff mới) - oldStaffId != null && oldStaffId != selectedStaff.getUserId()
+        // KHÔNG gửi khi: 
+        // - Staff không thay đổi (oldStaffId == selectedStaff.getUserId())
+        // - Đã có welcome message từ staff này trong vòng 5 phút gần đây (tránh spam khi polling)
+        boolean shouldSendWelcomeMessage = false;
+        String welcomeMessage = "";
+        
+        if (oldStaffId == null) {
+            // First assign - kiểm tra xem đã có welcome message từ staff này gần đây chưa
+            List<MessageEntity> recentWelcomes = messageRepository.findRecentWelcomeMessages(
+                    selectedStaff.getUserId(), 
+                    customerId, 
+                    LocalDateTime.now().minusMinutes(5),
+                    org.springframework.data.domain.PageRequest.of(0, 1)
+            );
+            
+            if (recentWelcomes == null || recentWelcomes.isEmpty()) {
+                // Chưa có welcome message gần đây -> gửi
+                shouldSendWelcomeMessage = true;
+                welcomeMessage = "Cảm ơn bạn đã liên hệ với EVCare! Chúng tôi rất vui được hỗ trợ bạn. Vui lòng cho chúng tôi biết bạn cần hỗ trợ gì?";
+            } else {
+                log.debug("⏭️ Skipping welcome message (already sent recently from staff {} to customer {})", 
+                        selectedStaff.getUserId(), customerId);
+            }
+        } else if (!oldStaffId.equals(selectedStaff.getUserId())) {
+            // Reassign sang staff KHÁC - kiểm tra xem đã có welcome message từ staff mới này gần đây chưa
+            List<MessageEntity> recentWelcomes = messageRepository.findRecentWelcomeMessages(
+                    selectedStaff.getUserId(), 
+                    customerId, 
+                    LocalDateTime.now().minusMinutes(5),
+                    org.springframework.data.domain.PageRequest.of(0, 1)
+            );
+            
+            if (recentWelcomes == null || recentWelcomes.isEmpty()) {
+                // Chưa có welcome message từ staff mới gần đây -> gửi
+                shouldSendWelcomeMessage = true;
+                welcomeMessage = "Cảm ơn bạn đã liên hệ! Chúng tôi đã chuyển bạn sang nhân viên khác để được hỗ trợ tốt hơn. Chúng tôi sẵn sàng hỗ trợ bạn!";
+            } else {
+                log.debug("⏭️ Skipping welcome message (already sent recently from new staff {} to customer {})", 
+                        selectedStaff.getUserId(), customerId);
+            }
+        }
+        // Nếu oldStaffId != null && oldStaffId == selectedStaff.getUserId() -> KHÔNG gửi (tránh spam)
+        
+        // Chỉ gửi tin nhắn chào mừng khi cần (first assign hoặc reassign thực sự)
+        if (shouldSendWelcomeMessage) {
+            MessageEntity welcomeMsg = MessageEntity.builder()
+                    .sender(selectedStaff)
+                    .receiver(customer)
+                    .content(welcomeMessage)
+                    .status(MessageStatusEnum.SENT)
+                    .createdBy("SYSTEM")
+                    .updatedBy("SYSTEM")
+                    .build();
+            
+            MessageEntity savedWelcomeMsg = messageRepository.save(welcomeMsg);
+            log.info("✅ Created welcome message from staff {} to customer {}", selectedStaff.getUserId(), customerId);
+            
+            // Gửi tin nhắn chào mừng qua WebSocket
+            try {
+                com.fpt.evcare.dto.response.MessageResponse welcomeMsgResponse = messageMapper.toResponse(savedWelcomeMsg);
+                eventPublisher.publishEvent(new MessageCreatedEvent(this, welcomeMsgResponse));
+                log.info("✅ Published welcome message event to WebSocket");
+            } catch (Exception e) {
+                log.error("❌ Failed to publish welcome message event: {}", e.getMessage());
+                // Không throw exception, vì assignment đã thành công
+            }
+        } else {
+            log.debug("⏭️ Skipping welcome message (same staff or not needed)");
+        }
         
         MessageAssignmentResponse response = assignmentMapper.toResponse(savedAssignment);
         enrichAssignmentResponse(response);
