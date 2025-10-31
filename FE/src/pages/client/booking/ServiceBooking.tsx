@@ -78,39 +78,40 @@ export const ServiceBookingPage: React.FC = () => {
         });
         setSelectedVehicleTypeId(vehicleData.vehicleTypeId);
         
-        // Bước 2: Load và fill dịch vụ
-        if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
-          try {
-            // Load service types cho vehicle type đã chọn
-            const serviceResponse = await bookingService.getServiceTypesByVehicleId(vehicleData.vehicleTypeId, {
-              page: 0,
-              pageSize: 100,
-            });
+        // Bước 2: Load service types cho vehicle type đã chọn (luôn load để user có thể chọn)
+        try {
+          const serviceResponse = await bookingService.getServiceTypesByVehicleId(vehicleData.vehicleTypeId, {
+            page: 0,
+            pageSize: 100,
+          });
+          
+          if (serviceResponse.data.success && serviceResponse.data.data.data) {
+            setServiceTypes(serviceResponse.data.data.data);
             
-            if (serviceResponse.data.success && serviceResponse.data.data.data) {
-              setServiceTypes(serviceResponse.data.data.data);
-              
-              // Fill dịch vụ đã chọn trước đó
+            // Nếu có serviceTypeIds từ vehicle profile, fill vào form
+            if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
               form.setFieldsValue({
                 services: vehicleData.serviceTypeIds,
               });
-              
-              // Bước 3: Fill loại hình dịch vụ
-              if (vehicleData.serviceMode) {
-                form.setFieldsValue({
-                  serviceType: vehicleData.serviceMode,
-                });
-                setServiceType(vehicleData.serviceMode);
-              }
-              
-              message.success("Đã điền đầy đủ thông tin từ hồ sơ xe! Bạn có thể chỉnh sửa nếu cần.");
             }
-          } catch (error) {
-            console.error("Error loading service types:", error);
-            message.warning("Đã điền thông tin cơ bản và mẫu xe. Vui lòng chọn dịch vụ thủ công.");
+            
+            // Bước 3: Fill loại hình dịch vụ (nếu có)
+            if (vehicleData.serviceMode) {
+              form.setFieldsValue({
+                serviceType: vehicleData.serviceMode,
+              });
+              setServiceType(vehicleData.serviceMode);
+            }
+            
+            if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
+              message.success("Đã điền đầy đủ thông tin từ hồ sơ xe! Bạn có thể chỉnh sửa nếu cần.");
+            } else {
+              message.success("Đã điền thông tin cơ bản và mẫu xe. Vui lòng chọn dịch vụ.");
+            }
           }
-        } else {
-          message.success("Đã điền thông tin cơ bản và mẫu xe. Vui lòng chọn dịch vụ.");
+        } catch (error) {
+          console.error("Error loading service types:", error);
+          message.warning("Đã điền thông tin cơ bản và mẫu xe. Vui lòng chọn dịch vụ thủ công.");
         }
       } else {
         message.success("Đã điền thông tin cơ bản. Vui lòng chọn mẫu xe và dịch vụ.");

@@ -36,6 +36,14 @@ export const vehicleProfileService = {
     return response.data.data;
   },
 
+  // Get by User ID
+  getByUserId: async (userId: string): Promise<VehicleProfileResponse[]> => {
+    const response = await apiClient.get<ApiResponse<VehicleProfileResponse[]>>(
+      `/vehicle-profile/user/${userId}`
+    );
+    return response.data.data;
+  },
+
   // Create new vehicle profile
   create: async (data: CreationVehicleProfileRequest): Promise<string> => {
     const response = await apiClient.post<ApiResponse<string>>('/vehicle-profile/', data);

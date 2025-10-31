@@ -54,6 +54,27 @@ export const useVehicleProfile = () => {
     }
   }, []);
 
+  // Get by User ID
+  const getByUserId = useCallback(async (userId: string) => {
+    setLoading(true);
+    try {
+      const vehicles = await vehicleProfileService.getByUserId(userId);
+      setList(vehicles);
+      setTotalPages(1);
+      setTotalElements(vehicles.length);
+      return vehicles;
+    } catch (error: any) {
+      console.error('Get vehicles by user ID error:', error);
+      toast.error(error?.response?.data?.message || "Không thể tải danh sách hồ sơ xe!");
+      setList([]);
+      setTotalPages(0);
+      setTotalElements(0);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Create new vehicle profile
   const create = useCallback(async (data: CreationVehicleProfileRequest) => {
     setLoading(true);
@@ -130,6 +151,7 @@ export const useVehicleProfile = () => {
     totalElements,
     search,
     getById,
+    getByUserId,
     create,
     update,
     remove,

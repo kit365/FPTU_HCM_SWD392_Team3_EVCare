@@ -74,9 +74,9 @@ public class VehicleController {
                         .build()
                 );
     }
-    @Operation(summary = "Cập nhật xe", description = "👨‍💼 **Roles:** ADMIN, STAFF - Cập nhật thông tin xe")
+    @Operation(summary = "Cập nhật xe", description = "👨‍💼 **Roles:** ADMIN, STAFF, CUSTOMER - Cập nhật thông tin xe")
     @PatchMapping(VehicleConstants.VEHICLE_UPDATE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@PathVariable("id") UUID vehicleId,
                                                              @Valid @RequestBody UpdationVehicleRequest request) {
         VehicleResponse response = vehicleService.updateVehicle(vehicleId, request);
@@ -88,9 +88,9 @@ public class VehicleController {
                         .build()
                 );
     }
-    @Operation(summary = "Xóa xe", description = "👑 **Roles:** ADMIN only - Xóa mềm thông tin xe")
+    @Operation(summary = "Xóa xe", description = "👨‍💼 **Roles:** ADMIN, STAFF, CUSTOMER - Xóa mềm thông tin xe")
     @DeleteMapping(VehicleConstants.VEHICLE_DELETE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<String>> deleteVehicle(@PathVariable("id") UUID vehicleId) {
         vehicleService.deleteVehicle(vehicleId);
         return ResponseEntity

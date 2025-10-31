@@ -8,26 +8,24 @@ import type { VehicleProfileResponse } from '../../../types/vehicle-profile.type
 
 const CarManagement: React.FC = () => {
   const { user } = useAuthContext();
-  const { search: searchVehicles, list, totalPages, totalElements, loading } = useVehicleProfile();
+  const { getByUserId, list, totalPages, totalElements, loading } = useVehicleProfile();
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [keyword, setKeyword] = useState('');
   
-  // Filter vehicles của user hiện tại
-  const userVehicles = list.filter(vehicle => vehicle.user.userId === user?.userId);
+  // Filter vehicles theo keyword (client-side search)
+  const filteredVehicles = keyword 
+    ? list.filter(vehicle => 
+        vehicle.plateNumber?.toLowerCase().includes(keyword.toLowerCase()) ||
+        vehicle.user?.fullName?.toLowerCase().includes(keyword.toLowerCase())
+      )
+    : list;
 
   // Fetch vehicle profiles from API
   const fetchVehicleProfiles = useCallback(async () => {
     if (!user?.userId) return;
-    
-    // Search tất cả vehicles rồi filter theo userId ở client
-    // (Backend API chưa hỗ trợ filter theo userId cho customer)
-    await searchVehicles({
-      keyword: keyword || undefined,
-      page: current - 1,
-      size: pageSize,
-    });
-  }, [user?.userId, current, pageSize, keyword, searchVehicles]);
+    await getByUserId(user.userId);
+  }, [user?.userId, getByUserId]);
 
   // Fetch vehicle profiles on mount and when dependencies change
   useEffect(() => {
@@ -51,9 +49,9 @@ const CarManagement: React.FC = () => {
       <CarCreate onSearch={handleSearch} onSuccess={handleSuccess} />
 
       <CarTable
-        vehicleProfiles={userVehicles}
+        vehicleProfiles={filteredVehicles}
         loading={loading}
-        total={userVehicles.length}
+        total={filteredVehicles.length}
         current={current}
         setCurrent={setCurrent}
         pageSize={pageSize}
