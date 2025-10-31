@@ -111,6 +111,12 @@ const ClientHeader = () => {
                                             Hồ sơ xe
                                         </div>
                                     </Link>
+                                    <Link to="/client/profile" className='px-[24px] py-[6px] block bg-white hover:bg-[#f4f6f9] transition-all duration-300 text-[#2b2d3b] text-[1.4rem]'>
+                                        <div className='flex items-center'>
+                                            <UserBadgeCheck className='mr-[10px]' />
+                                            Thông tin cá nhân
+                                        </div>
+                                    </Link>
                                     <div onClick={handleLogout} className='cursor-pointer px-[24px] py-[6px] block bg-white hover:bg-[#f4f6f9] transition-all duration-300 text-[#ef4d56] text-[1.4rem]'>
                                         <div className='flex items-center'>
                                             <LogOut className='mr-[10px]' />

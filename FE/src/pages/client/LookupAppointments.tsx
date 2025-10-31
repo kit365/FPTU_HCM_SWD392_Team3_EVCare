@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Table, Input, Button, Space, Typography, Tag, message } from "antd";
+import React, { useState } from "react";
+import { Table, Input, Button, Space, Typography, Tag, message, Card } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { bookingService } from "../../service/bookingService";
 
@@ -36,8 +36,8 @@ const LookupAppointmentsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await bookingService.searchAppointmentsForCustomer({ page: _page, pageSize: _pageSize, keyword: _keyword });
-      const payload = res.data?.data ?? res.data; // tùy BE wrapper
-      const items = (payload?.data || []).map((a: any) => ({
+      const payload: any = (res as any).data?.data ?? (res as any).data;
+      const items: AppointmentRow[] = (payload?.data || []).map((a: any) => ({
         key: a.appointmentId,
         appointmentId: a.appointmentId,
         customerFullName: a.customerFullName,
@@ -47,7 +47,7 @@ const LookupAppointmentsPage: React.FC = () => {
         serviceMode: a.serviceMode,
         status: a.status,
         scheduledAt: a.scheduledAt,
-      })) as AppointmentRow[];
+      }));
       setData(items);
       setPage(payload?.page ?? _page);
       setPageSize(payload?.size ?? _pageSize);
@@ -56,9 +56,6 @@ const LookupAppointmentsPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // Không tự động gọi khi vào trang; chỉ gọi khi keyword hợp lệ
-  useEffect(() => {}, []);
 
   const columns: ColumnsType<AppointmentRow> = [
     { title: "Khách hàng", dataIndex: "customerFullName" },
@@ -71,37 +68,44 @@ const LookupAppointmentsPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <Title level={3}>Tra cứu lịch hẹn</Title>
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          placeholder="Nhập email hoặc số điện thoại"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          style={{ width: 360 }}
-        />
-        <Button
-          type="primary"
-          onClick={() => fetchData(0, pageSize, keyword)}
-          disabled={!keyword || (!isValidEmail(keyword) && !isValidPhone(keyword))}
-        >
-          Tìm kiếm
-        </Button>
-        <Button onClick={() => { setKeyword(""); fetchData(0, 10, ""); }}>Xóa</Button>
-      </Space>
-      <Table
-        loading={loading}
-        columns={columns}
-        dataSource={data}
-        pagination={{
-          current: page + 1,
-          pageSize,
-          total,
-          onChange: (p, ps) => { setPage(p - 1); setPageSize(ps); fetchData(p - 1, ps, keyword); }
-        }}
-        bordered
-        rowKey="appointmentId"
-      />
+    <div className="min-h-screen relative bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-cyan-600/5"></div>
+      <div className="relative z-10 max-w-6xl mx-auto p-6">
+        <Card className="shadow-xl border-0 rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 -m-6 mb-6 text-white">
+            <Title level={3} className="!mb-0 !text-white">Tra cứu lịch hẹn</Title>
+          </div>
+          <Space style={{ marginBottom: 16 }}>
+            <Input
+              placeholder="Nhập email hoặc số điện thoại"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              style={{ width: 360 }}
+            />
+            <Button
+              type="primary"
+              onClick={() => fetchData(0, pageSize, keyword)}
+              disabled={!keyword || (!isValidEmail(keyword) && !isValidPhone(keyword))}
+            >
+              Tìm kiếm
+            </Button>
+            <Button onClick={() => { setKeyword(""); setData([]); setTotal(0); }}>Xóa</Button>
+          </Space>
+          <Table
+            loading={loading}
+            columns={columns}
+            dataSource={data}
+            pagination={{
+              current: page + 1,
+              pageSize,
+              total,
+              onChange: (p, ps) => { setPage(p - 1); setPageSize(ps); fetchData(p - 1, ps, keyword); }
+            }}
+            bordered
+            rowKey="appointmentId"
+          />
+        </Card>
+      </div>
     </div>
   );
 };

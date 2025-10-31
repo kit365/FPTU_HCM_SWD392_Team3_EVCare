@@ -4,11 +4,13 @@ import { HomePage } from "../pages/client/home/Home";
 import CarManagement from "../pages/client/car/CarManagement";
 import ProtectedRoute from "../components/client/ProtectedRoute";
 import { ClientMessagePage } from "../pages/client/message/ClientMessagePage";
+import ClientProfile from "../pages/client/account/ClientProfile";
 import LookupAppointmentsPage from "../pages/client/LookupAppointments";
 export const ClientRoutes: RouteObject[] = [
     { path: "", element: <HomePage /> }, 
     { path: "service-booking", element: <ServiceBookingPage /> }, // /client/service-booking
-    { path: "lookup", element: <LookupAppointmentsPage /> }, // /client/lookup
     { path: "car-profile", element: <ProtectedRoute><CarManagement/></ProtectedRoute> }, // /client/car-profile
+    { path: "lookup", element: <LookupAppointmentsPage /> }, // /client/lookup
+    { path: "profile", element: <ProtectedRoute><ClientProfile/></ProtectedRoute> }, // /client/profile
     { path: "message", element: <ProtectedRoute><ClientMessagePage /></ProtectedRoute> }, // /client/message
 ];
