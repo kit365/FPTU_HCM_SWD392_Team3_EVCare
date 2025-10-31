@@ -23,19 +23,51 @@ export const FacebookStyleChatWidget = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [assignedStaffId, setAssignedStaffId] = useState<string | null>(null);
-  const [assignedStaffName, setAssignedStaffName] = useState<string>('EV Support');
-  const [assignedStaffIsActive, setAssignedStaffIsActive] = useState<boolean>(false);
+  const [assignedStaffName, setAssignedStaffName] = useState<string>('Hỗ trợ');
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasAssignment, setHasAssignment] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
 
+  // Load assignment function - defined before handleMessage
+  const loadAssignment = useCallback(async () => {
+    if (!user?.userId) return;
+    try {
+      // Try auto-assign first (will keep existing assignment if staff online)
+      const response = await messageAssignmentService.autoAssignStaff(user.userId);
+      if (response?.data?.success) {
+        const assignment = response.data.data;
+        setAssignedStaffId(assignment.assignedStaffId);
+        setAssignedStaffName(assignment.assignedStaffName);
+        setHasAssignment(true);
+        console.log('✅ Auto-assigned to staff:', assignment.assignedStaffName);
+      }
+    } catch (error: any) {
+      console.log('❌ Auto-assign failed:', error?.response?.data?.message || 'No staff available');
+      setHasAssignment(false);
+    }
+  }, [user?.userId]);
+
   const handleMessage = useCallback((message: MessageResponse) => {
     // Check if message is for this conversation
     const isFromStaff = message.senderId === assignedStaffId && message.receiverId === user?.userId;
     const isToStaff = message.senderId === user?.userId && message.receiverId === assignedStaffId;
+    
+    // Check if this is a welcome message from new staff (reassignment)
+    // Welcome messages contain keywords: "chuyển bạn", "hỗ trợ", "EVCare"
+    const isWelcomeMessage = message.receiverId === user?.userId &&
+                              (message.content.includes('chuyển bạn') || 
+                               message.content.includes('hỗ trợ') || 
+                               message.content.includes('EVCare') ||
+                               message.content.includes('Cảm ơn bạn đã liên hệ'));
 
-    if (!isFromStaff && !isToStaff) {
+    // If welcome message from different staff (reassignment), reload assignment
+    if (isWelcomeMessage && assignedStaffId && message.senderId !== assignedStaffId) {
+      console.log('🔄 [Widget] Welcome message from new staff - reloading assignment');
+      loadAssignment();
+    }
+
+    if (!isFromStaff && !isToStaff && !isWelcomeMessage) {
       return;
     }
     
@@ -95,7 +127,7 @@ export const FacebookStyleChatWidget = () => {
     if (!isOpen && message.receiverId === user?.userId) {
       setUnreadCount((prev) => prev + 1);
     }
-  }, [user?.userId, assignedStaffId, isOpen]);
+  }, [user?.userId, assignedStaffId, isOpen, loadAssignment]);
 
   const {
     isConnected,
@@ -105,22 +137,11 @@ export const FacebookStyleChatWidget = () => {
     onMessage: handleMessage,
   });
 
-  // Load assignment
+  // Load assignment initially
   useEffect(() => {
     if (user?.userId) {
       loadAssignment();
       loadUnreadCount();
-    } else {
-      // Cleanup khi user logout
-      setAssignedStaffId(null);
-      setAssignedStaffName('EV Support');
-      setAssignedStaffIsActive(false);
-      setUnreadCount(0);
-      setHasAssignment(false);
-      setMessages([]);
-      setIsOpen(false);
-      setIsMinimized(false);
-      lastMessageIdRef.current = null;
     }
   }, [user?.userId]);
   
@@ -148,24 +169,6 @@ export const FacebookStyleChatWidget = () => {
     }
   }, [isOpen, assignedStaffId, user?.userId]);
 
-  // Refresh assignment status định kỳ để cập nhật online/offline status của staff
-  // Và tự động reassign khi staff offline
-  useEffect(() => {
-    if (!user?.userId) return;
-
-    // Refresh ngay khi component mount
-    loadAssignment();
-
-    // Refresh mỗi 5 giây để:
-    // 1. Cập nhật staff status (online/offline)
-    // 2. Tự động reassign nếu staff hiện tại offline và có staff online khác
-    const interval = setInterval(() => {
-      loadAssignment();
-    }, 5000); // 5 seconds để detect reassign nhanh hơn
-
-    return () => clearInterval(interval);
-  }, [user?.userId]);
-
   // Auto scroll
   useEffect(() => {
     scrollToBottom();
@@ -173,25 +176,6 @@ export const FacebookStyleChatWidget = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const loadAssignment = async () => {
-    if (!user?.userId) return;
-    try {
-      // Try auto-assign first (will keep existing assignment if staff online)
-      const response = await messageAssignmentService.autoAssignStaff(user.userId);
-      if (response?.data?.success) {
-        const assignment = response.data.data;
-        setAssignedStaffId(assignment.assignedStaffId);
-        setAssignedStaffName(assignment.assignedStaffName);
-        setAssignedStaffIsActive(assignment.assignedStaffIsActive ?? false);
-        setHasAssignment(true);
-        console.log('✅ Auto-assigned to staff:', assignment.assignedStaffName);
-      }
-    } catch (error: any) {
-      console.log('❌ Auto-assign failed:', error?.response?.data?.message || 'No staff available');
-      setHasAssignment(false);
-    }
   };
 
   const loadUnreadCount = async () => {
@@ -312,8 +296,40 @@ export const FacebookStyleChatWidget = () => {
     return null;
   }
   
-  // Luôn hiển thị widget với tên "Hỗ trợ khách hàng" ngay cả khi không có assignment
-  // Chỉ disable send message khi không có assignment hoặc staff offline
+  if (!hasAssignment) {
+    // Show active chat button but display message when clicked
+    return (
+      <>
+        {/* Floating Button - Disabled State */}
+        <div className="fixed bottom-5 right-5 z-50">
+          <div 
+            className="w-[60px] h-[60px] rounded-full bg-gray-400 flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition-all"
+            onClick={() => {
+              Modal.warning({
+                title: 'Chưa có nhân viên hỗ trợ',
+                icon: <WarningOutlined className="text-orange-500" />,
+                content: (
+                  <div className="mt-4">
+                    <p className="mb-2">Bạn chưa được phân công nhân viên hỗ trợ.</p>
+                    <p className="mb-2">Vui lòng liên hệ:</p>
+                    <ul className="list-disc ml-5 text-gray-600">
+                      <li>Hotline: <strong>1900-xxxx</strong></li>
+                      <li>Email: <strong>support@evcare.com</strong></li>
+                    </ul>
+                  </div>
+                ),
+                okText: 'Đã hiểu',
+                centered: true,
+              });
+            }}
+            title="Click để xem thông tin liên hệ"
+          >
+            <MessageOutlined className="text-white" style={{ fontSize: '28px' }} />
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -340,26 +356,21 @@ export const FacebookStyleChatWidget = () => {
               {/* Staff Avatar */}
               <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex-shrink-0">
                 <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                  {(assignedStaffName || 'EV Support').charAt(0).toUpperCase()}
+                  {assignedStaffName.charAt(0).toUpperCase()}
                 </div>
               </div>
             <div className="flex-1">
-              <div className="font-semibold text-sm leading-tight">{assignedStaffName || 'EV Support'}</div>
+              <div className="font-semibold text-sm leading-tight">{assignedStaffName}</div>
               <div className="flex items-center space-x-1 text-xs opacity-90 leading-tight">
-                {hasAssignment && assignedStaffIsActive ? (
+                {isConnected ? (
                   <>
                     <div className="w-1.5 h-1.5 bg-green-300 rounded-full animate-pulse"></div>
                     <span>Đang hoạt động</span>
                   </>
-                ) : hasAssignment ? (
-                  <>
-                    <div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
-                    <span>Không hoạt động</span>
-                  </>
                 ) : (
                   <>
                     <div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
-                    <span>Đang tìm nhân viên...</span>
+                    <span>Đang kết nối...</span>
                   </>
                 )}
               </div>
@@ -469,20 +480,20 @@ export const FacebookStyleChatWidget = () => {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Aa"
-                    disabled={sending || !isConnected || !hasAssignment || !assignedStaffIsActive}
+                    disabled={sending || !isConnected}
                     className="flex-1 bg-transparent outline-none text-[13px] placeholder-gray-500"
                     style={{ border: 'none' }}
                   />
                   <button
                     onClick={handleSend}
-                    disabled={!inputMessage.trim() || sending || !isConnected || !hasAssignment || !assignedStaffIsActive}
+                    disabled={!inputMessage.trim() || sending || !isConnected}
                     className="flex-shrink-0 transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
                   >
                     {sending ? (
                       <span className="animate-spin text-base">⏳</span>
                     ) : (
                       <SendOutlined 
-                        className={inputMessage.trim() && isConnected && hasAssignment && assignedStaffIsActive ? 'text-[#0084FF]' : 'text-gray-400'} 
+                        className={inputMessage.trim() && isConnected ? 'text-[#0084FF]' : 'text-gray-400'} 
                         style={{ fontSize: '16px' }} 
                       />
                     )}
