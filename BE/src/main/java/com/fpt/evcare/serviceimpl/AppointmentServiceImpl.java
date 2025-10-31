@@ -517,7 +517,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         String search = UtilFunction.concatenateSearchField(
                 appointmentEntity.getCustomerFullName(),
                 appointmentEntity.getCustomerEmail(),
-                appointmentEntity.getCustomerPhoneNumber()
+                appointmentEntity.getCustomerPhoneNumber(),
+                appointmentEntity.getVehicleNumberPlate()
         );
         appointmentEntity.setSearch(search);
 
@@ -676,7 +677,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Ghép các thông tin lại
         String search = UtilFunction.concatenateSearchField(appointmentEntity.getCustomerFullName(),
                 appointmentEntity.getCustomerEmail(),
-                appointmentEntity.getCustomerPhoneNumber()
+                appointmentEntity.getCustomerPhoneNumber(),
+                appointmentEntity.getVehicleNumberPlate()
         );
         appointmentEntity.setSearch(search);
 
@@ -730,6 +732,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String search = UtilFunction.concatenateSearchField(appointmentEntity.getCustomerFullName(),
                 appointmentEntity.getCustomerEmail(),
                 appointmentEntity.getCustomerPhoneNumber(),
+                appointmentEntity.getVehicleNumberPlate(),
                 !technicians.isEmpty() ? techniciansSearch : "",
                 assignee.getSearch() != null ? assignee.getSearch() : ""
         );

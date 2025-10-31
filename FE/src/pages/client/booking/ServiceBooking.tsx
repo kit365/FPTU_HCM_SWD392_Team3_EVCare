@@ -77,7 +77,7 @@ export const ServiceBookingPage: React.FC = () => {
           vehicleType: vehicleData.vehicleTypeId,
         });
         setSelectedVehicleTypeId(vehicleData.vehicleTypeId);
-        
+
         // Bước 2: Load và fill dịch vụ
         if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
           try {
@@ -86,15 +86,15 @@ export const ServiceBookingPage: React.FC = () => {
               page: 0,
               pageSize: 100,
             });
-            
+
             if (serviceResponse.data.success && serviceResponse.data.data.data) {
               setServiceTypes(serviceResponse.data.data.data);
-              
+
               // Fill dịch vụ đã chọn trước đó
               form.setFieldsValue({
                 services: vehicleData.serviceTypeIds,
               });
-              
+
               // Bước 3: Fill loại hình dịch vụ
               if (vehicleData.serviceMode) {
                 form.setFieldsValue({
@@ -102,7 +102,7 @@ export const ServiceBookingPage: React.FC = () => {
                 });
                 setServiceType(vehicleData.serviceMode);
               }
-              
+
               message.success("Đã điền đầy đủ thông tin từ hồ sơ xe! Bạn có thể chỉnh sửa nếu cần.");
             }
           } catch (error) {
@@ -499,7 +499,7 @@ export const ServiceBookingPage: React.FC = () => {
                 {/* Nếu STATIONARY → hiện địa điểm, MOBILE → hiện input */}
                 {serviceType === "STATIONARY" && (
                   <Form.Item label="Địa điểm" name="location">
-                    <Input value="Vũng Tàu" disabled placeholder="Vũng Tàu" />
+                    <Input value="Hồ Chí Minh" disabled placeholder="Hồ Chí Minh" />
                   </Form.Item>
                 )}
 
