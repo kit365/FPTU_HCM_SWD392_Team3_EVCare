@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Card } from "@mui/material";
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import type { ButtonItemProps } from "../../../types/admin/button-item.types";

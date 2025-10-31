@@ -299,7 +299,6 @@ export const ServiceBookingPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error creating appointment:", {
-        appointmentData: appointmentData,
         error: error,
         errorMessage: error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!"
       });

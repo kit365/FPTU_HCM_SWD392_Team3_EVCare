@@ -1,5 +1,5 @@
 import { apiClient } from './api';
-import type { ApiResponse } from '../types/api.types';
+import type { ApiResponse } from '../types/api';
 import type { DashboardStatsResponse, DashboardChartsResponse } from '../types/dashboard.types';
 
 export const dashboardService = {

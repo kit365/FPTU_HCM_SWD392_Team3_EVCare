@@ -2,22 +2,33 @@ package com.fpt.evcare.initializer;
 
 import com.fpt.evcare.dto.request.vehicle_type.CreationVehicleTypeRequest;
 import com.fpt.evcare.service.VehicleTypeService;
+import com.fpt.evcare.repository.VehicleTypeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @Order(1)
 public class VehicleTypeData implements CommandLineRunner {
 
     private final VehicleTypeService vehicleTypeService;
+    private final VehicleTypeRepository vehicleTypeRepository;
 
     private String brand = "VinFast";
 
     @Override
     public void run(String... args) throws Exception {
+        // Check if vehicle types already exist
+        if (vehicleTypeRepository.count() > 0) {
+            log.info("✅ Vehicle types already initialized, skipping...");
+            return;
+        }
+
+        log.info("🚀 Initializing vehicle types...");
         initVehicleTypes();
     }
 

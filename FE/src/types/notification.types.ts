@@ -1,10 +1,12 @@
 // Notification Type Enum
-export enum NotificationTypeEnum {
-  REMINDER = "REMINDER",
-  ALERT = "ALERT",
-  UPDATE = "UPDATE",
-  SYSTEM = "SYSTEM"
-}
+export const NotificationTypeEnum = {
+  REMINDER: "REMINDER",
+  ALERT: "ALERT",
+  UPDATE: "UPDATE",
+  SYSTEM: "SYSTEM"
+} as const;
+
+export type NotificationTypeEnum = typeof NotificationTypeEnum[keyof typeof NotificationTypeEnum];
 
 // Notification Response from API
 export interface NotificationResponse {

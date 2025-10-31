@@ -10,13 +10,9 @@ export function useRole() {
   const getAllRoles = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const response = await roleService.getAllRole();
-      if (response?.data.success === true) {
-        setRoles(response.data.data);
-        console.log("roles: ", response.data.data);
-      } else {
-        throw new Error(response?.data.message || "Lấy danh sách role thất bại");
-      }
+      const response = await roleService.getAllRoles();
+      setRoles(response);
+      console.log("roles: ", response);
     } catch (error) {
       console.error("Error getting roles:", error);
       throw error;

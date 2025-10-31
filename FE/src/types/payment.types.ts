@@ -1,20 +1,24 @@
 // Payment Gateway Types
 
-export enum PaymentGateway {
-  VNPAY = 'VNPAY',
-  MOMO = 'MOMO',
-  BANK_TRANSFER = 'BANK_TRANSFER',
-  CASH = 'CASH',
-}
+export const PaymentGateway = {
+  VNPAY: 'VNPAY',
+  MOMO: 'MOMO',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  CASH: 'CASH',
+} as const;
 
-export enum PaymentTransactionStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED',
-}
+export type PaymentGateway = typeof PaymentGateway[keyof typeof PaymentGateway];
+
+export const PaymentTransactionStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
+export type PaymentTransactionStatus = typeof PaymentTransactionStatus[keyof typeof PaymentTransactionStatus];
 
 export interface CreatePaymentRequest {
   invoiceId?: string;

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, Alert, Button, Result, Spin } from 'antd';
+import { Card, Button, Result, Spin } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, HomeOutlined } from '@ant-design/icons';
-import { paymentService } from '../../../service/paymentService';
+
 
 export function PaymentCallback() {
   const [searchParams] = useSearchParams();
@@ -11,7 +11,6 @@ export function PaymentCallback() {
   const [message, setMessage] = useState('Đang xử lý...');
 
   useEffect(() => {
-    const transactionId = searchParams.get('transactionId');
     const code = searchParams.get('code');
     
     if (code === '00' || code === '0') {

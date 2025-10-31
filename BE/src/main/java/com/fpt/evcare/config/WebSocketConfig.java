@@ -20,8 +20,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                //ws://localhost:8080/ws
-                .setAllowedOrigins("http://localhost:5000")
+                .setAllowedOrigins(
+                        "http://localhost:3000",
+                        "http://localhost:5000",
+                        "http://localhost:5173",   // Vite dev
+                        "http://localhost:4173",   // Vite preview
+                        "http://127.0.0.1:5173",
+                        "https://evcare.vercel.app"  // Production
+                )
                 .setHandshakeHandler(new UserHandshakeHandler())  
                 .withSockJS();
     }
