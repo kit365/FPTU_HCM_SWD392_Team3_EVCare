@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -55,10 +56,11 @@ public class VehicleController {
     @Operation(summary = "Tìm kiếm xe")
     @GetMapping(VehicleConstants.VEHICLE_LIST)
     public ResponseEntity<ApiResponse<PageResponse<VehicleResponse>>> getVehicleList(@RequestParam(value = "keyword", required = false) String keyword,
+                                                                       @RequestParam(value = "vehicleTypeId", required = false) UUID vehicleTypeId,
                                                                        @RequestParam(value = "page", defaultValue = "0") int page,
                                                                        @RequestParam(value = "size", defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        PageResponse<VehicleResponse> response = vehicleService.searchVehicle(keyword, pageable);
+        PageResponse<VehicleResponse> response = vehicleService.searchVehicle(keyword, vehicleTypeId, pageable);
         return ResponseEntity
                 .ok(ApiResponse.<PageResponse<VehicleResponse>>builder()
                         .success(true)
@@ -67,16 +69,11 @@ public class VehicleController {
                         .build()
                 );
     }
-<<<<<<< Updated upstream
-    @Operation(summary = "Cập nhật xe")
-    @PatchMapping(VehicleConstants.VEHICLE_UPDATE)
-    public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@RequestParam("vehicleId") UUID vehicleId,
-=======
+
     @Operation(summary = "Cập nhật xe", description = "👨‍💼 **Roles:** ADMIN, STAFF, CUSTOMER - Cập nhật thông tin xe")
     @PatchMapping(VehicleConstants.VEHICLE_UPDATE)
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(@PathVariable("id") UUID vehicleId,
->>>>>>> Stashed changes
                                                              @Valid @RequestBody UpdationVehicleRequest request) {
         VehicleResponse response = vehicleService.updateVehicle(vehicleId, request);
         return ResponseEntity
@@ -87,9 +84,10 @@ public class VehicleController {
                         .build()
                 );
     }
-    @Operation(summary = "Xóa xe")
+    @Operation(summary = "Xóa xe", description = "👨‍💼 **Roles:** ADMIN, STAFF, CUSTOMER - Xóa hồ sơ xe (soft delete)")
     @DeleteMapping(VehicleConstants.VEHICLE_DELETE)
-    public ResponseEntity<ApiResponse<String>> deleteVehicle(@RequestParam("vehicleId") UUID vehicleId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
+    public ResponseEntity<ApiResponse<String>> deleteVehicle(@PathVariable("id") UUID vehicleId) {
         vehicleService.deleteVehicle(vehicleId);
         return ResponseEntity
                 .ok(ApiResponse.<String>builder()
@@ -98,9 +96,10 @@ public class VehicleController {
                         .build()
                 );
     }
-    @Operation(summary = "Khôi phục xe đã xóa")
+    @Operation(summary = "Khôi phục xe đã xóa", description = "👨‍💼 **Roles:** ADMIN, STAFF - Khôi phục hồ sơ xe đã xóa")
     @PatchMapping(VehicleConstants.VEHICLE_RESTORE)
-    public ResponseEntity<ApiResponse<String>> restoreVehicle(@RequestParam("vehicleId") UUID vehicleId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<String>> restoreVehicle(@PathVariable("id") UUID vehicleId) {
         vehicleService.restoreVehicle(vehicleId);
         return ResponseEntity
                 .ok(ApiResponse.<String>builder()
@@ -110,5 +109,18 @@ public class VehicleController {
                 );
     }
 
+    @Operation(summary = "Lấy danh sách xe theo người dùng", description = "👨‍💼 **Roles:** ADMIN, STAFF, CUSTOMER - Lấy danh sách xe của một người dùng")
+    @GetMapping(VehicleConstants.VEHICLE_BY_USER)
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'CUSTOMER')")
+    public ResponseEntity<ApiResponse<java.util.List<VehicleResponse>>> getVehiclesByUserId(@PathVariable("userId") UUID userId) {
+        java.util.List<VehicleResponse> response = vehicleService.getVehiclesByUserId(userId);
+        return ResponseEntity
+                .ok(ApiResponse.<java.util.List<VehicleResponse>>builder()
+                        .success(true)
+                        .message(VehicleConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_BY_USER)
+                        .data(response)
+                        .build()
+                );
+    }
 
 }

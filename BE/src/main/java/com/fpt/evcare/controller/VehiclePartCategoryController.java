@@ -22,8 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
-
 @RestController
 @AllArgsConstructor
 @Slf4j
