@@ -122,26 +122,6 @@ export const useVehicleProfile = () => {
     }
   }, []);
 
-  // Get vehicles by user ID
-  const getByUserId = useCallback(async (userId: string) => {
-    setLoading(true);
-    try {
-      const vehicles = await vehicleProfileService.getByUserId(userId);
-      setList(vehicles);
-      setTotalPages(1); // Single page since it's all user's vehicles
-      setTotalElements(vehicles.length);
-      return vehicles;
-    } catch (error: any) {
-      console.error('Get vehicles by user ID error:', error);
-      setList([]);
-      setTotalPages(0);
-      setTotalElements(0);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return {
     list,
     detail,
@@ -150,7 +130,6 @@ export const useVehicleProfile = () => {
     totalElements,
     search,
     getById,
-    getByUserId,
     create,
     update,
     remove,

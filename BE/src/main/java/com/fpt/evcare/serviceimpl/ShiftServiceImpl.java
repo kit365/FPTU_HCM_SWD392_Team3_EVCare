@@ -522,18 +522,7 @@ public class ShiftServiceImpl implements ShiftService {
         StringBuilder searchBuilder = new StringBuilder();
         
         if (shiftEntity.getAppointment() != null) {
-            AppointmentEntity appointment = shiftEntity.getAppointment();
-            searchBuilder.append(appointment.getAppointmentId()).append(" ");
-            
-            // Thêm thông tin khách hàng để search
-            if (appointment.getCustomerFullName() != null) {
-                searchBuilder.append(appointment.getCustomerFullName()).append(" ");
-            }
-            
-            // Thêm biển số xe để search
-            if (appointment.getVehicleNumberPlate() != null) {
-                searchBuilder.append(appointment.getVehicleNumberPlate()).append(" ");
-            }
+            searchBuilder.append(shiftEntity.getAppointment().getAppointmentId()).append(" ");
         }
         if (shiftEntity.getShiftType() != null) {
             searchBuilder.append(shiftEntity.getShiftType().name()).append(" ");

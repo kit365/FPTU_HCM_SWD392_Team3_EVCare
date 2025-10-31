@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, List, Typography, Card, Empty, Spin } from 'antd';
 import { CarOutlined } from '@ant-design/icons';
-import { vehicleProfileService } from '../../../service/vehicleProfileService';
+import { bookingService } from '../../../service/bookingService';
 import { useAuthContext } from '../../../context/useAuthContext';
-import type { VehicleProfileResponse } from '../../../types/vehicle-profile.types';
+import type { UserAppointment } from '../../../types/booking.types';
 
 const { Title, Text } = Typography;
 
@@ -51,28 +51,34 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
     
     setLoading(true);
     try {
-      const vehicles = await vehicleProfileService.getByUserId(user.userId);
+      const response = await bookingService.getUserAppointments(user.userId, {
+        page: 0,
+        pageSize: 100,
+        keyword: undefined
+      });
       
-      const profiles: VehicleProfileData[] = vehicles.map((vehicle: VehicleProfileResponse) => ({
-        appointmentId: vehicle.vehicleId, // Sử dụng vehicleId thay vì appointmentId
-        vehicleName: vehicle.vehicleType.vehicleTypeName,
-        licensePlate: vehicle.plateNumber,
-        customerName: vehicle.user.fullName || vehicle.user.username,
-        phone: vehicle.user.numberPhone || '',
-        email: vehicle.user.email,
-        mileage: vehicle.currentKm?.toString() || '0',
-        lastServiceDate: vehicle.lastMaintenanceDate || vehicle.createdAt,
-        serviceType: 'STATIONARY', // Mặc định
-        // Thêm thông tin để fill tự động
-        vehicleTypeId: vehicle.vehicleType.vehicleTypeId,
-        vehicleTypeName: vehicle.vehicleType.vehicleTypeName,
-        serviceTypeIds: [],
-        serviceTypeNames: [],
-        serviceMode: 'STATIONARY',
-        userAddress: vehicle.user.address,
-        notes: vehicle.notes
-      }));
-      setVehicleProfiles(profiles);
+      if (response.data.success) {
+        const profiles: VehicleProfileData[] = response.data.data.data.map((appointment: UserAppointment) => ({
+          appointmentId: appointment.appointmentId,
+          vehicleName: appointment.vehicleTypeResponse.vehicleTypeName,
+          licensePlate: appointment.vehicleNumberPlate,
+          customerName: appointment.customerFullName,
+          phone: appointment.customerPhoneNumber,
+          email: appointment.customerEmail,
+          mileage: appointment.vehicleKmDistances,
+          lastServiceDate: appointment.scheduledAt,
+          serviceType: appointment.serviceMode,
+          // Thêm thông tin để fill tự động
+          vehicleTypeId: appointment.vehicleTypeResponse.vehicleTypeId,
+          vehicleTypeName: appointment.vehicleTypeResponse.vehicleTypeName,
+          serviceTypeIds: appointment.serviceTypeResponses?.map(st => st.serviceTypeId) || [],
+          serviceTypeNames: appointment.serviceTypeResponses?.map(st => st.serviceName) || [],
+          serviceMode: appointment.serviceMode,
+          userAddress: appointment.userAddress,
+          notes: appointment.notes
+        }));
+        setVehicleProfiles(profiles);
+      }
     } catch (error) {
       console.error("Error fetching vehicle profiles:", error);
     } finally {
@@ -108,12 +114,7 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
       width={600}
       centered
     >
-      {!user ? (
-        <Empty
-          description="Vui lòng đăng nhập để xem hồ sơ xe của bạn"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
-      ) : loading ? (
+      {loading ? (
         <div style={{ textAlign: 'center', padding: '50px' }}>
           <Spin size="large" />
           <div style={{ marginTop: '16px' }}>Đang tải dữ liệu hồ sơ xe...</div>
@@ -157,19 +158,21 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      Số Km: {item.mileage} km
+                      Dịch vụ: {item.serviceType === 'STATIONARY' ? 'Tại trạm' : 'Di động'}
                     </Text>
                     <br />
-                    {item.lastServiceDate && (
-                      <>
-                        <Text type="secondary" style={{ fontSize: '12px' }}>
-                          Bảo trì gần nhất: {new Date(item.lastServiceDate).toLocaleDateString('vi-VN')}
-                        </Text>
-                        <br />
-                      </>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      Ngày: {new Date(item.lastServiceDate).toLocaleDateString('vi-VN')}
+                    </Text>
+                    <br />
+                    {item.serviceTypeNames && item.serviceTypeNames.length > 0 && (
+                      <Text type="secondary" style={{ fontSize: '11px', color: '#1890ff' }}>
+                        Dịch vụ: {item.serviceTypeNames.join(', ')}
+                      </Text>
                     )}
-                    <Text type="secondary" style={{ fontSize: '11px', color: '#1890ff' }}>
-                      Nhấn để điền tự động
+                    <br />
+                    <Text type="secondary" style={{ fontSize: '11px', color: '#999' }}>
+                      (Tự động điền đầy đủ thông tin)
                     </Text>
                   </div>
                 </div>

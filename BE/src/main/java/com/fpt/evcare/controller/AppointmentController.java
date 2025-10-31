@@ -219,6 +219,7 @@ public class AppointmentController {
 
     @PostMapping(AppointmentConstants.APPOINTMENT_CREATION)
     @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔐 **Roles:** Authenticated (All roles) - Tạo cuộc hẹn cho người dùng")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> createAppointment(@Valid @RequestBody CreationAppointmentRequest creationAppointmentRequest) {
         boolean response = appointmentService.addAppointment(creationAppointmentRequest);
 
