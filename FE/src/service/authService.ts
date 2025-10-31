@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../constants/apiConstants";
-import { LOGIN, REGISTER } from "../constants/authConstant";
-import type {LoginRequest, LoginResponse, RegisterUserRequest, RegisterUserResponse } from "../types/admin/auth";
+import { LOGIN, REGISTER, LOGOUT } from "../constants/authConstant";
+import type {LoginRequest, LoginResponse, RegisterUserRequest, RegisterUserResponse, LogoutRequest } from "../types/admin/auth";
 import type { ApiResponse } from "../types/api";
 
 
@@ -18,9 +18,9 @@ export const authService = {
         return response;
     },
 
-    logout: async () => {
-        // No need to call backend - just clear local storage
-        return Promise.resolve();
+    logout: async (data: LogoutRequest) => {
+        const response = await apiClient.post<ApiResponse<string>>(`${API_BASE}/${LOGOUT}`, data);
+        return response;
     },
 
 }

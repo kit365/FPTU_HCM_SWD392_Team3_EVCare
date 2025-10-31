@@ -29,12 +29,45 @@ export const FacebookStyleChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
 
+  // Load assignment function - defined before handleMessage
+  const loadAssignment = useCallback(async () => {
+    if (!user?.userId) return;
+    try {
+      // Try auto-assign first (will keep existing assignment if staff online)
+      const response = await messageAssignmentService.autoAssignStaff(user.userId);
+      if (response?.data?.success) {
+        const assignment = response.data.data;
+        setAssignedStaffId(assignment.assignedStaffId);
+        setAssignedStaffName(assignment.assignedStaffName);
+        setHasAssignment(true);
+        console.log('✅ Auto-assigned to staff:', assignment.assignedStaffName);
+      }
+    } catch (error: any) {
+      console.log('❌ Auto-assign failed:', error?.response?.data?.message || 'No staff available');
+      setHasAssignment(false);
+    }
+  }, [user?.userId]);
+
   const handleMessage = useCallback((message: MessageResponse) => {
     // Check if message is for this conversation
     const isFromStaff = message.senderId === assignedStaffId && message.receiverId === user?.userId;
     const isToStaff = message.senderId === user?.userId && message.receiverId === assignedStaffId;
+    
+    // Check if this is a welcome message from new staff (reassignment)
+    // Welcome messages contain keywords: "chuyển bạn", "hỗ trợ", "EVCare"
+    const isWelcomeMessage = message.receiverId === user?.userId &&
+                              (message.content.includes('chuyển bạn') || 
+                               message.content.includes('hỗ trợ') || 
+                               message.content.includes('EVCare') ||
+                               message.content.includes('Cảm ơn bạn đã liên hệ'));
 
-    if (!isFromStaff && !isToStaff) {
+    // If welcome message from different staff (reassignment), reload assignment
+    if (isWelcomeMessage && assignedStaffId && message.senderId !== assignedStaffId) {
+      console.log('🔄 [Widget] Welcome message from new staff - reloading assignment');
+      loadAssignment();
+    }
+
+    if (!isFromStaff && !isToStaff && !isWelcomeMessage) {
       return;
     }
     
@@ -83,18 +116,37 @@ export const FacebookStyleChatWidget = () => {
     // Message from staff → ADD new message
     console.log('📨 [Widget] Message from staff - adding new');
     setMessages((prev) => {
-      // Check duplicate
-      if (prev.some(m => m.messageId === message.messageId)) {
-        return prev;
+      // Check if message already exists (could be status update)
+      const existingIndex = prev.findIndex(m => m.messageId === message.messageId);
+      if (existingIndex !== -1) {
+        // Update existing message (status update from DELIVERED to READ)
+        const updated = [...prev];
+        updated[existingIndex] = message;
+        return updated;
       }
       
       return [...prev, message];
     });
     
+    // Tự động mark as DELIVERED khi nhận message (nếu là receiver và status là SENT)
+    if (message.receiverId === user?.userId && message.status === 'SENT') {
+      messageService.markAsDelivered(message.messageId, user.userId).catch(err => {
+        console.error('Error marking as delivered:', err);
+      });
+    }
+    
+    // Nếu là status update cho own message (DELIVERED hoặc READ), chỉ update local state
+    if (message.senderId === user?.userId) {
+      // This is status update for our sent message
+      setMessages((prev) => prev.map(m => 
+        m.messageId === message.messageId ? message : m
+      ));
+    }
+    
     if (!isOpen && message.receiverId === user?.userId) {
       setUnreadCount((prev) => prev + 1);
     }
-  }, [user?.userId, assignedStaffId, isOpen]);
+  }, [user?.userId, assignedStaffId, isOpen, loadAssignment]);
 
   const {
     isConnected,
@@ -104,7 +156,7 @@ export const FacebookStyleChatWidget = () => {
     onMessage: handleMessage,
   });
 
-  // Load assignment
+  // Load assignment initially
   useEffect(() => {
     if (user?.userId) {
       loadAssignment();
@@ -133,8 +185,24 @@ export const FacebookStyleChatWidget = () => {
       // Mark as read every time widget opens
       setUnreadCount(0);
       markConversationAsRead();
+      
+      // Mark all messages as READ when widget opens
+      if (messages.length > 0) {
+        messages.forEach(msg => {
+          // Chỉ mark messages từ staff (không phải own messages)
+          if (msg.senderId !== user.userId && msg.receiverId === user.userId && msg.status !== 'READ') {
+            messageService.markAsRead(msg.messageId, user.userId).catch(err => {
+              console.error('Error marking as read:', err);
+            });
+            // Update local state
+            setMessages((prev) => prev.map(m => 
+              m.messageId === msg.messageId ? { ...m, status: 'READ' as const } : m
+            ));
+          }
+        });
+      }
     }
-  }, [isOpen, assignedStaffId, user?.userId]);
+  }, [isOpen, assignedStaffId, user?.userId, messages.length]);
 
   // Auto scroll
   useEffect(() => {
@@ -143,24 +211,6 @@ export const FacebookStyleChatWidget = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const loadAssignment = async () => {
-    if (!user?.userId) return;
-    try {
-      // Try auto-assign first (will keep existing assignment if staff online)
-      const response = await messageAssignmentService.autoAssignStaff(user.userId);
-      if (response?.data?.success) {
-        const assignment = response.data.data;
-        setAssignedStaffId(assignment.assignedStaffId);
-        setAssignedStaffName(assignment.assignedStaffName);
-        setHasAssignment(true);
-        console.log('✅ Auto-assigned to staff:', assignment.assignedStaffName);
-      }
-    } catch (error: any) {
-      console.log('❌ Auto-assign failed:', error?.response?.data?.message || 'No staff available');
-      setHasAssignment(false);
-    }
   };
 
   const loadUnreadCount = async () => {
@@ -430,7 +480,7 @@ export const FacebookStyleChatWidget = () => {
                             >
                               {message.content}
                             </div>
-                            {isOwn && (index === messages.length - 1 || messages[index + 1].senderId !== message.senderId) && (
+                            {isOwn && (
                               <div className="flex items-center space-x-1 mt-0.5 px-0.5">
                                 {message.status === 'READ' ? (
                                   <div className="flex items-center" style={{ marginLeft: '-2px' }}>

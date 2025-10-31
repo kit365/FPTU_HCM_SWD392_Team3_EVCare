@@ -33,6 +33,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -102,8 +103,29 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public String logout(LogoutRequest request) {
         tokenService.removeTokens(request.getUserId());
+        
+        // Set offline status khi logout cho tất cả users (STAFF/ADMIN/CUSTOMER)
+        try {
+            UserEntity user = userRepository.findByUserIdAndIsDeletedFalse(request.getUserId());
+            if (user != null) {
+                user.setIsActive(false);
+                user.setUpdatedBy("SYSTEM");
+                userRepository.save(user);
+                
+                if (user.getRole().getRoleName() == RoleEnum.STAFF || user.getRole().getRoleName() == RoleEnum.ADMIN) {
+                    log.info("⚠️ Staff {} logged out, set to OFFLINE", request.getUserId());
+                } else if (user.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+                    log.info("⚠️ Customer {} logged out, set to OFFLINE", request.getUserId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Error updating offline status during logout: {}", e.getMessage());
+            // Không throw exception vì logout đã thành công
+        }
+        
         if (log.isInfoEnabled()) {
             log.info("User with ID {} logged out successfully", request.getUserId());
         }

@@ -17,7 +17,7 @@ interface CarCreateProps {
 const CarCreate: React.FC<CarCreateProps> = ({ onSearch, onSuccess }) => {
     const [form] = Form.useForm();
     const { user } = useAuthContext();
-    const { create, update, list, search: searchVehicles } = useVehicleProfile();
+    const { create, update, getByUserId, list } = useVehicleProfile();
     const { vehicleTypeOptions, fetchVehicleTypeNames } = useVehicleType();
     
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,22 +74,21 @@ const CarCreate: React.FC<CarCreateProps> = ({ onSearch, onSuccess }) => {
                 notes: values.notes || "",
             };
 
-            // Tìm kiếm xe với plateNumber để kiểm tra trùng lặp
-            await searchVehicles({
-                keyword: values.plateNumber,
-                page: 0,
-                size: 100,
-            });
+            // Load lại list từ API để đảm bảo có dữ liệu mới nhất
+            if (user?.userId) {
+                await getByUserId(user.userId);
+            }
 
-            // Kiểm tra xem xe với userId + plateNumber đã tồn tại chưa
+            // Kiểm tra xem xe với userId + plateNumber đã tồn tại chưa trong list hiện tại
             const existingVehicle = list.find(
-                v => v.user.userId === payload.userId && 
-                     v.plateNumber.toLowerCase() === payload.plateNumber.toLowerCase()
+                v => v.user?.userId === payload.userId && 
+                     v.plateNumber?.toLowerCase() === payload.plateNumber.toLowerCase()
             );
 
             if (existingVehicle) {
                 // Nếu đã tồn tại -> Update
                 const updateResult = await update(existingVehicle.vehicleId, {
+                    userId: payload.userId, // Thêm userId vào payload update
                     vehicleTypeId: payload.vehicleTypeId,
                     vin: payload.vin,
                     currentKm: payload.currentKm,

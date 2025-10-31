@@ -124,5 +124,37 @@ export const messageService = {
     );
     return response;
   },
+
+  /**
+   * Đánh dấu tin nhắn đã nhận (DELIVERED)
+   */
+  markAsDelivered: async (messageId: string, userId: string) => {
+    const response = await apiClient.put<ApiResponse<MessageResponse>>(
+      `${API_BASE}/${messageId}/mark-delivered`,
+      {},
+      {
+        headers: {
+          "user-id": userId,
+        },
+      }
+    );
+    return response;
+  },
+
+  /**
+   * Đánh dấu tin nhắn đã đọc (READ)
+   */
+  markAsRead: async (messageId: string, userId: string) => {
+    const response = await apiClient.put<ApiResponse<MessageResponse>>(
+      `${API_BASE}/${messageId}/mark-read`,
+      {},
+      {
+        headers: {
+          "user-id": userId,
+        },
+      }
+    );
+    return response;
+  },
 };
 

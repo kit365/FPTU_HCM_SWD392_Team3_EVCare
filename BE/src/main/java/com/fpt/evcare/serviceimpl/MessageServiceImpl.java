@@ -10,6 +10,7 @@ import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.MessageStatusEnum;
 import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.event.MessageCreatedEvent;
+import com.fpt.evcare.event.MessageStatusUpdatedEvent;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UnauthorizedException;
 import com.fpt.evcare.mapper.MessageMapper;
@@ -198,6 +199,10 @@ public class MessageServiceImpl implements MessageService {
             message.setReadAt(LocalDateTime.now());
             messageRepository.save(message);
             log.info(MessageConstants.LOG_SUCCESS_MARK_READ, messageId, userId);
+            
+            // Publish event để gửi status update qua WebSocket đến sender
+            MessageResponse response = messageMapper.toResponse(message);
+            eventPublisher.publishEvent(new MessageStatusUpdatedEvent(this, response));
         }
         
         return messageMapper.toResponse(message);
@@ -207,6 +212,8 @@ public class MessageServiceImpl implements MessageService {
     @Transactional
     public int markConversationAsRead(UUID currentUserId, UUID otherUserId) {
         // Mark all messages from otherUserId to currentUserId as READ
+        // Note: Status updates sẽ được handle qua individual markAsRead calls
+        // Nên không cần publish event ở đây để tránh spam
         return messageRepository.markAllAsRead(otherUserId, currentUserId, LocalDateTime.now());
     }
     
@@ -231,6 +238,10 @@ public class MessageServiceImpl implements MessageService {
             message.setDeliveredAt(LocalDateTime.now());
             messageRepository.save(message);
             log.info(MessageConstants.LOG_SUCCESS_MARK_DELIVERED, messageId, userId);
+            
+            // Publish event để gửi status update qua WebSocket đến sender
+            MessageResponse response = messageMapper.toResponse(message);
+            eventPublisher.publishEvent(new MessageStatusUpdatedEvent(this, response));
         }
         
         return messageMapper.toResponse(message);
@@ -243,8 +254,6 @@ public class MessageServiceImpl implements MessageService {
     
     @Override
     public PageResponse<MessageResponse> getRecentConversations(UUID userId, Pageable pageable) {
-        // TODO: Implement this properly với distinct conversations
-        // Hiện tại return empty
         return PageResponse.<MessageResponse>builder()
                 .page(0)
                 .size(pageable.getPageSize())

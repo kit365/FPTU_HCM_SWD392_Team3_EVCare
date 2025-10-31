@@ -6,9 +6,7 @@ import com.fpt.evcare.dto.request.message.CreationMessageRequest;
 
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.service.AuthService;
 import com.fpt.evcare.service.MessageService;
-import com.fpt.evcare.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,7 +18,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -94,6 +91,26 @@ public class MessageController {
         return ResponseEntity.ok(ApiResponse.<PageResponse<MessageResponse>>builder()
                 .success(true)
                 .message("Lấy cuộc trò chuyện thành công")
+                .data(response)
+                .build());
+    }
+
+    /**
+     * Đánh dấu 1 tin nhắn đã nhận (DELIVERED)
+     */
+    @PutMapping("/{messageId}/mark-delivered")
+    @Operation(summary = "Đánh dấu tin nhắn đã nhận", description = "🔐 Authenticated - Đánh dấu 1 tin nhắn cụ thể là đã nhận")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<MessageResponse>> markMessageAsDelivered(
+            @PathVariable UUID messageId,
+            java.security.Principal principal
+    ) {
+        UUID userId = UUID.fromString(principal.getName());
+        MessageResponse response = messageService.markAsDelivered(messageId, userId);
+
+        return ResponseEntity.ok(ApiResponse.<MessageResponse>builder()
+                .success(true)
+                .message(MessageConstants.MESSAGE_SUCCESS_MARK_DELIVERED)
                 .data(response)
                 .build());
     }

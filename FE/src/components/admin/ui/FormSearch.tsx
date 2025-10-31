@@ -1,14 +1,33 @@
-import type { FormEvent } from "react";
+import type { FormEvent, ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 
 interface FormSearchProps {
     onSearch: (value: string) => void;
+    onChange?: (value: string) => void;
+    value?: string;
 }
 
-export const FormSearch = ({ onSearch }: FormSearchProps) => {
+export const FormSearch = ({ onSearch, onChange, value }: FormSearchProps) => {
+    const [searchValue, setSearchValue] = useState(value || "");
+
+    // Sync với value từ parent
+    useEffect(() => {
+        if (value !== undefined) {
+            setSearchValue(value);
+        }
+    }, [value]);
+
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const searchValue = e.currentTarget.search.value;
         onSearch(searchValue);
+    }
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchValue(value);
+        if (onChange) {
+            onChange(value);
+        }
     }
 
     return (
@@ -17,6 +36,8 @@ export const FormSearch = ({ onSearch }: FormSearchProps) => {
                 <input
                     name="search"
                     type="text"
+                    value={searchValue}
+                    onChange={handleChange}
                     placeholder="Từ khóa..."
                     className="h-full flex-1 text-admin-secondary text-[1.3rem] font-[400] leading-1.5 bg-[#ffffff] border border-[#e2e7f1] py-[0.83rem] px-[1.52rem] rounded-l-[0.64rem] focus:border-[#24c660] focus:outline-none transition-[border] duration-150"
                 />

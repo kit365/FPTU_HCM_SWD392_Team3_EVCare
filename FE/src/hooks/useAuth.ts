@@ -16,7 +16,7 @@ interface UseAuthOptions {
 export function useAuth(options: UseAuthOptions = {}) {
   const { type = 'admin' } = options;
   const [isLoading, setIsLoading] = useState(false);
-  const { refreshUser, setUser } = useAuthContext();
+  const { user, refreshUser, setUser } = useAuthContext();
   const navigate = useNavigate();
 
   const login = async (data: LoginRequest) => {
@@ -110,19 +110,25 @@ export function useAuth(options: UseAuthOptions = {}) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const userId = user?.id;
+      // Lấy userId từ AuthContext
+      const currentUser = user;
+      const userId = currentUser?.userId;
+      
       if (userId) {
-        // API logout nếu cần
-        // const logoutData: LogoutRequest = { userId };
-        // const response = await authService.logout(logoutData);
-        // if (response?.data?.success) {
-        //   notify.success(response?.data?.message || "Đăng xuất thành công");
-        // }
+        // Gọi API logout để update online status và xóa tokens trên server
+        try {
+          const response = await authService.logout({ userId });
+          if (response?.data?.success) {
+            notify.success(response?.data?.message || "Đăng xuất thành công");
+          }
+        } catch (apiError) {
+          console.error("Logout API error:", apiError);
+          // Vẫn tiếp tục logout ở client dù API fail
+        }
       }
     } catch (error) {
       console.error("Logout error:", error);
-      // Vẫn logout ở client dù API fail
+      // Vẫn logout ở client dù có lỗi
     } finally {
       // Clear tokens và user data
       localStorage.removeItem('access_token');

@@ -20,10 +20,12 @@ export interface MessageAssignmentResponse {
   customerName: string;
   customerEmail: string;
   customerAvatarUrl?: string;
+  customerIsActive?: boolean; // Trạng thái online/offline của customer
   assignedStaffId: string;
   assignedStaffName: string;
   assignedStaffEmail: string;
   assignedStaffAvatarUrl?: string;
+  assignedStaffIsActive?: boolean; // Trạng thái online/offline của staff
   assignedByName: string;
   assignedAt: string;
   isActive: boolean;

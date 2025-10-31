@@ -34,6 +34,8 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
     };
 
     const isTechnician = user?.roleName?.includes('TECHNICIAN');
+    const isAdmin = user?.roleName?.includes('ADMIN');
+    const isStaff = user?.roleName?.includes('STAFF') && !isAdmin;
 
     const renderMenuItem = (item: any, level: number = 0) => {
         // Hide entire dashboard link for technician
@@ -61,10 +63,45 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
                     // Keep vehicle-part (phụ tùng) visible for technician
                     return !href.startsWith('/admin/users') && !href.startsWith('/admin/message');
                   })
-                : item.children)
+                : item.children.filter((child: any) => {
+                    // Filter message menu items based on role
+                    if (item.label === 'Tin nhắn') {
+                        const href: string | undefined = child.href;
+                        if (!href) return true;
+                        
+                        // ADMIN: chỉ thấy "Phân công chat"
+                        if (isAdmin) {
+                            return href === '/admin/message-assignments';
+                        }
+                        // STAFF: chỉ thấy "Chat với khách hàng"
+                        if (isStaff) {
+                            return href === '/admin/message';
+                        }
+                    }
+                    return true;
+                  }))
             : [];
         const hasChildren = childrenToRender.length > 0;
         const isOpen = openDropdowns.has(item.label);
+        
+        // Nếu menu "Tin nhắn" chỉ còn 1 item sau filter, hiển thị như menu item thông thường (không dropdown)
+        if (item.label === 'Tin nhắn' && hasChildren && childrenToRender.length === 1) {
+            const singleChild = childrenToRender[0];
+            // Render như menu item thông thường với href của child
+            return (
+                <li key={item.label} className={`${level > 0 ? 'ml-4' : ''}`}>
+                    <NavLink
+                        to={singleChild.href || "#"}
+                        className={`flex items-center w-full ${!expanded ? 'justify-center' : ''}`}
+                    >
+                        <item.icon
+                            className={`w-[20px] h-[20px] text-[rgb(150,160,181)] ${expanded ? "mr-[16px]" : "w-[25px] h-[25px]"}`}
+                        />
+                        {expanded && <span>{singleChild.label}</span>}
+                    </NavLink>
+                </li>
+            );
+        }
 
         // Hide account management items for TECHNICIAN
         if (!hasChildren && isTechnician && typeof item.href === 'string' && item.href.startsWith('/admin/users')) {
