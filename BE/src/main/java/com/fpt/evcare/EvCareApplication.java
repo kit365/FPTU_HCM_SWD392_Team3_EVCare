@@ -18,18 +18,18 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class EvCareApplication {
 
 	public static void main(String[] args) {
-//		try {
-//			Dotenv dotenv = Dotenv.configure()
-//					.ignoreIfMissing()
-//					.load();
-//
-//			if (dotenv != null) {
-//				dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
-//				log.info("✅ Loaded .env variables.");
-//			}
-//		} catch (Exception e) {
-//			log.warn("⚠️ .env file not found or failed to load. Using defaults.");
-//		}
+		try {
+			Dotenv dotenv = Dotenv.configure()
+					.ignoreIfMissing()
+					.load();
+
+			if (dotenv != null) {
+				dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+				log.info("✅ Loaded .env variables.");
+			}
+		} catch (Exception e) {
+			log.warn("⚠️ .env file not found or failed to load. Using defaults.");
+		}
 
 		SpringApplication.run(EvCareApplication.class, args);
 	}

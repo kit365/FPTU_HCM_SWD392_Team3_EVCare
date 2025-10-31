@@ -21,6 +21,7 @@ export const vehiclePartService = {
       ...(params.vehicleTypeId ? { vehicleTypeId: params.vehicleTypeId } : {}),
       ...(params.vehiclePartCategoryId ? { categoryId: params.vehiclePartCategoryId } : {}),
       ...(params.status ? { status: params.status } : {}),
+      ...(params.minStock !== undefined ? { minStock: String(params.minStock) } : {}),
     }).toString();
     
     const response = await apiClient.get<ApiResponse<{

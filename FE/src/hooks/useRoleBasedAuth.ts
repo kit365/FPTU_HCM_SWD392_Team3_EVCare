@@ -44,7 +44,11 @@ export function useRoleBasedAuth({ allowedRoles, redirectPath, errorMessage }: U
       // Role phù hợp, thông báo thành công và redirect
       hasShownNotification.current = true; // Mark as shown
       notify.success('Đăng nhập thành công');
-      navigate(redirectPath);
+      
+      // Redirect động dựa trên role
+      const isTechnician = user.roleName?.includes('TECHNICIAN');
+      const finalRedirectPath = isTechnician ? '/admin/schedule' : redirectPath;
+      navigate(finalRedirectPath);
     }
   }, [user, allowedRoles, redirectPath, errorMessage, navigate]);
 

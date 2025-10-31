@@ -30,9 +30,7 @@ export const VehiclePartEdit = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (id) {
-        console.log('Fetching vehicle part with id:', id);
         const response = await getById(id);
-        console.log('Vehicle part response:', response);
         if (response) {
           setResponse(response);
           reset({

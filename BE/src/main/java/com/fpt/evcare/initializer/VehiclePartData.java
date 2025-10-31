@@ -32,8 +32,9 @@ public class VehiclePartData implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (vehiclePartCategoryRepository.count() > 0) {
-            log.info("⚙️ Vehicle parts data already initialized.");
+        // Chỉ skip khi bảng phụ tùng đã có dữ liệu
+        if (vehiclePartRepository.count() > 0) {
+            log.info("⚙️ Vehicle parts already present, skipping initialization.");
             return;
         }
 

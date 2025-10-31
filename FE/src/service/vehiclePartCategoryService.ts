@@ -36,7 +36,6 @@ export const vehiclePartCategoryService = {
   // Get by id
   getById: async (id: string): Promise<VehiclePartCategoryResponse> => {
     const response = await apiClient.get<VehiclePartCategoryApiResponse>(`/part-category/${id}`);
-    console.log('getById response:', response);
     return response.data.data;
   },
 

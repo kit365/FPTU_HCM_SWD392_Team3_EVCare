@@ -11,6 +11,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useVehicleType } from "../../../hooks/useVehicleType";
 import CompassCalibrationIcon from '@mui/icons-material/CompassCalibration';
+import HasRole from "../../../components/common/HasRole";
+import { RoleEnum } from "../../../constants/roleConstants";
+import { useAuthContext } from "../../../context/useAuthContext";
 interface TableColumn {
     title: string;
     width: number;
@@ -27,6 +30,11 @@ const columns: TableColumn[] = [
 ];
 
 export const Vehicle = () => {
+    const { user } = useAuthContext();
+    const userRoles = user?.roleName || [];
+    const canCreate = userRoles.includes(RoleEnum.ADMIN);
+    const canEdit = userRoles.includes(RoleEnum.ADMIN);
+    const canDelete = userRoles.includes(RoleEnum.ADMIN);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const pageSize = 10;
     const [keyword, setKeyword] = useState<string>("");
@@ -62,8 +70,8 @@ export const Vehicle = () => {
                 {/* Header */}
                 <CardHeaderAdmin
                     title="Danh sách mẫu xe"
-                    href={`/${pathAdmin}/vehicle/create`}
-                    content="Tạo mẫu xe"
+                    href={canCreate ? `/${pathAdmin}/vehicle/create` : undefined}
+                    content={canCreate ? "Tạo mẫu xe" : undefined}
                 />
 
                 <div className="px-[2.4rem] pb-[2.4rem] h-full">
@@ -110,13 +118,15 @@ export const Vehicle = () => {
                                             >
                                                 <RemoveRedEyeIcon className="!w-full !h-full" />
                                             </Link>
-                                            <Link
-                                                to={`/admin/vehicle/edit/${item.vehicleTypeId}`}
-                                                className="text-blue-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
-                                                title="Chỉnh sửa"
-                                            >
-                                                <EditIcon className="!w-full !h-full" />
-                                            </Link>
+                                            <HasRole allow={RoleEnum.ADMIN}>
+                                                <Link
+                                                    to={`/admin/vehicle/edit/${item.vehicleTypeId}`}
+                                                    className="text-blue-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
+                                                    title="Chỉnh sửa"
+                                                >
+                                                    <EditIcon className="!w-full !h-full" />
+                                                </Link>
+                                            </HasRole>
                                             <Link
                                                 to={`/admin/vehicle/service/${item.vehicleTypeId}`}
                                                 className="text-yellow-300 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80"
@@ -124,20 +134,22 @@ export const Vehicle = () => {
                                             >
                                                 <CompassCalibrationIcon className="!w-full !h-full" />
                                             </Link>
-                                            <Popconfirm
-                                                title="Xóa mẫu xe"
-                                                description="Bạn chắc chắn xóa mẫu xe này?"
-                                                onConfirm={() =>
-                                                    handleDelete(item.vehicleTypeId || item.id)
-                                                }
-                                                okText="Đồng ý"
-                                                cancelText="Hủy"
-                                                placement="left"
-                                            >
-                                                <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
-                                                    <DeleteOutlineIcon className="!w-full !h-full" />
-                                                </button>
-                                            </Popconfirm>
+                                            <HasRole allow={RoleEnum.ADMIN}>
+                                                <Popconfirm
+                                                    title="Xóa mẫu xe"
+                                                    description="Bạn chắc chắn xóa mẫu xe này?"
+                                                    onConfirm={() =>
+                                                        handleDelete(item.vehicleTypeId || item.id)
+                                                    }
+                                                    okText="Đồng ý"
+                                                    cancelText="Hủy"
+                                                    placement="left"
+                                                >
+                                                    <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
+                                                        <DeleteOutlineIcon className="!w-full !h-full" />
+                                                    </button>
+                                                </Popconfirm>
+                                            </HasRole>
                                         </td>
                                     </tr>
                                 ))

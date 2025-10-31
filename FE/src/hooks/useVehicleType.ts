@@ -122,14 +122,19 @@ export const useVehicleType = () => {
       const response = await carModelService.getVehicleTypeList({ page: 0, pageSize: 1000 });
       if (response?.data?.success) {
         const data = response.data.data;
-        const options = data.data.map((item: VehicleProps) => ({
-          value: item.vehicleTypeId,
-          label: item.vehicleTypeName
-        }));
+        const options = Array.isArray(data?.data) 
+          ? data.data.map((item: VehicleProps) => ({
+              value: item.vehicleTypeId,
+              label: item.vehicleTypeName
+            }))
+          : [];
         setVehicleTypeOptions(options);
+      } else {
+        setVehicleTypeOptions([]);
       }
     } catch (error: any) {
-      console.error("Lỗi khi tải danh sách tên mẫu xe:", error);
+      // Không có dữ liệu thì trả về [] thay vì hiển thị lỗi
+      setVehicleTypeOptions([]);
     } finally {
       setLoading(false);
     }

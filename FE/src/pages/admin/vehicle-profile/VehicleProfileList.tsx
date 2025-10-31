@@ -11,6 +11,9 @@ import { FormEmpty } from "../../../components/admin/ui/FormEmpty";
 import { useVehicleProfile } from "../../../hooks/useVehicleProfile";
 import { useVehicleType } from "../../../hooks/useVehicleType";
 import { pathAdmin } from "../../../constants/paths.constant";
+import HasRole from "../../../components/common/HasRole";
+import { RoleEnum } from "../../../constants/roleConstants";
+import { useAuthContext } from "../../../context/useAuthContext";
 
 const columns = [
   { title: "STT", width: 5 },
@@ -25,6 +28,11 @@ const columns = [
 ];
 
 export const VehicleProfileList = () => {
+  const { user } = useAuthContext();
+  const roles = user?.roleName || [];
+  const canCreate = roles.includes(RoleEnum.ADMIN) || roles.includes(RoleEnum.STAFF) || roles.includes(RoleEnum.TECHNICIAN);
+  const canEdit = roles.includes(RoleEnum.ADMIN) || roles.includes(RoleEnum.STAFF) || roles.includes(RoleEnum.TECHNICIAN);
+  const canDelete = roles.includes(RoleEnum.ADMIN) || roles.includes(RoleEnum.STAFF) || roles.includes(RoleEnum.TECHNICIAN);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
   const [keyword, setKeyword] = useState<string>("");
@@ -78,8 +86,8 @@ export const VehicleProfileList = () => {
       <Card elevation={0} className="shadow-[0_3px_16px_rgba(142,134,171,0.05)]">
         <CardHeaderAdmin 
           title="Danh sách hồ sơ xe người dùng" 
-          href={`/${pathAdmin}/vehicle-profile/create`} 
-          content="Tạo hồ sơ xe" 
+          href={canCreate ? `/${pathAdmin}/vehicle-profile/create` : undefined} 
+          content={canCreate ? "Tạo hồ sơ xe" : undefined} 
         />
 
         <div className="px-[2.4rem] pb-[2.4rem] h-full">
@@ -181,34 +189,34 @@ export const VehicleProfileList = () => {
                         >
                           <RemoveRedEyeIcon className="!w-[2rem] !h-[2rem]" />
                         </Link>
-                        <Link
-                          to={`/${pathAdmin}/vehicle-profile/edit/${item.vehicleId}`}
-                          className="text-[#f39c12] hover:opacity-80"
-                          title="Chỉnh sửa"
-                        >
-                          <EditIcon className="!w-[2rem] !h-[2rem]" />
-                        </Link>
-                        <Popconfirm
-                          title="Xóa hồ sơ xe"
-                          description="Bạn chắc chắn muốn xóa hồ sơ xe này?"
-                          onConfirm={() => handleDelete(item.vehicleId)}
-                          okText="Đồng ý"
-                          cancelText="Hủy"
-                        >
-                          <button className="text-[#e74c3c] hover:opacity-80" title="Xóa">
-                            <DeleteOutlineIcon className="!w-[2rem] !h-[2rem]" />
-                          </button>
-                        </Popconfirm>
+                        <HasRole allow={[RoleEnum.ADMIN, RoleEnum.STAFF, RoleEnum.TECHNICIAN]}>
+                          <Link
+                            to={`/${pathAdmin}/vehicle-profile/edit/${item.vehicleId}`}
+                            className="text-[#f39c12] hover:opacity-80"
+                            title="Chỉnh sửa"
+                          >
+                            <EditIcon className="!w-[2rem] !h-[2rem]" />
+                          </Link>
+                        </HasRole>
+                        <HasRole allow={[RoleEnum.ADMIN, RoleEnum.STAFF, RoleEnum.TECHNICIAN]}>
+                          <Popconfirm
+                            title="Xóa hồ sơ xe"
+                            description="Bạn chắc chắn muốn xóa hồ sơ xe này?"
+                            onConfirm={() => handleDelete(item.vehicleId)}
+                            okText="Đồng ý"
+                            cancelText="Hủy"
+                          >
+                            <button className="text-[#e74c3c] hover:opacity-80" title="Xóa">
+                              <DeleteOutlineIcon className="!w-[2rem] !h-[2rem]" />
+                            </button>
+                          </Popconfirm>
+                        </HasRole>
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={columns.length}>
-                    <FormEmpty colspan={columns.length} />
-                  </td>
-                </tr>
+                <FormEmpty colspan={columns.length} />
               )}
             </tbody>
           </table>

@@ -8,6 +8,8 @@ import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import { userService } from '../../../service/userService';
+import HasRole from '../../../components/common/HasRole';
+import { RoleEnum } from '../../../constants/roleConstants';
 import { UserDetailModal } from '../../../components/admin/user/UserDetailModal';
 import { notify } from '../../../components/admin/common/Toast';
 import type { UserResponse } from '../../../types/user.types';
@@ -132,13 +134,15 @@ export const AdminCustomerManagement = () => {
             <div className="flex-1">
               <FormSearch onSearch={handleSearch} />
             </div>
-            <button
-              onClick={() => navigate('/admin/customers/create')}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-            >
-              <AddIcon className="!text-[1.8rem]" />
-              Thêm khách hàng
-            </button>
+            <HasRole allow={[RoleEnum.ADMIN, RoleEnum.STAFF]}>
+              <button
+                onClick={() => navigate('/admin/customers/create')}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >
+                <AddIcon className="!text-[1.8rem]" />
+                Thêm khách hàng
+              </button>
+            </HasRole>
           </div>
 
           {loading ? (
@@ -219,13 +223,15 @@ export const AdminCustomerManagement = () => {
                           >
                             <RemoveRedEyeIcon className="!w-full !h-full" />
                           </button>
-                          <button
-                            onClick={() => navigate(`/admin/customers/edit/${customer.userId}`)}
-                            className="text-blue-500 w-[2rem] h-[2rem] inline-block hover:opacity-80"
-                            title="Chỉnh sửa"
-                          >
-                            <EditIcon className="!w-full !h-full" />
-                          </button>
+                          <HasRole allow={[RoleEnum.ADMIN, RoleEnum.STAFF]}>
+                            <button
+                              onClick={() => navigate(`/admin/customers/edit/${customer.userId}`)}
+                              className="text-blue-500 w-[2rem] h-[2rem] inline-block hover:opacity-80"
+                              title="Chỉnh sửa"
+                            >
+                              <EditIcon className="!w-full !h-full" />
+                            </button>
+                          </HasRole>
                         </td>
                       </tr>
                     ))

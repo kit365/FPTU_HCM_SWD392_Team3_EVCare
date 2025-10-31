@@ -94,7 +94,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     public List<String> getAllVehiclePartStatuses() {
         return Arrays.stream(VehiclePartStatusEnum.values())
                 .map(Enum::name) // Lấy tên của từng enum
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -133,9 +133,17 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             vehiclePartEntityPage = vehiclePartRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
         }
 
+        // Nếu không có kết quả, trả về page rỗng thay vì throw exception
         if(vehiclePartEntityPage == null || vehiclePartEntityPage.getTotalElements() == 0) {
-            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_LIST_NOT_FOUND + keyword);
-            throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_LIST_NOT_FOUND);
+            log.info("No vehicle parts found - returning empty page");
+            return PageResponse.<VehiclePartResponse>builder()
+                    .data(List.of())
+                    .page(pageable.getPageNumber())
+                    .size(pageable.getPageSize())
+                    .totalElements(0)
+                    .totalPages(0)
+                    .last(true)
+                    .build();
         }
 
         List<VehiclePartResponse> vehiclePartEntityList = vehiclePartEntityPage.map(vehiclePartEntity -> {
@@ -184,9 +192,17 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         Page<VehiclePartEntity> vehiclePartEntityPage = vehiclePartRepository.findVehiclePartsWithFilters(
                 keyword, vehicleTypeId, categoryId, status, minStock, pageable);
 
+        // Nếu không có kết quả, trả về page rỗng thay vì throw exception
         if(vehiclePartEntityPage == null || vehiclePartEntityPage.getTotalElements() == 0) {
-            log.warn(VehiclePartConstants.LOG_ERR_VEHICLE_PART_LIST_NOT_FOUND + keyword);
-            throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_LIST_NOT_FOUND);
+            log.info(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_LIST_NOT_FOUND);
+            return PageResponse.<VehiclePartResponse>builder()
+                    .data(List.of())
+                    .page(pageable.getPageNumber())
+                    .size(pageable.getPageSize())
+                    .totalElements(0)
+                    .totalPages(0)
+                    .last(true)
+                    .build();
         }
 
         List<VehiclePartResponse> vehiclePartEntityList = vehiclePartEntityPage.map(vehiclePartEntity -> {
