@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Table, Tag, Modal, Descriptions } from 'antd';
+import { Table, Tag, Modal, Descriptions, Popconfirm } from 'antd';
 import type { TableColumnsType } from 'antd';
-import { EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import CarUpdate from './CarUpdate';
 import type { VehicleProfileResponse } from '../../../types/vehicle-profile.types';
+import { useVehicleProfile } from '../../../hooks/useVehicleProfile';
 import dayjs from 'dayjs';
 
 //định nghĩa prop
@@ -20,10 +21,12 @@ type CarTableProps = {
 
 
 const CarTable: React.FC<CarTableProps> = ({ vehicleProfiles, loading, total, current, setCurrent, pageSize, setPageSize, onSuccess }) => {
+    const { remove } = useVehicleProfile();
     const [dataDetail, setDataDetail] = useState<VehicleProfileResponse | null>(null);
     const [isOpenDetail, setIsOpenDetail] = useState(false);
     const [dataUpdate, setDataUpdate] = useState<VehicleProfileResponse | null>(null);
     const [isOpenUpdate, setIsOpenUpdate] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const onChange = (pagination: any, filters: any, sorter: any, extra: any) => {
         //setCurrent, setPageSize
@@ -38,6 +41,15 @@ const CarTable: React.FC<CarTableProps> = ({ vehicleProfiles, loading, total, cu
             if (pagination.pageSize !== +pageSize) {
                 setPageSize(+pagination.pageSize)
             }
+        }
+    };
+
+    const handleDelete = async (vehicleId: string) => {
+        setDeletingId(vehicleId);
+        const success = await remove(vehicleId);
+        setDeletingId(null);
+        if (success && onSuccess) {
+            onSuccess();
         }
     };
 
@@ -97,7 +109,7 @@ const CarTable: React.FC<CarTableProps> = ({ vehicleProfiles, loading, total, cu
         },
         {
             title: 'Hành Động',
-            width: 100,
+            width: 120,
             key: 'action',
             align: 'center',
             render: (_: any, record: VehicleProfileResponse) => (
@@ -118,6 +130,21 @@ const CarTable: React.FC<CarTableProps> = ({ vehicleProfiles, loading, total, cu
                         style={{ cursor: "pointer", color: "orange" }} 
                         title="Chỉnh sửa"
                     />
+                    {!record.isDeleted && (
+                        <Popconfirm
+                            title="Xóa hồ sơ xe"
+                            description="Bạn có chắc chắn muốn xóa hồ sơ xe này?"
+                            onConfirm={() => handleDelete(record.vehicleId)}
+                            okText="Xóa"
+                            cancelText="Hủy"
+                            okButtonProps={{ danger: true, loading: deletingId === record.vehicleId }}
+                        >
+                            <DeleteOutlined
+                                style={{ cursor: "pointer", color: "red" }} 
+                                title="Xóa"
+                            />
+                        </Popconfirm>
+                    )}
                 </div>
             ),
         },
