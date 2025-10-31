@@ -65,14 +65,6 @@ export const vehicleProfileService = {
       `/vehicle-profile/restore/${vehicleId}`
     );
     return Boolean(response.data?.success);
-  },
-
-  // Get vehicles by user ID
-  getByUserId: async (userId: string): Promise<VehicleProfileResponse[]> => {
-    const response = await apiClient.get<ApiResponse<VehicleProfileResponse[]>>(
-      `/vehicle-profile/user/${userId}`
-    );
-    return response.data.data;
   }
 };
 

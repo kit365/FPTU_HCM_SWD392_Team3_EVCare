@@ -59,32 +59,28 @@ export const VehicleProfileCreate = () => {
 
   // Validation function
   const validateForm = (data: FormData): boolean => {
+    let isValid = true;
+
     if (!data.userId || data.userId.trim() === "") {
-      toast.error("Vui lòng tìm kiếm và chọn khách hàng trước!");
-      return false;
+      isValid = false;
     }
     if (!data.vehicleTypeId || data.vehicleTypeId.trim() === "") {
-      toast.error("Vui lòng chọn loại xe!");
-      return false;
+      isValid = false;
     }
     if (!data.plateNumber || data.plateNumber.trim() === "") {
-      toast.error("Vui lòng nhập biển số xe!");
-      return false;
+      isValid = false;
     }
     if (!data.vin || data.vin.trim() === "") {
-      toast.error("Vui lòng nhập số khung (VIN)!");
-      return false;
+      isValid = false;
     }
     if (data.currentKm !== undefined && data.currentKm < 0) {
-      toast.error("Km hiện tại phải lớn hơn hoặc bằng 0!");
-      return false;
+      isValid = false;
     }
     if (data.lastMaintenanceKm !== undefined && data.lastMaintenanceKm < 0) {
-      toast.error("Km bảo trì phải lớn hơn hoặc bằng 0!");
-      return false;
+      isValid = false;
     }
 
-    return true;
+    return isValid;
   };
 
   useEffect(() => {
@@ -110,11 +106,9 @@ export const VehicleProfileCreate = () => {
     if (user) {
       setFoundUser(user); // Set foundUser
       setValue("userId", user.userId);
-      toast.success(`Đã tìm thấy khách hàng: ${user.fullName || user.username}`);
     } else {
       setFoundUser(null); // Clear foundUser if not found
       setValue("userId", ""); // Clear userId if not found
-      toast.error("Không tìm thấy khách hàng với thông tin này!");
     }
     setSearchingUser(false);
   };

@@ -33,7 +33,7 @@ export const mockOldBookingData: OldBookingData[] = [
       licensePlate: "30A-12345",
       services: ["MAINTENANCE", "BRAKE_CHECK"],
       serviceType: "STATIONARY",
-      userAddress: "Hồ Chí Minh",
+      userAddress: "Vũng Tàu",
       dateTime: "2024-01-15 10:00:00",
       notes: "Bảo dưỡng định kỳ, kiểm tra phanh"
     }
@@ -69,7 +69,7 @@ export const mockOldBookingData: OldBookingData[] = [
       licensePlate: "65C-54321",
       services: ["OIL_CHANGE", "FILTER_REPLACEMENT"],
       serviceType: "STATIONARY",
-      userAddress: "Hồ Chí Minh",
+      userAddress: "Vũng Tàu",
       dateTime: "2024-01-25 09:15:00",
       notes: "Thay dầu và lọc định kỳ"
     }
@@ -105,7 +105,7 @@ export const mockOldBookingData: OldBookingData[] = [
       licensePlate: "29E-11111",
       services: ["FIRST_SERVICE"],
       serviceType: "STATIONARY",
-      userAddress: "Hồ Chí Minh",
+      userAddress: "Vũng Tàu",
       dateTime: "2024-02-05 11:00:00",
       notes: "Bảo dưỡng lần đầu"
     }

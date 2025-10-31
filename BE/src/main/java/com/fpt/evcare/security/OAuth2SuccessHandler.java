@@ -9,8 +9,7 @@ import com.fpt.evcare.service.TokenService;
 import com.nimbusds.jose.JOSEException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -25,15 +24,12 @@ import java.util.UUID;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final TokenService tokenService;
-    
-    @Value("${frontend.url}")
-    private String frontendUrl;
 
     @Override
     @Transactional
@@ -44,7 +40,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         } catch (Exception e) {
             log.error("❌ Error in Google OAuth2 login: {}", e.getMessage(), e);
             String errorMessage = e.getMessage() != null ? e.getMessage() : "unknown_error";
-            response.sendRedirect(frontendUrl + "/client/login?error=" + errorMessage);
+            response.sendRedirect("http://localhost:5000/client/login?error=" + errorMessage);
         }
     }
 
@@ -101,8 +97,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // Redirect directly to homepage with tokens (no intermediate callback page)
         String frontendCallbackUrl = String.format(
-            "%s/?googleAuth=true&accessToken=%s&refreshToken=%s&email=%s&name=%s",
-            frontendUrl,
+            "http://localhost:5000/?googleAuth=true&accessToken=%s&refreshToken=%s&email=%s&name=%s",
             accessToken,
             refreshToken,
             encodedEmail,

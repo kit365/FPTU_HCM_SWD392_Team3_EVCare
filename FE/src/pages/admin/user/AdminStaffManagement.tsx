@@ -148,7 +148,8 @@ export const AdminStaffManagement = () => {
 
   const renderTable = (
     data: UserResponse[],
-    currentPage: number
+    currentPage: number,
+    isLoading: boolean
   ) => (
     <>
       <table className="w-full">
@@ -294,7 +295,7 @@ export const AdminStaffManagement = () => {
               </div>
             ) : (
               <>
-                {renderTable(paginatedStaff, currentPageStaff)}
+                {renderTable(paginatedStaff, currentPageStaff, loading)}
                 {paginatedStaff.length > 0 && (
                   <Stack spacing={2} className="mt-[2rem]">
                     <Pagination
