@@ -2,7 +2,6 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.MessageConstants;
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.message.CreationMessageRequest;
-import com.fpt.evcare.dto.response.MessageAssignmentResponse;
 import com.fpt.evcare.dto.response.MessageResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.entity.MessageAssignmentEntity;
@@ -11,14 +10,15 @@ import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.MessageStatusEnum;
 import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.event.MessageCreatedEvent;
+import com.fpt.evcare.event.MessageStatusUpdatedEvent;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UnauthorizedException;
 import com.fpt.evcare.mapper.MessageMapper;
 import com.fpt.evcare.repository.MessageAssignmentRepository;
 import com.fpt.evcare.repository.MessageRepository;
 import com.fpt.evcare.repository.UserRepository;
-import com.fpt.evcare.service.MessageAssignmentService;
 import com.fpt.evcare.service.MessageService;
+import com.fpt.evcare.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,7 +45,6 @@ public class MessageServiceImpl implements MessageService {
     MessageAssignmentRepository assignmentRepository;
     MessageMapper messageMapper;
     ApplicationEventPublisher eventPublisher;
-    MessageAssignmentService messageAssignmentService;
 
     
     @Override
@@ -71,54 +70,14 @@ public class MessageServiceImpl implements MessageService {
             throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_SEND_TO_SELF);
         }
         
-        // Kiểm tra nếu receiver là STAFF và offline → tự động reassign sang staff online khác
-        // Logic: Khi customer gửi tin nhắn đến staff offline, tự động chuyển sang staff online khác
-        // Phải làm TRƯỚC validation để đảm bảo assignment đúng với staff mới
+        // Kiểm tra assignment nếu sender là CUSTOMER
         if (sender.getRole().getRoleName() == RoleEnum.CUSTOMER) {
-            if (receiver.getRole().getRoleName() == RoleEnum.STAFF || receiver.getRole().getRoleName() == RoleEnum.ADMIN) {
-                if (receiver.getIsActive() == null || !receiver.getIsActive()) {
-                    UUID offlineStaffId = receiver.getUserId();
-                    log.warn("⚠️ Staff {} is OFFLINE, customer {} sent message. Auto-reassigning to online staff...", 
-                            offlineStaffId, senderId);
-                    
-                    // Tự động reassign customer sang staff online khác (nếu có)
-                    try {
-                        MessageAssignmentResponse assignmentResponse = messageAssignmentService.autoAssignCustomerToStaff(senderId);
-                        
-                        // Lấy staff mới từ assignment response
-                        UUID newStaffId = assignmentResponse.getAssignedStaffId();
-                        
-                        // Refresh receiver entity với staff mới
-                        UserEntity newStaff = userRepository.findByUserIdAndIsDeletedFalse(newStaffId);
-                        if (newStaff == null) {
-                            log.error("❌ New staff {} not found after auto-assignment", newStaffId);
-                            throw new UnauthorizedException("Không thể tìm thấy nhân viên online khả dụng. Vui lòng thử lại sau.");
-                        }
-                        
-                        // Cập nhật receiver sang staff online mới
-                        receiver = newStaff;
-                        log.info("✅ Auto-reassigned customer {} from offline staff {} to online staff {} (message will be sent to new staff)", 
-                                senderId, offlineStaffId, newStaffId);
-                    } catch (ResourceNotFoundException e) {
-                        // Không có staff online khả dụng
-                        log.error("❌ No online staff available for auto-reassignment. Customer: {}", senderId);
-                        throw new UnauthorizedException("Hiện tại không có nhân viên online. Vui lòng thử lại sau.");
-                    } catch (Exception e) {
-                        log.error("❌ Error during auto-reassignment for customer {}: {}", senderId, e.getMessage(), e);
-                        throw new UnauthorizedException("Nhân viên đang offline, không thể nhận tin nhắn. Vui lòng thử lại sau.");
-                    }
-                }
-            }
-        }
-        
-        // Kiểm tra assignment nếu sender là CUSTOMER (sau khi có thể đã reassign)
-        if (sender.getRole().getRoleName() == RoleEnum.CUSTOMER) {
-            validateCustomerCanChat(senderId, receiver.getUserId());
+            validateCustomerCanChat(senderId, request.getReceiverId());
         }
         
         // Kiểm tra assignment nếu receiver là CUSTOMER
         if (receiver.getRole().getRoleName() == RoleEnum.CUSTOMER) {
-            validateCustomerCanChat(receiver.getUserId(), senderId);
+            validateCustomerCanChat(request.getReceiverId(), senderId);
         }
         
         // Validate content
@@ -126,10 +85,10 @@ public class MessageServiceImpl implements MessageService {
             throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_EMPTY_CONTENT);
         }
         
-        // Tạo message (receiver đã được cập nhật nếu có auto-reassign)
+        // Tạo message
         MessageEntity message = MessageEntity.builder()
                 .sender(sender)
-                .receiver(receiver)  // Có thể đã được cập nhật sang staff mới nếu staff cũ offline
+                .receiver(receiver)
                 .content(request.getContent().trim())
                 .imageUrl(request.getImageUrl())
                 .status(MessageStatusEnum.SENT)
@@ -138,7 +97,7 @@ public class MessageServiceImpl implements MessageService {
                 .build();
         
         MessageEntity savedMessage = messageRepository.save(message);
-        log.info(MessageConstants.LOG_SUCCESS_SEND_MESSAGE, senderId, receiver.getUserId());
+        log.info(MessageConstants.LOG_SUCCESS_SEND_MESSAGE, senderId, request.getReceiverId());
         
 
         MessageResponse response = messageMapper.toResponse(savedMessage);
@@ -240,6 +199,10 @@ public class MessageServiceImpl implements MessageService {
             message.setReadAt(LocalDateTime.now());
             messageRepository.save(message);
             log.info(MessageConstants.LOG_SUCCESS_MARK_READ, messageId, userId);
+            
+            // Publish event để gửi status update qua WebSocket đến sender
+            MessageResponse response = messageMapper.toResponse(message);
+            eventPublisher.publishEvent(new MessageStatusUpdatedEvent(this, response));
         }
         
         return messageMapper.toResponse(message);
@@ -249,6 +212,8 @@ public class MessageServiceImpl implements MessageService {
     @Transactional
     public int markConversationAsRead(UUID currentUserId, UUID otherUserId) {
         // Mark all messages from otherUserId to currentUserId as READ
+        // Note: Status updates sẽ được handle qua individual markAsRead calls
+        // Nên không cần publish event ở đây để tránh spam
         return messageRepository.markAllAsRead(otherUserId, currentUserId, LocalDateTime.now());
     }
     
@@ -273,6 +238,10 @@ public class MessageServiceImpl implements MessageService {
             message.setDeliveredAt(LocalDateTime.now());
             messageRepository.save(message);
             log.info(MessageConstants.LOG_SUCCESS_MARK_DELIVERED, messageId, userId);
+            
+            // Publish event để gửi status update qua WebSocket đến sender
+            MessageResponse response = messageMapper.toResponse(message);
+            eventPublisher.publishEvent(new MessageStatusUpdatedEvent(this, response));
         }
         
         return messageMapper.toResponse(message);
@@ -285,8 +254,6 @@ public class MessageServiceImpl implements MessageService {
     
     @Override
     public PageResponse<MessageResponse> getRecentConversations(UUID userId, Pageable pageable) {
-        // TODO: Implement this properly với distinct conversations
-        // Hiện tại return empty
         return PageResponse.<MessageResponse>builder()
                 .page(0)
                 .size(pageable.getPageSize())

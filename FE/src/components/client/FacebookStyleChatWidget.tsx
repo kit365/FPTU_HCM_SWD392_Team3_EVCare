@@ -116,13 +116,32 @@ export const FacebookStyleChatWidget = () => {
     // Message from staff → ADD new message
     console.log('📨 [Widget] Message from staff - adding new');
     setMessages((prev) => {
-      // Check duplicate
-      if (prev.some(m => m.messageId === message.messageId)) {
-        return prev;
+      // Check if message already exists (could be status update)
+      const existingIndex = prev.findIndex(m => m.messageId === message.messageId);
+      if (existingIndex !== -1) {
+        // Update existing message (status update from DELIVERED to READ)
+        const updated = [...prev];
+        updated[existingIndex] = message;
+        return updated;
       }
       
       return [...prev, message];
     });
+    
+    // Tự động mark as DELIVERED khi nhận message (nếu là receiver và status là SENT)
+    if (message.receiverId === user?.userId && message.status === 'SENT') {
+      messageService.markAsDelivered(message.messageId, user.userId).catch(err => {
+        console.error('Error marking as delivered:', err);
+      });
+    }
+    
+    // Nếu là status update cho own message (DELIVERED hoặc READ), chỉ update local state
+    if (message.senderId === user?.userId) {
+      // This is status update for our sent message
+      setMessages((prev) => prev.map(m => 
+        m.messageId === message.messageId ? message : m
+      ));
+    }
     
     if (!isOpen && message.receiverId === user?.userId) {
       setUnreadCount((prev) => prev + 1);
@@ -166,8 +185,24 @@ export const FacebookStyleChatWidget = () => {
       // Mark as read every time widget opens
       setUnreadCount(0);
       markConversationAsRead();
+      
+      // Mark all messages as READ when widget opens
+      if (messages.length > 0) {
+        messages.forEach(msg => {
+          // Chỉ mark messages từ staff (không phải own messages)
+          if (msg.senderId !== user.userId && msg.receiverId === user.userId && msg.status !== 'READ') {
+            messageService.markAsRead(msg.messageId, user.userId).catch(err => {
+              console.error('Error marking as read:', err);
+            });
+            // Update local state
+            setMessages((prev) => prev.map(m => 
+              m.messageId === msg.messageId ? { ...m, status: 'READ' as const } : m
+            ));
+          }
+        });
+      }
     }
-  }, [isOpen, assignedStaffId, user?.userId]);
+  }, [isOpen, assignedStaffId, user?.userId, messages.length]);
 
   // Auto scroll
   useEffect(() => {
@@ -445,7 +480,7 @@ export const FacebookStyleChatWidget = () => {
                             >
                               {message.content}
                             </div>
-                            {isOwn && (index === messages.length - 1 || messages[index + 1].senderId !== message.senderId) && (
+                            {isOwn && (
                               <div className="flex items-center space-x-1 mt-0.5 px-0.5">
                                 {message.status === 'READ' ? (
                                   <div className="flex items-center" style={{ marginLeft: '-2px' }}>
