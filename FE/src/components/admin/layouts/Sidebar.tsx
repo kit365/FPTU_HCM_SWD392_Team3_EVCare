@@ -33,9 +33,54 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
         setOpenDropdowns(newOpenDropdowns);
     };
 
+    const isTechnician = user?.roleName?.includes('TECHNICIAN');
+
     const renderMenuItem = (item: any, level: number = 0) => {
-        const hasChildren = item.children && item.children.length > 0;
+        // Hide entire dashboard link for technician
+        if (isTechnician && typeof item.href === 'string' && item.href.startsWith('/admin/dashboard')) {
+            return null;
+        }
+
+        // Hide appointment management link for technician
+        if (isTechnician && typeof item.href === 'string' && item.href.startsWith('/admin/appointment-manage')) {
+            return null;
+        }
+
+        // Hide vehicle type (mẫu xe) link for technician, but NOT vehicle-part (phụ tùng)
+        if (isTechnician && typeof item.href === 'string' && item.href.startsWith('/admin/vehicle') && 
+            !item.href.includes('/vehicle-profile') && !item.href.includes('/vehicle-part')) {
+            return null;
+        }
+
+        const childrenToRender = (item.children && item.children.length > 0)
+            ? (isTechnician
+                ? item.children.filter((child: any) => {
+                    const href: string | undefined = child.href;
+                    if (!href) return true;
+                    // Hide user management and message management for technician
+                    // Keep vehicle-part (phụ tùng) visible for technician
+                    return !href.startsWith('/admin/users') && !href.startsWith('/admin/message');
+                  })
+                : item.children)
+            : [];
+        const hasChildren = childrenToRender.length > 0;
         const isOpen = openDropdowns.has(item.label);
+
+        // Hide account management items for TECHNICIAN
+        if (!hasChildren && isTechnician && typeof item.href === 'string' && item.href.startsWith('/admin/users')) {
+            return null;
+        }
+
+        // If item is a parent group and after filtering it has no children, hide it entirely
+        // But only for specific cases (like "Quản lý" with users, "Tin nhắn" with messages)
+        // NOT for "Phụ tùng" which should always show children
+        if (item.children && item.children.length > 0 && !hasChildren) {
+            // Only hide if it's a restricted group
+            const isRestrictedGroup = item.label === 'Quản lý' || item.label === 'Tin nhắn';
+            if (isRestrictedGroup && isTechnician) {
+                return null;
+            }
+        }
 
         return (
             <li key={item.label} className={`${level > 0 ? 'ml-4' : ''}`}>
@@ -77,7 +122,7 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
 
                     {hasChildren && expanded && isOpen && (
                         <ul className="mt-1">
-                            {item.children.map((child: any) => renderMenuItem(child, level + 1))}
+                            {childrenToRender.map((child: any) => renderMenuItem(child, level + 1))}
                         </ul>
                     )}
                 </div>

@@ -10,7 +10,15 @@ import ClientRegister from './pages/client/account/ClientRegister';
 import { AuthProvider } from './context/AuthContext.tsx';
 import RoleProtectedRoute from './components/common/RoleProtectedRoute';
 import { RootRedirect } from './components/common/RootRedirect';
+import { useAuthContext } from './context/useAuthContext';
 
+
+const AdminIndexRedirect: React.FC = () => {
+  const { user, isLoading } = useAuthContext();
+  if (isLoading) return null;
+  const to = user?.roleName?.includes('TECHNICIAN') ? '/admin/schedule' : '/admin/dashboard';
+  return <Navigate to={to} replace />;
+};
 
 function App() {
 
@@ -43,8 +51,8 @@ function App() {
                 </RoleProtectedRoute>
               }
             >
-              {/* Default redirect to dashboard */}
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              {/* Default redirect to dashboard (technician -> schedule) */}
+              <Route index element={<AdminIndexRedirect />} />
               
               {AdminRoutes.map(({ path, element }) => (
                 <Route key={path} path={path} element={element} />

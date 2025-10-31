@@ -1,5 +1,7 @@
 import type { RouteObject } from "react-router-dom";
 import { DashboardPage } from "../pages/admin/dashboard/Dashboard";
+import RoleProtectedRoute from "../components/common/RoleProtectedRoute";
+import { RoleEnum } from "../constants/roleConstants";
 import { SettingPage } from "../pages/admin/setting/Setting";
 import { LoginPage } from "../pages/admin/login/Login";
 import { Vehicle } from "../pages/admin/vehicle/Vehicle";
@@ -48,7 +50,7 @@ import CustomerCreate from "../pages/admin/user/CustomerCreate";
 import UserCreate from "../pages/admin/user/UserCreate";
 import { InvoiceView } from "../pages/admin/payment/InvoiceView";
 export const AdminRoutes: RouteObject[] = [
-    { path: "dashboard", element: <DashboardPage /> },
+    { path: "dashboard", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><DashboardPage /></RoleProtectedRoute> },
     { path: "setting", element: <SettingPage /> },
     { path: "vehicle", element: <Vehicle /> },
     { path: "vehicle/create", element: <VehicleCreate /> },
@@ -76,7 +78,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/edit/:id", element: <ServiceTypeEdit /> },
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
-    { path: "appointment-manage", element: <AppointmentManage/> },
+    { path: "appointment-manage", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><AppointmentManage/></RoleProtectedRoute> },
     { path: "appointment/view/:id", element: <AppointmentView/> },
     { path: "invoice/:appointmentId", element: <InvoiceView/> },
     { path: "shift", element: <ShiftList/> },

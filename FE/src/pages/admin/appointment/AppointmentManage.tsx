@@ -31,6 +31,9 @@ import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PaymentIcon from "@mui/icons-material/Payment";
 import ReceiptIcon from "@mui/icons-material/Receipt";
+import HasRole from "../../../components/common/HasRole";
+import { RoleEnum } from "../../../constants/roleConstants";
+import { useAuthContext } from "../../../context/useAuthContext";
 
 const columns = [
   { title: "STT", width: 5 },
@@ -46,6 +49,8 @@ const columns = [
 ];
 
 const AppointmentManage = () => {
+  const { user } = useAuthContext();
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
   const [keyword, setKeyword] = useState<string>("");
@@ -351,38 +356,40 @@ const AppointmentManage = () => {
                           </td>
                           <td className="p-[1.2rem] text-center">
                             <div className="flex justify-center items-center gap-2">
-                              {item.status === 'CONFIRMED' && (
-                                <button
-                                  onClick={() => handleOpenStatusDialog(item)}
-                                  className={`px-3 py-1.5 rounded-md text-white text-[0.75rem] font-semibold transition-all shadow-sm hover:shadow-md ${getApproveButtonColor(item.status)}`}
-                                  title={`Chuyển sang: ${getNextStatusLabel(item.status)}`}
-                                >
-                                  <span className="flex items-center gap-1">
-                                    <ChangeCircleIcon className="!w-[1rem] !h-[1rem]" />
-                                    {getApproveButtonText(item.status)}
-                                  </span>
-                                </button>
-                              )}
-                              {item.status === 'PENDING_PAYMENT' && (
-                                <Link
-                                  to={`/admin/invoice/${item.appointmentId}`}
-                                  className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-[0.75rem] font-semibold transition-all shadow-sm hover:shadow-md inline-flex items-center gap-1"
-                                  title="Thanh toán"
-                                >
-                                  <PaymentIcon className="!w-[1rem] !h-[1rem]" />
-                                  Thanh toán
-                                </Link>
-                              )}
-                              {item.status === 'COMPLETED' && (
-                                <Link
-                                  to={`/admin/invoice/${item.appointmentId}`}
-                                  className="px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white text-[0.75rem] font-semibold transition-all shadow-sm hover:shadow-md inline-flex items-center gap-1"
-                                  title="Xem hóa đơn"
-                                >
-                                  <ReceiptIcon className="!w-[1rem] !h-[1rem]" />
-                                  Hóa đơn
-                                </Link>
-                              )}
+                              <HasRole allow={[RoleEnum.ADMIN, RoleEnum.STAFF]}>
+                                {item.status === 'CONFIRMED' && (
+                                  <button
+                                    onClick={() => handleOpenStatusDialog(item)}
+                                    className={`px-3 py-1.5 rounded-md text-white text-[0.75rem] font-semibold transition-all shadow-sm hover:shadow-md ${getApproveButtonColor(item.status)}`}
+                                    title={`Chuyển sang: ${getNextStatusLabel(item.status)}`}
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      <ChangeCircleIcon className="!w-[1rem] !h-[1rem]" />
+                                      {getApproveButtonText(item.status)}
+                                    </span>
+                                  </button>
+                                )}
+                                {item.status === 'PENDING_PAYMENT' && (
+                                  <Link
+                                    to={`/admin/invoice/${item.appointmentId}`}
+                                    className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-[0.75rem] font-semibold transition-all shadow-sm hover:shadow-md inline-flex items-center gap-1"
+                                    title="Thanh toán"
+                                  >
+                                    <PaymentIcon className="!w-[1rem] !h-[1rem]" />
+                                    Thanh toán
+                                  </Link>
+                                )}
+                                {item.status === 'COMPLETED' && (
+                                  <Link
+                                    to={`/admin/invoice/${item.appointmentId}`}
+                                    className="px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white text-[0.75rem] font-semibold transition-all shadow-sm hover:shadow-md inline-flex items-center gap-1"
+                                    title="Xem hóa đơn"
+                                  >
+                                    <ReceiptIcon className="!w-[1rem] !h-[1rem]" />
+                                    Hóa đơn
+                                  </Link>
+                                )}
+                              </HasRole>
                               <Link
                                 to={`/admin/appointment/view/${item.appointmentId}`}
                                 className="text-green-500 w-[2rem] h-[2rem] inline-flex items-center justify-center hover:opacity-80 transition-opacity"

@@ -17,21 +17,16 @@ export const useVehiclePartCategory = () => {
   const search = useCallback(async (params: { page: number; pageSize: number; keyword?: string }) => {
     setLoading(true);
     try {
-      console.log('Searching vehicle part categories with params:', params);
       const response = await vehiclePartCategoryService.search(params);
-      console.log('Vehicle part category search response:', response);
       if (response?.data?.success) {
         const data = response.data.data;
-        console.log('Vehicle part category data:', data);
         setList(data.data);
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
       } else {
-        console.log('Search failed:', response?.data?.message);
         toast.error(response?.data?.message || "Không thể tải danh sách danh mục phụ tùng!");
       }
     } catch (error: any) {
-      console.error('Vehicle part category search error:', error);
       toast.error(error?.response?.data?.message || "Không thể tải danh sách danh mục phụ tùng!");
     } finally {
       setLoading(false);
@@ -42,10 +37,11 @@ export const useVehiclePartCategory = () => {
     setLoading(true);
     try {
       const data = await vehiclePartCategoryService.getAll();
-      setList(Array.isArray(data) ? data : []);
-      return Array.isArray(data) ? data : [];
+      const list = Array.isArray(data) ? data : [];
+      setList(list);
+      return list;
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Không thể tải danh sách danh mục phụ tùng!");
+      // Không có dữ liệu thì trả về [] thay vì hiển thị lỗi
       setList([]);
       return [];
     } finally {

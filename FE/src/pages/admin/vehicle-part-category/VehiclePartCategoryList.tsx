@@ -9,6 +9,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useVehiclePartCategory } from "../../../hooks/useVehiclePartCategory";
 import { FormEmpty } from "../../../components/admin/ui/FormEmpty";
+import HasRole from "../../../components/common/HasRole";
+import { RoleEnum } from "../../../constants/roleConstants";
+import { useAuthContext } from "../../../context/useAuthContext";
 
 const columns = [
   { title: "STT", width: 5 },
@@ -18,6 +21,10 @@ const columns = [
 ];
 
 export const VehiclePartCategoryList = () => {
+  const { user } = useAuthContext();
+  const roles = user?.roleName || [];
+  const canCreate = roles.includes(RoleEnum.ADMIN);
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
   const [keyword, setKeyword] = useState<string>("");
@@ -42,13 +49,25 @@ export const VehiclePartCategoryList = () => {
     setCurrentPage(1);
   }, []);
 
+  const handleSearchChange = useCallback((value: string) => {
+    setKeyword(value);
+    // Tự động search khi xóa hết keyword
+    if (value === "") {
+      setCurrentPage(1);
+    }
+  }, []);
+
   return (
     <div className="max-w-[1320px] px-[12px] mx-auto">
       <Card elevation={0} className="shadow-[0_3px_16px_rgba(142,134,171,0.05)]">
-        <CardHeaderAdmin title="Danh sách danh mục phụ tùng" href={`/admin/vehicle-part-category/create`} content="Tạo danh mục phụ tùng" />
+        <CardHeaderAdmin 
+          title="Danh sách danh mục phụ tùng" 
+          href={canCreate ? `/admin/vehicle-part-category/create` : undefined} 
+          content={canCreate ? "Tạo danh mục phụ tùng" : undefined} 
+        />
 
         <div className="px-[2.4rem] pb-[2.4rem] h-full">
-          <FormSearch onSearch={handleSearch} />
+          <FormSearch onSearch={handleSearch} onChange={handleSearchChange} value={keyword} />
 
           <table className="w-full">
             <thead className="text-[#000000] text-[1.3rem] border-dashed bg-[#f4f6f9]">
@@ -71,14 +90,18 @@ export const VehiclePartCategoryList = () => {
                       <Link to={`/admin/vehicle-part-category/view/${item.vehiclePartCategoryId}`} className="text-green-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80" title="Xem chi tiết">
                         <RemoveRedEyeIcon className="!w-full !h-full" />
                       </Link>
-                      <Link to={`/admin/vehicle-part-category/edit/${item.vehiclePartCategoryId}`} className="text-blue-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80" title="Chỉnh sửa">
-                        <EditIcon className="!w-full !h-full" />
-                      </Link>
-                      <Popconfirm title="Xóa danh mục phụ tùng" description="Bạn chắc chắn xóa danh mục phụ tùng này?" onConfirm={() => handleDelete(item.vehiclePartCategoryId)} okText="Đồng ý" cancelText="Hủy" placement="left">
-                        <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
-                          <DeleteOutlineIcon className="!w-full !h-full" />
-                        </button>
-                      </Popconfirm>
+                      <HasRole allow={RoleEnum.ADMIN}>
+                        <Link to={`/admin/vehicle-part-category/edit/${item.vehiclePartCategoryId}`} className="text-blue-500 w-[2rem] h-[2rem] mr-2 inline-block hover:opacity-80" title="Chỉnh sửa">
+                          <EditIcon className="!w-full !h-full" />
+                        </Link>
+                      </HasRole>
+                      <HasRole allow={RoleEnum.ADMIN}>
+                        <Popconfirm title="Xóa danh mục phụ tùng" description="Bạn chắc chắn xóa danh mục phụ tùng này?" onConfirm={() => handleDelete(item.vehiclePartCategoryId)} okText="Đồng ý" cancelText="Hủy" placement="left">
+                          <button className="text-red-500 w-[2rem] h-[2rem] cursor-pointer hover:opacity-80">
+                            <DeleteOutlineIcon className="!w-full !h-full" />
+                          </button>
+                        </Popconfirm>
+                      </HasRole>
                     </td>
                   </tr>
                 ))

@@ -112,4 +112,5 @@ export interface VehiclePartSearchRequest {
   vehicleTypeId?: string;
   vehiclePartCategoryId?: string;
   status?: VehiclePartStatusEnum;
+  minStock?: boolean;
 }

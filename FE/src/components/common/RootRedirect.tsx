@@ -30,12 +30,14 @@ export const RootRedirect = () => {
   }
 
   // Kiểm tra role và redirect phù hợp
-  const isAdminRole = user.isAdmin || 
-                     user.roleName?.includes('ADMIN') || 
-                     user.roleName?.includes('STAFF') || 
-                     user.roleName?.includes('TECHNICIAN');
+  const isTechnician = user.roleName?.includes('TECHNICIAN');
+  const isStaffOrAdmin = user.isAdmin || user.roleName?.includes('ADMIN') || user.roleName?.includes('STAFF');
 
-  if (isAdminRole) {
+  if (isTechnician) {
+    return <Navigate to="/admin/schedule" replace />;
+  }
+
+  if (isStaffOrAdmin) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 

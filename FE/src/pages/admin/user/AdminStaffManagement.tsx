@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { UserDetailModal } from '../../../components/admin/user/UserDetailModal';
 import { notify } from '../../../components/admin/common/Toast';
 import type { UserResponse } from '../../../types/user.types';
+import HasRole from '../../../components/common/HasRole';
+import { RoleEnum } from '../../../constants/roleConstants';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -220,13 +222,15 @@ export const AdminStaffManagement = () => {
                   >
                     <RemoveRedEyeIcon className="!w-full !h-full" />
                   </button>
-                  <button
-                    onClick={() => handleEdit(user.userId)}
-                    className="text-blue-500 w-[2rem] h-[2rem] inline-block hover:opacity-80"
-                    title="Chỉnh sửa"
-                  >
-                    <EditIcon className="!w-full !h-full" />
-                  </button>
+                  <HasRole allow={RoleEnum.ADMIN}>
+                    <button
+                      onClick={() => handleEdit(user.userId)}
+                      className="text-blue-500 w-[2rem] h-[2rem] inline-block hover:opacity-80"
+                      title="Chỉnh sửa"
+                    >
+                      <EditIcon className="!w-full !h-full" />
+                    </button>
+                  </HasRole>
                 </td>
               </tr>
             ))
@@ -280,13 +284,15 @@ export const AdminStaffManagement = () => {
               <div className="flex-1">
                 <FormSearch onSearch={(value) => setKeywordStaff(value)} />
               </div>
-              <button
-                onClick={() => navigate('/admin/users/create')}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-              >
-                <AddIcon className="!text-[1.8rem]" />
-                Thêm nhân viên
-              </button>
+              <HasRole allow={RoleEnum.ADMIN}>
+                <button
+                  onClick={() => navigate('/admin/users/create')}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  <AddIcon className="!text-[1.8rem]" />
+                  Thêm nhân viên
+                </button>
+              </HasRole>
             </div>
 
             {loading ? (
@@ -337,13 +343,15 @@ export const AdminStaffManagement = () => {
               <div className="flex-1">
                 <FormSearch onSearch={(value) => setKeywordTech(value)} />
               </div>
-              <button
-                onClick={() => navigate('/admin/users/create')}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-              >
-                <AddIcon className="!text-[1.8rem]" />
-                Thêm kỹ thuật viên
-              </button>
+              <HasRole allow={RoleEnum.ADMIN}>
+                <button
+                  onClick={() => navigate('/admin/users/create')}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-[1.3rem] font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  <AddIcon className="!text-[1.8rem]" />
+                  Thêm kỹ thuật viên
+                </button>
+              </HasRole>
             </div>
 
             {loading ? (
