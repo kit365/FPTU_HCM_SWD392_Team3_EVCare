@@ -53,6 +53,7 @@ const ClientHeader = () => {
                         {[
                             { to: "/client", label: "Trang chủ" },
                             { to: "/client/service-booking", label: "Đặt lịch" },
+                            { to: "/client/lookup", label: "Tra cứu" },
                             // Nếu chưa đăng nhập, thêm nút Đăng nhập
                             ...(!user?.userId
                                 ? [{ to: "/client/login", label: "Đăng nhập" }]

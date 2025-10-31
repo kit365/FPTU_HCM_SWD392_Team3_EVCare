@@ -69,16 +69,19 @@ export const ServiceBookingPage: React.FC = () => {
         licensePlate: vehicleData.licensePlate,
         notes: vehicleData.notes || "",
         location: vehicleData.userAddress || "",
+        // Bắt buộc người dùng chọn lại thời gian hẹn
+        dateTime: undefined,
       });
 
-      // Bước 1: Fill mẫu xe
+      // Thứ tự: 1) Mẫu xe -> 2) Dịch vụ -> 3) Loại hình dịch vụ
+      // Bước 1: Mẫu xe
       if (vehicleData.vehicleTypeId) {
         form.setFieldsValue({
           vehicleType: vehicleData.vehicleTypeId,
         });
         setSelectedVehicleTypeId(vehicleData.vehicleTypeId);
         
-        // Bước 2: Load service types cho vehicle type đã chọn (luôn load để user có thể chọn)
+        // Bước 2: Dịch vụ - luôn load để đảm bảo có dữ liệu trước khi set vào form
         try {
           const serviceResponse = await bookingService.getServiceTypesByVehicleId(vehicleData.vehicleTypeId, {
             page: 0,
@@ -88,14 +91,14 @@ export const ServiceBookingPage: React.FC = () => {
           if (serviceResponse.data.success && serviceResponse.data.data.data) {
             setServiceTypes(serviceResponse.data.data.data);
             
-            // Nếu có serviceTypeIds từ vehicle profile, fill vào form
+            // Nếu hồ sơ xe có danh sách dịch vụ thì set sau khi dữ liệu đã sẵn sàng
             if (vehicleData.serviceTypeIds && vehicleData.serviceTypeIds.length > 0) {
               form.setFieldsValue({
                 services: vehicleData.serviceTypeIds,
               });
             }
             
-            // Bước 3: Fill loại hình dịch vụ (nếu có)
+            // Bước 3: Loại hình dịch vụ (nếu có)
             if (vehicleData.serviceMode) {
               form.setFieldsValue({
                 serviceType: vehicleData.serviceMode,
