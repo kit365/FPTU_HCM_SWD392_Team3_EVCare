@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
@@ -14,10 +15,20 @@ public interface VehicleRepository extends JpaRepository<VehicleEntity, UUID> {
     Page<VehicleEntity> findAllByIsDeletedFalse(Pageable pageable);
     Page<VehicleEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
 
+    // Filter by vehicle type
+    Page<VehicleEntity> findAllByVehicleType_VehicleTypeIdAndIsDeletedFalse(UUID vehicleTypeId, Pageable pageable);
+    Page<VehicleEntity> findBySearchContainingIgnoreCaseAndVehicleType_VehicleTypeIdAndIsDeletedFalse(String keyword, UUID vehicleTypeId, Pageable pageable);
+
     boolean existsByVehicleIdAndIsDeletedFalse(UUID isDeleted);
 
     boolean existsByPlateNumberAndIsDeletedFalse(String plateNumber);
 
     boolean existsByVinAndIsDeletedFalse(String vin);
+
+    // Find by user id
+    List<VehicleEntity> findAllByUser_UserIdAndIsDeletedFalse(UUID userId);
+
+    // Count vehicles
+    Long countByIsDeletedFalse();
 
 }

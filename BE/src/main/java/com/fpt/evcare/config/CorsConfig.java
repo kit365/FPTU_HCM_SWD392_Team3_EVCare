@@ -11,7 +11,13 @@ public class CorsConfig implements WebMvcConfigurer {
 
     private static final String[] ALLOWED_ORIGINS = {
             "http://localhost:3000",
-            "http://localhost:5000"
+            "http://localhost:5000",
+            "http://localhost:5173",  // Vite default port
+            "http://localhost:4173",   // Vite preview port
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:4173"
     };
 
     // Define constant array for allowed methods
@@ -31,10 +37,11 @@ public class CorsConfig implements WebMvcConfigurer {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOriginPatterns(ALLOWED_ORIGINS)
+                        .allowedOrigins(ALLOWED_ORIGINS) 
                         .allowedHeaders("*")
                         .allowedMethods(ALLOWED_METHODS)
-                        .allowCredentials(true);
+                        .allowCredentials(true)
+                        .maxAge(3600); 
             }
         };
     }

@@ -30,6 +30,10 @@ const config: Config = {
           body: "#f7f9fb",
         },
       },
+      fontFamily: {
+        secondary: ["Lexend Deca", "sans-serif"],
+        third: ["Roboto", "sans-serif"]
+      },
     },
   },
   plugins: [

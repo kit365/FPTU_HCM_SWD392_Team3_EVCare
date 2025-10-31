@@ -2,17 +2,22 @@ package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.dto.request.user.CreationUserRequest;
+import com.fpt.evcare.dto.request.user.UpdateProfileRequest;
 import com.fpt.evcare.dto.request.user.UpdationUserRequest;
+import com.fpt.evcare.dto.response.EmployeeResponse;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.dto.response.TechnicianResponse;
 import com.fpt.evcare.dto.response.UserResponse;
 import com.fpt.evcare.entity.RoleEntity;
 import com.fpt.evcare.entity.UserEntity;
+import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.UserMapper;
 import com.fpt.evcare.repository.RoleRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.UserService;
+import com.fpt.evcare.utils.UtilFunction;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -48,12 +53,13 @@ public class UserServiceImpl implements UserService {
         }
 
         List<String> roleNames = new ArrayList<>();
-        for(RoleEntity role : user.getRoles()){
-                roleNames.add(role.getRoleName().toString());
+        if (user.getRole() != null) {
+            roleNames.add(user.getRole().getRoleName().toString());
         }
 
         UserResponse response = userMapper.toResponse(user);
         response.setRoleName(roleNames);
+        response.setIsAdmin(isAdminRole(roleNames));
 
         log.info(UserConstants.LOG_SUCCESS_SHOWING_USER);
         return response;
@@ -76,12 +82,11 @@ public class UserServiceImpl implements UserService {
         List<UserResponse> userResponses = usersPage.map(user -> {
             UserResponse response = userMapper.toResponse(user);
             List<String> roleNames = new ArrayList<>();
-            if (user.getRoles() != null) {
-                for (RoleEntity role : user.getRoles()) {
-                    roleNames.add(role.getRoleName().toString());
-                }
+            if (user.getRole() != null) {
+                roleNames.add(user.getRole().getRoleName().toString());
             }
             response.setRoleName(roleNames);
+            response.setIsAdmin(isAdminRole(roleNames));
             return response;
         }).getContent();
 
@@ -93,6 +98,12 @@ public class UserServiceImpl implements UserService {
                 .totalElements(usersPage.getTotalElements())
                 .totalPages(usersPage.getTotalPages())
                 .build();
+    }
+
+    @Override
+    public PageResponse<EmployeeResponse> findAllEmployee(Pageable pageable, String keyword) {
+        return null;
+
     }
 
     @Override
@@ -110,30 +121,74 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserEntity getUserByUsername(String username) {
+        UserEntity userEntity = userRepository.findByUsernameAndIsDeletedFalse(username);
+        if (userEntity == null) {
+            if (log.isErrorEnabled()) {
+                log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, username);
+            }
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER, username);
+        return userEntity;
+    }
+
+    @Override
+    public UserEntity getUserByPhoneNumber(String phoneNumber) {
+        UserEntity userEntity = userRepository.findByNumberPhoneAndIsDeletedFalse(phoneNumber);
+        if (userEntity == null) {
+            if (log.isErrorEnabled()) {
+                log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, phoneNumber);
+            }
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        log.info(UserConstants.LOG_SUCCESS_SHOWING_USER, phoneNumber);
+        return userEntity;
+    }
+
+    @Override
+    public UserResponse getUserByUserInformation(String userInformation) {
+
+        UserEntity user = userRepository.findByUsernameOrEmailOrNumberPhoneAndIsDeletedFalse(userInformation, userInformation, userInformation);
+
+        if (user == null) {
+            if (log.isErrorEnabled()) {
+                log.error(UserConstants.MESSAGE_ERR_USER_NOT_FOUND, userInformation);
+            }
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
     @Transactional
     public boolean createUser(CreationUserRequest creationUserRequest) {
         checkExistCreationUserInput(creationUserRequest);
         UserEntity user = userMapper.toEntity(creationUserRequest);
 
-        List<RoleEntity> roleIdList = new ArrayList<>();
-
+        // Set single role (take first role from list if provided, otherwise default to CUSTOMER)
         if(creationUserRequest.getRoleIds() != null && !creationUserRequest.getRoleIds().isEmpty()){
-            for(UUID roleId : creationUserRequest.getRoleIds()){
-                RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
-                if( roleEntity != null) {
-                    roleIdList.add(roleEntity);
-                }
+            UUID roleId = creationUserRequest.getRoleIds().get(0); // Take first role
+            RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
+            if(roleEntity != null) {
+                user.setRole(roleEntity);
+            }
+        } else {
+            // Default to CUSTOMER role if no role specified
+            RoleEntity customerRole = roleRepository.findByRoleName(RoleEnum.CUSTOMER);
+            if(customerRole != null) {
+                user.setRole(customerRole);
             }
         }
-
-        user.setRoles(roleIdList);
         user.setPassword(passwordEncoder.encode(creationUserRequest.getPassword()));
 
-        String search = concatenateSearchField(
-                creationUserRequest.getFullName(),
+        String search = UtilFunction.concatenateSearchField(creationUserRequest.getFullName(),
                 creationUserRequest.getNumberPhone(),
                 creationUserRequest.getEmail(),
-                creationUserRequest.getUsername()
+                user.getUsername()
         );
         user.setSearch(search);
 
@@ -152,21 +207,21 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
 
-        List<RoleEntity> roleIdList = new ArrayList<>();
-
+        // Set single role (take first role from list if provided)
         if(updationUserRequest.getRoleIds() != null && !updationUserRequest.getRoleIds().isEmpty()){
-            for(UUID roleId : updationUserRequest.getRoleIds()){
-                RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
-                if( roleEntity != null) {
-                    roleIdList.add(roleEntity);
-                }
+            UUID roleId = updationUserRequest.getRoleIds().get(0); // Take first role
+            RoleEntity roleEntity = roleRepository.findRoleByRoleId(roleId);
+            if(roleEntity != null) {
+                user.setRole(roleEntity);
             }
         }
+        
+        // Only update password if provided (not null and not empty)
+        if(updationUserRequest.getPassword() != null && !updationUserRequest.getPassword().trim().isEmpty()){
+            user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
+        }
 
-        user.setUserId(id);
-        user.setRoles(roleIdList);
-        user.setPassword(passwordEncoder.encode(updationUserRequest.getPassword()));
-
+        // Validate email duplication
         if(Objects.equals(user.getEmail(), updationUserRequest.getEmail())){
             user.setEmail(updationUserRequest.getEmail());
         } else {
@@ -177,9 +232,17 @@ public class UserServiceImpl implements UserService {
             user.setEmail(updationUserRequest.getEmail());
         }
 
+        // Validate phone number duplication
+        if(updationUserRequest.getNumberPhone() != null && !updationUserRequest.getNumberPhone().isEmpty()){
+            if(!Objects.equals(user.getNumberPhone(), updationUserRequest.getNumberPhone())){
+                if(userRepository.existsByNumberPhone(updationUserRequest.getNumberPhone())){
+                    log.error(UserConstants.LOG_ERR_DUPLICATED_USER_PHONE, "Phone: " + updationUserRequest.getNumberPhone());
+                    throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+                }
+            }
+        }
 
-        String search = concatenateSearchField(
-                updationUserRequest.getFullName(),
+        String search = UtilFunction.concatenateSearchField(updationUserRequest.getFullName(),
                 updationUserRequest.getNumberPhone(),
                 updationUserRequest.getEmail(),
                 user.getUsername()
@@ -225,14 +288,47 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
-    //Ghép các chuỗi lại phục vụ cho việc tìm kiếm dễ hơn (thay vì phải chia các câu truy vấn khi search như WHERE user.email = ..., user.fullName = ...)
-    private String concatenateSearchField(String fullName, String numberPhone, String email, String username) {
-        return String.join("-",
-                fullName != null ? fullName : "",
-                numberPhone != null ? numberPhone : "",
-                email != null ? email : "",
-                username != null ? username : ""
-        );
+    @Override
+    public List<TechnicianResponse> getTechnicians() {
+        log.info("Getting technicians list");
+        List<UserEntity> technicians = userRepository.findTechnicians();
+
+        return technicians.stream()
+                .map(technician -> TechnicianResponse.builder()
+                        .userId(technician.getUserId())
+                        .fullName(technician.getFullName())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public List<UserResponse> getUsersByRole(String roleName) {
+        try {
+            com.fpt.evcare.enums.RoleEnum roleEnum = com.fpt.evcare.enums.RoleEnum.valueOf(roleName.toUpperCase());
+            List<UserEntity> users = userRepository.findByRoleNameAndIsDeletedFalse(roleEnum);
+
+            if (users.isEmpty()) {
+                log.warn("No users found for role: {}", roleName);
+                return new ArrayList<>();
+            }
+
+            List<UserResponse> userResponses = new ArrayList<>();
+            for (UserEntity user : users) {
+                UserResponse response = userMapper.toResponse(user);
+                List<String> roleNames = new ArrayList<>();
+                if (user.getRole() != null) {
+                    roleNames.add(user.getRole().getRoleName().toString());
+                }
+                response.setRoleName(roleNames);
+                userResponses.add(response);
+            }
+
+            log.info("Found {} users for role: {}", userResponses.size(), roleName);
+            return userResponses;
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid role name: {}", roleName);
+            throw new ResourceNotFoundException("Vai trò không hợp lệ: " + roleName);
+        }
     }
 
     private void checkExistCreationUserInput(CreationUserRequest creationUserRequest) {
@@ -243,6 +339,73 @@ public class UserServiceImpl implements UserService {
             if(creationUserRequest.getEmail() != null && userRepository.existsByEmail(creationUserRequest.getEmail())){
                     errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
             }
+            if(creationUserRequest.getNumberPhone() != null && !creationUserRequest.getNumberPhone().isEmpty() 
+                    && userRepository.existsByNumberPhone(creationUserRequest.getNumberPhone())){
+                    errors.add(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+            }
             if(!errors.isEmpty()) throw new UserValidationException(String.join(", ", errors));
+    }
+
+    private boolean isAdminRole(List<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return false;
+        }
+        return roleNames.stream().anyMatch(role -> !role.equals("CUSTOMER"));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateProfile(UUID userId, UpdateProfileRequest updateProfileRequest) {
+        // Find user
+        UserEntity user = userRepository.findByUserIdAndIsDeletedFalse(userId);
+        if (user == null) {
+            log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND, userId);
+            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+        }
+
+        // Check for duplicate email (if changing)
+        if (updateProfileRequest.getEmail() != null && !updateProfileRequest.getEmail().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(updateProfileRequest.getEmail())) {
+                throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_EMAIL);
+            }
+            user.setEmail(updateProfileRequest.getEmail());
+        }
+
+        // Check for duplicate phone (if changing)
+        if (updateProfileRequest.getNumberPhone() != null && !updateProfileRequest.getNumberPhone().isEmpty()
+                && !updateProfileRequest.getNumberPhone().equals(user.getNumberPhone())) {
+            if (userRepository.existsByNumberPhone(updateProfileRequest.getNumberPhone())) {
+                throw new UserValidationException(UserConstants.MESSAGE_ERR_DUPLICATED_USER_PHONE);
+            }
+            user.setNumberPhone(updateProfileRequest.getNumberPhone());
+        }
+
+        // Update other fields
+        if (updateProfileRequest.getFullName() != null) {
+            user.setFullName(updateProfileRequest.getFullName());
+        }
+        if (updateProfileRequest.getAddress() != null) {
+            user.setAddress(updateProfileRequest.getAddress());
+        }
+        if (updateProfileRequest.getAvatarUrl() != null) {
+            user.setAvatarUrl(updateProfileRequest.getAvatarUrl());
+        }
+
+
+
+        // Save and return
+        UserEntity updatedUser = userRepository.save(user);
+
+        List<String> roleNames = new ArrayList<>();
+        if (updatedUser.getRole() != null) {
+            roleNames.add(updatedUser.getRole().getRoleName().toString());
+        }
+
+        UserResponse response = userMapper.toResponse(updatedUser);
+        response.setRoleName(roleNames);
+        response.setIsAdmin(isAdminRole(roleNames));
+
+        log.info("✅ Updated profile for user: {}", userId);
+        return response;
     }
 }

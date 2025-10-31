@@ -14,6 +14,7 @@ public interface ServiceTypeVehiclePartMapper {
     @Mapping(target = "serviceTypeVehiclePartId", ignore = true)
     @Mapping(target = "serviceType", ignore = true)
     @Mapping(target = "vehiclePart", ignore = true)
+    @Mapping(target = "requiredQuantity", ignore = true)
     ServiceTypeVehiclePartEntity toEntity(CreationServiceTypeVehiclePartRequest creationServiceTypeVehiclePartRequest);
 
     @Mapping(target = "serviceType", ignore = true)
@@ -23,5 +24,6 @@ public interface ServiceTypeVehiclePartMapper {
     @Mapping(target = "serviceTypeVehiclePartId", ignore = true)
     @Mapping(target = "serviceType", ignore = true)
     @Mapping(target = "vehiclePart", ignore = true)
+    @Mapping(target = "requiredQuantity", ignore = true)
     void toUpdate(@MappingTarget ServiceTypeVehiclePartEntity serviceTypeVehiclePartEntity, UpdationServiceTypeVehiclePartRequest updationServiceTypeVehiclePartRequest);
 }

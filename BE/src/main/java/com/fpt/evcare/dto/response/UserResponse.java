@@ -19,7 +19,7 @@ public class UserResponse implements Serializable {
 
     UUID userId;
 
-    private List<String> roleName;
+    transient List<String> roleName;
 
     String username;
 
@@ -33,14 +33,18 @@ public class UserResponse implements Serializable {
 
     String avatarUrl;
 
+    String provider;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String technicianSkills;
 
-    boolean isActive;
+    Boolean isActive;
 
     String lastLogin;
 
     Boolean isDeleted;
+
+    Boolean isAdmin;
 
     LocalDateTime createdAt;
 

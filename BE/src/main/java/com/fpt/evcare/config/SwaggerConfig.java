@@ -1,9 +1,12 @@
 package com.fpt.evcare.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -35,6 +38,10 @@ public class SwaggerConfig {
 
     private static final String LICENSE_NAME = "MIT License";
     private static final String LICENSE_URL = "https://opensource.org/licenses/MIT";
+    
+    private static final String SECURITY_SCHEME_NAME = "Bearer Authentication";
+    private static final String BEARER_FORMAT = "JWT";
+    private static final String SCHEME = "bearer";
 
     // ========== Bean ==========
     @Bean
@@ -60,7 +67,27 @@ public class SwaggerConfig {
         if (mockMode) {
             return new OpenAPI().info(new Info().title("Mock API"));
         } else {
-            return new OpenAPI().info(info);
+            // Tạo Security Scheme cho JWT Bearer token
+            SecurityScheme securityScheme = new SecurityScheme()
+                    .name(SECURITY_SCHEME_NAME)
+                    .type(SecurityScheme.Type.HTTP)
+                    .scheme(SCHEME)
+                    .bearerFormat(BEARER_FORMAT)
+                    .in(SecurityScheme.In.HEADER)
+                    .description("Nhập JWT token để authenticate. Ví dụ: Bearer eyJhbGci...");
+
+            // Tạo Security Requirement
+            SecurityRequirement securityRequirement = new SecurityRequirement()
+                    .addList(SECURITY_SCHEME_NAME);
+
+            // Tạo Components với Security Scheme
+            Components components = new Components()
+                    .addSecuritySchemes(SECURITY_SCHEME_NAME, securityScheme);
+
+            return new OpenAPI()
+                    .info(info)
+                    .components(components)
+                    .addSecurityItem(securityRequirement);
         }
     }
 

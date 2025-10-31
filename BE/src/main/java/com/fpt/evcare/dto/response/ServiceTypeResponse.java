@@ -23,10 +23,14 @@ public class ServiceTypeResponse implements Serializable {
     String serviceName;
 
     String description;
+    
+    Integer estimatedDurationMinutes; 
 
     UUID parentId;
 
-    boolean isActive;
+    VehicleTypeResponse vehicleTypeResponse;
+
+    Boolean isActive;
 
     Boolean isDeleted;
 
@@ -38,5 +42,9 @@ public class ServiceTypeResponse implements Serializable {
 
     String updatedBy;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     transient List<ServiceTypeResponse> children; // Thêm danh sách con
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    transient List<ServiceTypeVehiclePartResponse> serviceTypeVehiclePartResponses;
 }

@@ -1,13 +1,17 @@
+
 import { pathAdmin } from "./paths.constant";
-import { HomeSimple, JournalPage, Group } from "iconoir-react";
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-
+import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase, UserCircle, UserScan, Calendar, Tools } from "iconoir-react";
 export interface AdminMenuItem {
-    href: string
+    href?: string
     label: string
-    icon: React.ElementType
+    icon?: React.ElementType
+    children?: AdminMenuItem[]
+    roleBasedHref?: {
+        TECHNICIAN?: string
+        ADMIN?: string
+        STAFF?: string
+    }
 }
-
 export const adminMenuItems: AdminMenuItem[] = [
     {
         href: `/${pathAdmin}/dashboard`,
@@ -15,18 +19,85 @@ export const adminMenuItems: AdminMenuItem[] = [
         icon: HomeSimple,
     },
     {
-        href: `/${pathAdmin}/staff`,
-        label: "Nhân viên",
-        icon: Group,
-    },
-    {
-        href: `/${pathAdmin}/file-manager`,
-        label: "Quản lý file",
-        icon: JournalPage,
+        label: "Quản lý",
+        icon: UserCircle,
+        children: [
+            {
+                href: `/${pathAdmin}/users/customers`,
+                label: "Quản lý khách hàng",
+                icon: UserScan
+            },
+            {
+                href: `/${pathAdmin}/users/staff`,
+                label: "Quản lý nhân viên & kĩ thuật viên",
+                icon: UserBadgeCheck
+            },
+        ],
     },
     {
         href: `/${pathAdmin}/vehicle`,
-        label: "Quản lý mẫu xe",
-        icon: DirectionsCarIcon,
+        label: "Mẫu xe",
+        icon: Car,
+    },
+    {
+        href: `/${pathAdmin}/vehicle-profile`,
+        label: "Hồ sơ xe người dùng",
+        icon: UserBadgeCheck,
+    },
+    {
+        label: "Phụ tùng",
+        icon: Codepen,
+        children: [
+            {
+                href: `/${pathAdmin}/vehicle-part-category`,
+                label: "Danh mục phụ tùng",
+                icon: Menu
+            },
+            {
+                href: `/${pathAdmin}/vehicle-part`,
+                label: "Phụ tùng xe",
+                icon: Erase
+            },
+        ],
+    },
+    {
+        href: `/${pathAdmin}/appointment-manage`,
+        label: "Quản lý lịch hẹn",
+        icon: DownloadDataWindow,
+    },
+    {
+        label: "Ca làm",
+        icon: Calendar,
+        roleBasedHref: {
+            TECHNICIAN: `/${pathAdmin}/schedule`,
+            ADMIN: `/${pathAdmin}/shift`,
+            STAFF: `/${pathAdmin}/shift`,
+        }
+    },
+    // {
+    //     href: `/${pathAdmin}/my-maintenance`,
+    //     label: "Công việc bảo dưỡng",
+    //     icon: Tools,
+    // },
+    // {
+    //     href: `/${pathAdmin}/warranty`,
+    //     label: "Bảo hành",
+    //     icon: Codepen,
+    // },
+    {
+        label: "Tin nhắn",
+        icon: Group,
+        children: [
+            {
+                href: `/${pathAdmin}/message`,
+                label: "Chat với khách hàng",
+                icon: Group
+            },
+            {
+                href: `/${pathAdmin}/message-assignments`,
+                label: "Phân công chat",
+                icon: UserCircle
+            }
+        ]
     },
 ]

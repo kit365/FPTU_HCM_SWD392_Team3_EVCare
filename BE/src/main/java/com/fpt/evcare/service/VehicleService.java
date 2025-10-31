@@ -6,15 +6,17 @@ import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.VehicleResponse;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface VehicleService {
     VehicleResponse getVehicleById(UUID vehicleId);
-    PageResponse<VehicleResponse> searchVehicle(String keyword, Pageable pageable);
+    PageResponse<VehicleResponse> searchVehicle(String keyword, UUID vehicleTypeId, Pageable pageable);
     VehicleResponse addVehicle(CreationVehicleRequest vehicleRequest);
     VehicleResponse updateVehicle(UUID vehicleId, UpdationVehicleRequest vehicleRequest);
     void deleteVehicle(UUID vehicleId);
     void restoreVehicle(UUID vehicleId);
+    List<VehicleResponse> getVehiclesByUserId(UUID userId);
 
 
 

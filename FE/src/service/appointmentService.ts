@@ -1,0 +1,54 @@
+import { apiClient } from './api';
+import type {
+  AppointmentResponse,
+  AppointmentSearchRequest,
+  AppointmentApiResponse,
+  AppointmentListApiResponse
+} from '../types/appointment.types';
+
+// Appointment Service
+export const appointmentService = {
+  // Search with pagination and filters - GET /api/v1/appointment/
+  search: async (params: AppointmentSearchRequest) => {
+    const queryParams = new URLSearchParams({
+      page: String(params.page),
+      pageSize: String(params.pageSize),
+      ...(params.keyword ? { keyword: params.keyword } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.serviceMode ? { serviceMode: params.serviceMode } : {}),
+      ...(params.fromDate ? { fromDate: params.fromDate } : {}),
+      ...(params.toDate ? { toDate: params.toDate } : {}),
+    }).toString();
+    
+    const response = await apiClient.get<AppointmentListApiResponse>(
+      `/appointment/?${queryParams}`
+    );
+    console.log("GET APPOINTMENTS RESPONSE:", response);
+    return response;
+  },
+
+  // Get by id - GET /api/v1/appointment/{id}
+  getById: async (id: string): Promise<AppointmentResponse> => {
+    const response = await apiClient.get<AppointmentApiResponse>(
+      `/appointment/${id}`
+    );
+    console.log("GET APPOINTMENT BY ID RESPONSE:", response);
+    return response.data.data;
+  },
+
+  // Update status - PATCH /api/v1/appointment/status/{id}
+  updateStatus: async (id: string, status: string) => {
+    const response = await apiClient.patch(
+      `/appointment/status/${id}`,
+      status,
+      {
+        headers: {
+          'Content-Type': 'text/plain'
+        }
+      }
+    );
+    console.log("UPDATE APPOINTMENT STATUS RESPONSE:", response);
+    return response.data;
+  }
+};
+

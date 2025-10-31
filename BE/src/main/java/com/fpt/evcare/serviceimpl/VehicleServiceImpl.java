@@ -2,11 +2,9 @@ package com.fpt.evcare.serviceimpl;
 
 import com.fpt.evcare.constants.UserConstants;
 import com.fpt.evcare.constants.VehicleConstants;
-import com.fpt.evcare.constants.VehiclePartCategoryConstants;
 import com.fpt.evcare.dto.request.vehicle.CreationVehicleRequest;
 import com.fpt.evcare.dto.request.vehicle.UpdationVehicleRequest;
 import com.fpt.evcare.dto.response.PageResponse;
-import com.fpt.evcare.dto.response.VehiclePartCategoryResponse;
 import com.fpt.evcare.dto.response.VehicleResponse;
 import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.entity.VehicleEntity;
@@ -53,23 +51,40 @@ public class VehicleServiceImpl implements VehicleService {
 
     @Override
     @Transactional
-    public PageResponse<VehicleResponse> searchVehicle(String keyword, Pageable pageable) {
+    public PageResponse<VehicleResponse> searchVehicle(String keyword, UUID vehicleTypeId, Pageable pageable) {
         Page<VehicleEntity> vehicleEntityPage;
-        if(keyword == null){
+        
+        // Case 1: Cả keyword và vehicleTypeId đều null
+        if (keyword == null && vehicleTypeId == null) {
             vehicleEntityPage = vehicleRepository.findAllByIsDeletedFalse(pageable);
         }
-         else {
+        // Case 2: Chỉ có vehicleTypeId, không có keyword
+        else if (keyword == null && vehicleTypeId != null) {
+            vehicleEntityPage = vehicleRepository.findAllByVehicleType_VehicleTypeIdAndIsDeletedFalse(vehicleTypeId, pageable);
+        }
+        // Case 3: Chỉ có keyword, không có vehicleTypeId
+        else if (keyword != null && vehicleTypeId == null) {
             vehicleEntityPage = vehicleRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
         }
+        // Case 4: Có cả keyword và vehicleTypeId
+        else {
+            vehicleEntityPage = vehicleRepository.findBySearchContainingIgnoreCaseAndVehicleType_VehicleTypeIdAndIsDeletedFalse(keyword, vehicleTypeId, pageable);
+        }
+        
         if (vehicleEntityPage.isEmpty()) {
             log.warn(VehicleConstants.MESSAGE_ERR_VEHICLE_NOT_FOUND);
-            throw new ResourceNotFoundException(VehicleConstants.MESSAGE_ERR_VEHICLE_NOT_FOUND);
+            // Return empty page instead of throwing exception
+            return PageResponse.<VehicleResponse>builder()
+                    .data(List.of())
+                    .page(0)
+                    .totalElements(0L)
+                    .totalPages(0)
+                    .build();
         }
 
         List<VehicleResponse> vehicleResponseList = vehicleEntityPage.map(vehicleMapper::toVehicleResponse).getContent();
 
-
-        log.info(VehiclePartCategoryConstants.LOG_INFO_SHOWING_VEHICLE_PART_CATEGORY_LIST, keyword);
+        log.info("Searching vehicles with keyword: {}, vehicleTypeId: {}", keyword, vehicleTypeId);
         return PageResponse.<VehicleResponse>builder()
                 .data(vehicleResponseList)
                 .page(vehicleEntityPage.getNumber())
@@ -78,11 +93,14 @@ public class VehicleServiceImpl implements VehicleService {
                 .build();
     }
 
-    private String concatenateSearchField(String plateNumber, String vin) {
-        return String.join("-",
-                plateNumber != null ? plateNumber : "",
-                vin != null ? vin : ""
-        );
+    private String concatenateSearchField(String plateNumber, String vin, String fullName, String email, String phone) {
+        return String.join(" ",
+                plateNumber != null ? plateNumber.toLowerCase() : "",
+                vin != null ? vin.toLowerCase() : "",
+                fullName != null ? fullName.toLowerCase() : "",
+                email != null ? email.toLowerCase() : "",
+                phone != null ? phone.toLowerCase() : ""
+        ).trim();
     }
 
     @Override
@@ -98,7 +116,13 @@ public class VehicleServiceImpl implements VehicleService {
         VehicleTypeEntity type = vehicleTypeRepository.findById(request.getVehicleTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(VehicleConstants.MESSAGE_ERROR_NOT_FOUND));
 
-        String search = concatenateSearchField(request.getPlateNumber(), request.getVin());
+        String search = concatenateSearchField(
+                request.getPlateNumber(),
+                request.getVin(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getNumberPhone()
+        );
         VehicleEntity vehicle = new VehicleEntity();
         vehicle.setUser(user);
         vehicle.setVehicleType(type);
@@ -175,17 +199,20 @@ public class VehicleServiceImpl implements VehicleService {
         if (vehicleRequest.getNotes() != null) {
             vehicleEntity.setNotes(vehicleRequest.getNotes());
         }
-        if(vehicleRequest.getPlateNumber() != null || vehicleRequest.getVin() != null){
+        
+        // Rebuild search field if any related field changed
+        if(vehicleRequest.getPlateNumber() != null || 
+           vehicleRequest.getVin() != null || 
+           vehicleRequest.getUserId() != null){
             String search = concatenateSearchField(
                     vehicleEntity.getPlateNumber(),
-                    vehicleEntity.getVin()
+                    vehicleEntity.getVin(),
+                    vehicleEntity.getUser().getFullName(),
+                    vehicleEntity.getUser().getEmail(),
+                    vehicleEntity.getUser().getNumberPhone()
             );
             vehicleEntity.setSearch(search);
         }
-
-        vehicleEntity.setSearch(
-                (vehicleEntity.getPlateNumber() + " " + vehicleEntity.getVin() + " " + vehicleEntity.getUser().getFullName()).toLowerCase()
-        );
 
         VehicleEntity updatedVehicle = vehicleRepository.save(vehicleEntity);
         return vehicleMapper.toVehicleResponse(updatedVehicle);
@@ -213,5 +240,26 @@ public class VehicleServiceImpl implements VehicleService {
         vehicleRepository.save(vehicleEntity);
     }
 
+    @Override
+    @Transactional
+    public List<VehicleResponse> getVehiclesByUserId(UUID userId) {
+        // Kiểm tra user có tồn tại không
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_EXIST));
+
+        List<VehicleEntity> vehicleEntityList = vehicleRepository.findAllByUser_UserIdAndIsDeletedFalse(userId);
+
+        if (vehicleEntityList.isEmpty()) {
+            log.warn("No vehicles found for user id: {}", userId);
+            return List.of();
+        }
+
+        log.info("Found {} vehicles for user id: {}", vehicleEntityList.size(), userId);
+        return vehicleEntityList.stream()
+                .map(vehicleMapper::toVehicleResponse)
+                .toList();
+    }
+
 
 }
+

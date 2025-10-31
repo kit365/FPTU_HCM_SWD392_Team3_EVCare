@@ -25,13 +25,9 @@ public class UserEntity extends BaseEntity {
     @Column(name = "id")
     UUID userId;
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_role",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name ="role_id")
-    )
-    List<RoleEntity> roles = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    RoleEntity role;
 
     @Column(name = "username", unique = true, nullable = false)
     String username;
@@ -62,4 +58,19 @@ public class UserEntity extends BaseEntity {
 
     @Column(name = "provider")
     String provider;
+
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+    List<AppointmentEntity> appointmentsCustomer;
+
+    @ManyToMany(mappedBy = "technicianEntities")
+    List<AppointmentEntity> appointmentsTechnician = new ArrayList<>();
+
+    @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
+    List<AppointmentEntity> appointmentsAssignee;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    List<EmployeeProfileEntity> employeeProfiles;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    List<com.fpt.evcare.entity.PaymentMethodEntity> paymentMethods;
 }

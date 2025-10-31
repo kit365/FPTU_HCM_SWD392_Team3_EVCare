@@ -8,6 +8,7 @@ import com.fpt.evcare.dto.request.ResetPasswordRequest;
 import com.fpt.evcare.dto.request.VerifyOtpRequest;
 import com.fpt.evcare.dto.response.VerifyOtpResponse;
 import com.fpt.evcare.service.ForgotPasswordService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,6 +26,7 @@ public class ForgotPasswordController {
     ForgotPasswordService forgotPasswordService;
 
     @PostMapping(ForgotPasswordConstants.REQUEST_OTP)
+    @Operation(summary = "Yêu cầu OTP để đặt lại mật khẩu", description = "🔓 **Public** - Gửi OTP qua email để xác thực quên mật khẩu")
     public ResponseEntity<ApiResponse<String>> requestOtp(@Valid @RequestBody RequestOtpRequest request) {
         forgotPasswordService.requestOtp(request.getEmail());
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -35,6 +37,7 @@ public class ForgotPasswordController {
 
 
     @PostMapping(ForgotPasswordConstants.VERIFY_OTP)
+    @Operation(summary = "Xác thực OTP", description = "🔓 **Public** - Xác thực mã OTP đã gửi qua email và trả về token tạm thời để đặt lại mật khẩu")
     public ResponseEntity<ApiResponse<VerifyOtpResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         VerifyOtpResponse response = forgotPasswordService.verifyOtp(request.getEmail(), request.getOtp());
         log.info(response.toString());
@@ -47,6 +50,7 @@ public class ForgotPasswordController {
 
 
     @PostMapping(ForgotPasswordConstants.RESET_PASSWORD)
+    @Operation(summary = "Đặt lại mật khẩu", description = "🔓 **Public** - Đặt lại mật khẩu mới sau khi xác thực OTP thành công")
     public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         forgotPasswordService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.<String>builder()

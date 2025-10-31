@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -24,7 +25,9 @@ public class VehiclePartCategoryResponse implements Serializable {
 
     String description;
 
-    Integer averageLifespan;
+    List<VehiclePartSimpleResponse> vehicleParts;
+
+    Boolean isDeleted;
 
     Boolean isActive;
 

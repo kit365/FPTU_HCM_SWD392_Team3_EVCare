@@ -5,12 +5,12 @@ import com.fpt.evcare.dto.request.vehicle_type.CreationVehicleTypeRequest;
 import com.fpt.evcare.dto.request.vehicle_type.UpdationVehicleTypeRequest;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.VehicleTypeResponse;
-import com.fpt.evcare.entity.VehiclePartEntity;
 import com.fpt.evcare.entity.VehicleTypeEntity;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.VehicleTypeValidationException;
 import com.fpt.evcare.mapper.VehicleTypeMapper;
 import com.fpt.evcare.repository.VehicleTypeRepository;
+import com.fpt.evcare.service.ServiceTypeVehiclePartService;
 import com.fpt.evcare.service.VehicleTypeService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -21,9 +21,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @AllArgsConstructor
@@ -33,6 +35,39 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
 
     VehicleTypeRepository vehicleTypeRepository;
     VehicleTypeMapper vehicleTypeMapper;
+
+    // Hàm lấy tên và id của loại xe
+    @Override
+    public List<VehicleTypeResponse> getVehicleTypeNameList(){
+        List<VehicleTypeEntity> vehicleTypeEntities = vehicleTypeRepository.findByIsDeletedFalse();
+
+        return vehicleTypeEntities.stream().map(vehicleTypeEntity -> {
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            vehicleTypeResponse.setVehicleTypeId(vehicleTypeEntity.getVehicleTypeId());
+            vehicleTypeResponse.setVehicleTypeName(vehicleTypeEntity.getVehicleTypeName());
+
+            return vehicleTypeResponse;
+        }).collect(Collectors.toList());
+    }
+
+    // Hàm show menu cho loại dịch vụ
+    @Override
+    public List<VehicleTypeResponse> getVehicleTypeNameListForServiceType(){
+        List<VehicleTypeEntity> vehicleTypeEntities = vehicleTypeRepository.findByIsDeletedFalse();
+        if(vehicleTypeEntities == null){
+            log.warn(VehicleTypeConstants.LOG_ERR_VEHICLE_TYPE_LIST_NOT_FOUND);
+            throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_LIST_NOT_FOUND);
+        }
+
+        return vehicleTypeEntities.stream().map(vehicleTypeEntity -> {
+            VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+            vehicleTypeResponse.setVehicleTypeId(vehicleTypeEntity.getVehicleTypeId());
+            String vehicleTypeName = VehicleTypeConstants.PREFIX_SERVICE_NAME + vehicleTypeEntity.getVehicleTypeName();
+            vehicleTypeResponse.setVehicleTypeName(vehicleTypeName);
+
+            return vehicleTypeResponse;
+        }).collect(Collectors.toList());
+    }
 
     @Override
     public VehicleTypeResponse getVehicleTypeById(UUID uuid) {
@@ -116,6 +151,7 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
             log.warn(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
             throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
         }
+
         existedVehicleType.setIsDeleted(true);
 
         log.info(VehicleTypeConstants.LOG_SUCCESS_DELETING_VEHICLE_TYPE);

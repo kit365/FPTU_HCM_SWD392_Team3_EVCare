@@ -1,11 +1,14 @@
 package com.fpt.evcare.exception;
 
 import com.fpt.evcare.base.ApiResponse;
+import com.fpt.evcare.constants.VehiclePartConstants;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,20 +20,40 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
-        if (log.isErrorEnabled()) {
-            log.error("An unexpected error occurred: {}", ex.getMessage());
+    // ============================
+    // Security & Authorization Exceptions
+    // ============================
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthorizationDeniedException(AuthorizationDeniedException ex) {
+        if (log.isWarnEnabled()) {
+            log.warn("Access denied: {}", ex.getMessage());
         }
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message("Lỗi hệ thống, vui lòng thử lại sau")
+                        .message("Không được phép truy cập")
                         .build()
                 );
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
+        if (log.isWarnEnabled()) {
+            log.warn("Access denied: {}", ex.getMessage());
+        }
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message("Không được phép truy cập")
+                        .build()
+                );
+    }
+
+    // ============================
+    // Validation & Argument Exceptions
+    // ============================
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         if (log.isInfoEnabled()) {
@@ -45,7 +68,9 @@ public class GlobalExceptionHandler {
                 );
     }
 
-
+    // ============================
+    // Resource & Authentication Exceptions
+    // ============================
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         if (log.isInfoEnabled()) {
@@ -73,6 +98,8 @@ public class GlobalExceptionHandler {
                         .build()
                 );
     }
+
+
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ApiResponse<Void>> handleLockedException(LockedException ex) {
@@ -118,6 +145,9 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    // ============================
+    // State & Operational Exceptions
+    // ============================
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Void>> handleOtpExpiredException(IllegalStateException ex) {
         if (log.isInfoEnabled()) {
@@ -170,10 +200,13 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(UserValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
+    // ============================
+    // Business Validation Exceptions
+    // ============================
+    @ExceptionHandler(EntityValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleEntityValidationException(EntityValidationException ex) {
         if (log.isErrorEnabled()) {
-            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
+            log.error("EntityValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity
@@ -185,10 +218,25 @@ public class GlobalExceptionHandler {
                 );
     }
 
-    @ExceptionHandler(ServiceTypeValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleServiceTypeValidationException(ServiceTypeValidationException ex) {
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLockException(OptimisticLockException ex) {
+        if (log.isWarnEnabled()) {
+            log.warn("OptimisticLockException caught: {}", ex.getMessage());
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(VehiclePartConstants.MESSAGE_ERR_CONCURRENT_UPDATE)
+                        .build()
+                );
+    }
+
+    @ExceptionHandler(UserValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserValidationException(UserValidationException ex) {
         if (log.isErrorEnabled()) {
-            log.error("ServiceTypeValidationException caught: {}", ex.getMessage(), ex);
+            log.error("UserValidationException caught: {}", ex.getMessage(), ex);
         }
 
         return ResponseEntity
@@ -245,6 +293,21 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(AppointmentValidationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAppointmentValidationException(AppointmentValidationException ex) {
+        if (log.isErrorEnabled()) {
+            log.error("AppointmentValidationException caught: {}", ex.getMessage(), ex);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build()
+                );
+    }
+
     @ExceptionHandler(JWTInitializationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJWTInitializationException(JWTInitializationException ex) {
         if (log.isErrorEnabled()) {
@@ -260,6 +323,21 @@ public class GlobalExceptionHandler {
                 );
     }
 
-
+    // ============================
+    // General Exception Handler (Fallback)
+    // ============================
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
+        if (log.isErrorEnabled()) {
+            log.error("An unexpected error occurred: {}", ex.getMessage());
+        }
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message("Lỗi hệ thống, vui lòng thử lại sau")
+                        .build()
+                );
+    }
 
 }

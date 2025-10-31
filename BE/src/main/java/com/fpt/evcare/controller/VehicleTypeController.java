@@ -16,8 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,10 +31,38 @@ public class VehicleTypeController {
 
     VehicleTypeService vehicleTypeService;
 
-    @Operation(summary = "Lấy thông tin loại xe theo ID")
+    @Operation(summary = "Lấy danh sách tên loại xe", description = "🔐 **Roles:** Authenticated (All roles) - Sử dụng để làm dropdown lấy loại xe")
+    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameList() {
+        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameList();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
+                .success(true)
+                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_LIST)
+                .data(vehicleTypeResponses)
+                .build()
+        );
+    }
+
+    @Operation(summary = "Lấy danh sách tên loại xe cho danh sách dịch vụ", description = "🔐 **Roles:** Authenticated (All roles) - Sử dụng để dropdown cho danh sách dịch vụ của trang admin")
+    @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST_FOR_SERVICE_TYPE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameListForServiceType() {
+        List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameListForServiceType();
+
+        return ResponseEntity.ok(ApiResponse.<List<VehicleTypeResponse>>builder()
+                .success(true)
+                .message(VehicleTypeConstants.MESSAGE_SUCCESS_SHOWING_VEHICLE_TYPE_NAME_FOR_SERVICE_TYPE_LIST)
+                .data(vehicleTypeResponses)
+                .build()
+        );
+    }
+
+    @Operation(summary = "Lấy thông tin loại xe theo ID", description = "🔐 **Roles:** Authenticated (All roles)")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<VehicleTypeResponse>> getVehicleType(@PathVariable UUID id) {
-        log.info(VehicleTypeConstants.LOG_SUCCESS_SHOWING_VEHICLE_TYPE, id);
         VehicleTypeResponse response = vehicleTypeService.getVehicleTypeById(id);
 
         return ResponseEntity.ok(ApiResponse.<VehicleTypeResponse>builder()
@@ -43,14 +73,13 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Tìm kiếm loại xe")
+    @Operation(summary = "Tìm kiếm loại xe", description = "🔐 **Roles:** Authenticated (All roles)")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_LIST)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<VehicleTypeResponse>>> searchVehicleType(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
             @Nullable @RequestParam(name = "keyword") String keyword) {
-
-        log.info(VehicleTypeConstants.LOG_SUCCESS_SHOWING_VEHICLE_TYPE_LIST, keyword);
 
         Pageable pageable = PageRequest.of(page, pageSize);
         PageResponse<VehicleTypeResponse> response = vehicleTypeService.searchVehicleTypes(keyword, pageable);
@@ -63,11 +92,11 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Tạo mới loại xe")
+    @Operation(summary = "Tạo mới loại xe", description = "👑 **Roles:** ADMIN only")
     @PostMapping(VehicleTypeConstants.VEHICLE_TYPE_CREATION)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> createVehicleType(@Valid @RequestBody CreationVehicleTypeRequest request) {
 
-        log.info(VehicleTypeConstants.LOG_SUCCESS_CREATING_VEHICLE_TYPE, request);
         boolean result = vehicleTypeService.addVehicleType(request);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -77,11 +106,11 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Cập nhật loại xe")
+    @Operation(summary = "Cập nhật loại xe", description = "👑 **Roles:** ADMIN only")
     @PatchMapping(VehicleTypeConstants.VEHICLE_TYPE_UPDATE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> updateVehicleType(@PathVariable UUID id, @Valid @RequestBody UpdationVehicleTypeRequest request) {
 
-        log.info(VehicleTypeConstants.LOG_SUCCESS_UPDATING_VEHICLE_TYPE, id);
         boolean result = vehicleTypeService.updateVehicleType(id, request);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -91,10 +120,10 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Xóa loại xe")
+    @Operation(summary = "Xóa loại xe", description = "👑 **Roles:** ADMIN only")
     @DeleteMapping(VehicleTypeConstants.VEHICLE_TYPE_DELETE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteVehicleType(@PathVariable UUID id) {
-        log.info(VehicleTypeConstants.LOG_SUCCESS_DELETING_VEHICLE_TYPE, id);
         boolean result = vehicleTypeService.deleteVehicleType(id);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()
@@ -104,10 +133,10 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Khôi phục loại xe đã xóa")
+    @Operation(summary = "Khôi phục loại xe đã xóa", description = "👑 **Roles:** ADMIN only")
     @PatchMapping(VehicleTypeConstants.VEHICLE_TYPE_RESTORE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> restoreVehicleType(@PathVariable UUID id) {
-        log.info(VehicleTypeConstants.LOG_SUCCESS_RESTORING_VEHICLE_TYPE, id);
         boolean result = vehicleTypeService.restoreVehicleType(id);
 
         return ResponseEntity.ok(ApiResponse.<String>builder()

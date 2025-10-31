@@ -28,9 +28,16 @@ public class RegisterUserRequest {
     @Email(message = "Email không hợp lệ")
     private String email;
 
+    @NotBlank(message = "Họ và tên không được để trống")
+    @Size(min = 2, max = 100, message = "Họ và tên phải có từ 2 đến 100 ký tự")
+    private String fullName;
+
     @Nullable
     @Pattern(regexp = "\\d{10}|^$", message = "Số điện thoại phải là 10 chữ số")
     private String numberPhone;
+
+    @Nullable
+    private String avatarUrl;
 
     @Nullable
     private String provider;

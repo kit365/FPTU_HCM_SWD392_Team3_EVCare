@@ -31,8 +31,6 @@ public class UpdationServiceTypeVehiclePartRequest {
 
     Boolean isActive;
 
-    Boolean isDeleted;
-
     String createdBy;
 
     String updatedBy;
