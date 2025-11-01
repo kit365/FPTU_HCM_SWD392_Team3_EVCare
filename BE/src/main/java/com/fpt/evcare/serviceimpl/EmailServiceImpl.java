@@ -53,8 +53,8 @@ public class EmailServiceImpl implements EmailService {
             Context context = new Context();
             context.setVariable("subject", emailDetail.getSubject());
             context.setVariable("fullName", emailDetail.getFullName() != null ? emailDetail.getFullName() : "Người dùng");
-            context.setVariable("body", emailDetail.getText());
-            context.setVariable("code", emailDetail.getCode() != null ? emailDetail.getCode() : "");
+            context.setVariable("body", emailDetail.getText() != null ? emailDetail.getText() : "");
+            context.setVariable("code", emailDetail.getCode() != null && !emailDetail.getCode().isEmpty() ? emailDetail.getCode() : null);
 
             // Xử lý template Thymeleaf
             String htmlContent = templateEngine.process("email-template", context);

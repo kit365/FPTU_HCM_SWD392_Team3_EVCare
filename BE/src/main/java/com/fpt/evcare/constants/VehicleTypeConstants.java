@@ -19,6 +19,8 @@ public class VehicleTypeConstants {
     public static final String MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND = "Không tìm thấy loại xe";
     public static final String MESSAGE_ERR_VEHICLE_TYPE_LIST_NOT_FOUND = "Danh sách loại xe trống";
     public static final String MESSAGE_ERR_DUPLICATED_VEHICLE_TYPE_NAME = "Tên loại xe này đã tồn tại";
+    public static final String MESSAGE_ERR_CAN_NOT_DELETE_VEHICLE_TYPE = "Không thể xóa mẫu xe này vì có cuộc hẹn đang trong quá trình thực hiện (IN_PROGRESS) sử dụng mẫu xe này";
+    public static final String MESSAGE_ERR_CAN_NOT_UPDATE_VEHICLE_TYPE = "Không thể cập nhật mẫu xe này vì có cuộc hẹn đang trong quá trình thực hiện (IN_PROGRESS) sử dụng mẫu xe này hoặc dịch vụ của mẫu xe này";
 
     // Log message
 
@@ -26,6 +28,8 @@ public class VehicleTypeConstants {
     public static final String LOG_ERR_VEHICLE_TYPE_NOT_FOUND = "Loại xe không tồn tại: {}";
     public static final String LOG_ERR_VEHICLE_TYPE_LIST_NOT_FOUND = "Danh sách loại xe trống: {}";
     public static final String LOG_ERR_DUPLICATED_VEHICLE_TYPE_NAME = "Tên loại xe đã tồn tại: {}";
+    public static final String LOG_ERR_CAN_NOT_DELETE_VEHICLE_TYPE = "Không thể xóa mẫu xe vì có appointment IN_PROGRESS: {}";
+    public static final String LOG_ERR_CAN_NOT_UPDATE_VEHICLE_TYPE = "Không thể cập nhật mẫu xe vì có appointment IN_PROGRESS: {}";
 
     // Success log
     public static final String LOG_SUCCESS_SHOWING_VEHICLE_TYPE = "Đang lấy thông tin loại xe: {}";

@@ -23,6 +23,7 @@ import com.fpt.evcare.service.*;
 import com.fpt.evcare.utils.UtilFunction;
 import com.fpt.evcare.dto.request.EmailRequestDTO;
 import com.fpt.evcare.entity.MaintenanceManagementEntity;
+import com.fpt.evcare.entity.MaintenanceRecordEntity;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -474,6 +475,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         if(customer != null) {
             checkRoleUser(customer, RoleEnum.CUSTOMER);
             appointmentEntity.setCustomer(customer);
+            // Đảm bảo customerEmail được set từ customer entity nếu chưa có
+            if (appointmentEntity.getCustomerEmail() == null || appointmentEntity.getCustomerEmail().isEmpty()) {
+                appointmentEntity.setCustomerEmail(customer.getEmail());
+            }
+            // Đảm bảo customerFullName được set từ customer entity nếu chưa có
+            if (appointmentEntity.getCustomerFullName() == null || appointmentEntity.getCustomerFullName().isEmpty()) {
+                appointmentEntity.setCustomerFullName(customer.getFullName());
+            }
+            // Đảm bảo customerPhoneNumber được set từ customer entity nếu chưa có
+            if (appointmentEntity.getCustomerPhoneNumber() == null || appointmentEntity.getCustomerPhoneNumber().isEmpty()) {
+                appointmentEntity.setCustomerPhoneNumber(customer.getNumberPhone());
+            }
         }
 
         ServiceModeEnum serviceModeEnum = isValidServiceMode(creationAppointmentRequest.getServiceMode());
@@ -538,6 +551,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointmentRepository.save(appointmentEntity);
 
         autoCreateShiftForAppointment(appointmentEntity);
+
+        // Gửi email thông báo tạo appointment thành công (trạng thái PENDING)
+        sendPendingEmail(appointmentEntity);
 
         return true;
     }
@@ -798,31 +814,27 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_CAN_NOT_TRANSFER_FROM_IN_PROGRESS_TO_PENDING);
         }
 
-        // Chỉ cho phép chuyển sang IN_PROGRESS khi đang ở CONFIRMED
-        if (newStatus == AppointmentStatusEnum.IN_PROGRESS) {
-            if (currentStatus != AppointmentStatusEnum.CONFIRMED) {
-                log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_INVALID_TRANSITION_TO_IN_PROGRESS);
-                throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_INVALID_STATUS_TRANSITION_TO_IN_PROGRESS);
+        // Cập nhật trạng thái mới trước
+        appointmentEntity.setStatus(newStatus);
+        appointmentRepository.save(appointmentEntity);
+        appointmentRepository.flush();
+        
+        // Reload entity để đảm bảo có đầy đủ thông tin (bao gồm cả customerEmail từ customer entity)
+        AppointmentEntity refreshedAppointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(id);
+        if (refreshedAppointment == null) {
+            log.warn("Failed to reload appointment after status update: {}", id);
+            refreshedAppointment = appointmentEntity; // Fallback to original entity
+        } else {
+            // Đảm bảo customerEmail được set từ customer nếu có
+            if ((refreshedAppointment.getCustomerEmail() == null || refreshedAppointment.getCustomerEmail().isEmpty()) 
+                && refreshedAppointment.getCustomer() != null && refreshedAppointment.getCustomer().getEmail() != null) {
+                refreshedAppointment.setCustomerEmail(refreshedAppointment.getCustomer().getEmail());
             }
-
-            // Khi chuyển sang IN_PROGRESS → tạo Maintenance Management
-            addMaintenanceManagementData(appointmentEntity);
-
-            // Gửitory notification qua WebSocket
-            sendInProgressNotification(appointmentEntity);
-
-            // Gửi email thông báo bắt đầu dịch vụ
-            sendInProgressEmail(appointmentEntity);
-        }
-        
-        // Khi chuyển sang COMPLETED → gửi notification
-        if (newStatus == AppointmentStatusEnum.COMPLETED) {
-            sendCompletedNotification(appointmentEntity);
-        }
-        
-        // Khi chuyển sang CANCELLED → gửi notification
-        if (newStatus == AppointmentStatusEnum.CANCELLED) {
-            sendCancelledNotification(appointmentEntity);
+            // Đảm bảo customerFullName được set từ customer nếu có
+            if ((refreshedAppointment.getCustomerFullName() == null || refreshedAppointment.getCustomerFullName().isEmpty()) 
+                && refreshedAppointment.getCustomer() != null && refreshedAppointment.getCustomer().getFullName() != null) {
+                refreshedAppointment.setCustomerFullName(refreshedAppointment.getCustomer().getFullName());
+            }
         }
 
         // Chỉ cho phép chuyển sang CONFIRMED khi đang ở PENDING
@@ -837,6 +849,43 @@ public class AppointmentServiceImpl implements AppointmentService {
                 log.warn(AppointmentConstants.LOG_ERR_THIS_APPOINTMENT_IS_NOT_ASSIGNED);
                 throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_THIS_APPOINTMENT_IS_NOT_ASSIGNED);
             }
+            
+            // Gửi email thông báo xác nhận cuộc hẹn (SAU khi cập nhật status)
+            sendConfirmedEmail(refreshedAppointment);
+        }
+
+        // Chỉ cho phép chuyển sang IN_PROGRESS khi đang ở CONFIRMED
+        if (newStatus == AppointmentStatusEnum.IN_PROGRESS) {
+            if (currentStatus != AppointmentStatusEnum.CONFIRMED) {
+                log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_INVALID_TRANSITION_TO_IN_PROGRESS);
+                throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_INVALID_STATUS_TRANSITION_TO_IN_PROGRESS);
+            }
+
+            // Khi chuyển sang IN_PROGRESS → tạo Maintenance Management
+            addMaintenanceManagementData(appointmentEntity);
+
+            // Gửitory notification qua WebSocket
+            sendInProgressNotification(refreshedAppointment);
+
+            // Gửi email thông báo bắt đầu dịch vụ (SAU khi cập nhật status)
+            sendInProgressEmail(refreshedAppointment);
+        }
+        
+        // Khi chuyển sang COMPLETED → gửi notification và email (SAU khi cập nhật status)
+        if (newStatus == AppointmentStatusEnum.COMPLETED) {
+            sendCompletedNotification(refreshedAppointment);
+            sendCompletedEmail(refreshedAppointment);
+        }
+        
+        // Khi chuyển sang CANCELLED → gửi notification và email (SAU khi cập nhật status)
+        if (newStatus == AppointmentStatusEnum.CANCELLED) {
+            sendCancelledNotification(refreshedAppointment);
+            sendCancelledEmail(refreshedAppointment);
+        }
+        
+        // Khi chuyển sang PENDING_PAYMENT → gửi email thông báo hóa đơn (SAU khi cập nhật status)
+        if (newStatus == AppointmentStatusEnum.PENDING_PAYMENT) {
+            sendPendingPaymentEmail(refreshedAppointment);
         }
 
         // Khi chuyển sang CANCELLED → kiểm tra maintenance
@@ -850,10 +899,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             // Xử lý hủy bảo dưỡng (nếu cần)
             cancelAllMaintenanceManagementData(appointmentEntity);
         }
-
-        // Cập nhật trạng thái mới
-        appointmentEntity.setStatus(newStatus);
-        appointmentRepository.save(appointmentEntity);
 
         log.info(AppointmentConstants.LOG_INFO_APPOINTMENT_STATUS_UPDATE, id, currentStatus, newStatus);
     }
@@ -1130,6 +1175,46 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     /**
+     * Gửi email thông báo tạo appointment thành công (trạng thái PENDING)
+     */
+    private void sendPendingEmail(AppointmentEntity appointment) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(AppointmentConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = AppointmentConstants.EMAIL_SUBJECT_PENDING;
+            String emailBody = String.format(
+                AppointmentConstants.EMAIL_BODY_PENDING_GREETING +
+                AppointmentConstants.EMAIL_BODY_PENDING_CONTENT +
+                AppointmentConstants.EMAIL_BODY_PENDING_APPOINTMENT_INFO +
+                AppointmentConstants.EMAIL_BODY_PENDING_APPOINTMENT_ID +
+                AppointmentConstants.EMAIL_BODY_PENDING_VEHICLE +
+                AppointmentConstants.EMAIL_BODY_PENDING_TIME +
+                AppointmentConstants.EMAIL_BODY_PENDING_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate(),
+                appointment.getScheduledAt() != null ? appointment.getScheduledAt().toString() : "N/A"
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(AppointmentConstants.LOG_INFO_SENT_PENDING_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_PENDING_EMAIL, e.getMessage());
+        }
+    }
+
+    /**
      * Gửi email thông báo bắt đầu dịch vụ khi appointment chuyển sang IN_PROGRESS
      */
     private void sendInProgressEmail(AppointmentEntity appointment) {
@@ -1226,6 +1311,217 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.info("📬 Sent CANCELLED notification to customer: {}", appointment.getCustomer().getUserId());
         } catch (Exception e) {
             log.error("❌ Failed to send CANCELLED notification: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi email thông báo xác nhận cuộc hẹn khi appointment chuyển sang CONFIRMED
+     */
+    private void sendConfirmedEmail(AppointmentEntity appointment) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(AppointmentConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = AppointmentConstants.EMAIL_SUBJECT_CONFIRMED;
+            String assigneeName = appointment.getAssignee() != null ? appointment.getAssignee().getFullName() : "N/A";
+            
+            String emailBody = String.format(
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_GREETING +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_CONTENT +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_APPOINTMENT_INFO +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_APPOINTMENT_ID +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_VEHICLE +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_TIME +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_ASSIGNEE +
+                AppointmentConstants.EMAIL_BODY_CONFIRMED_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate(),
+                appointment.getScheduledAt() != null ? appointment.getScheduledAt().toString() : "N/A",
+                assigneeName
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(AppointmentConstants.LOG_INFO_SENT_CONFIRMED_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_CONFIRMED_EMAIL, e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi email thông báo hoàn thành cuộc hẹn khi appointment chuyển sang COMPLETED
+     */
+    private void sendCompletedEmail(AppointmentEntity appointment) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(AppointmentConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = AppointmentConstants.EMAIL_SUBJECT_COMPLETED;
+            String emailBody = String.format(
+                AppointmentConstants.EMAIL_BODY_COMPLETED_GREETING +
+                AppointmentConstants.EMAIL_BODY_COMPLETED_CONTENT +
+                AppointmentConstants.EMAIL_BODY_COMPLETED_APPOINTMENT_INFO +
+                AppointmentConstants.EMAIL_BODY_COMPLETED_APPOINTMENT_ID +
+                AppointmentConstants.EMAIL_BODY_COMPLETED_VEHICLE +
+                AppointmentConstants.EMAIL_BODY_COMPLETED_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate()
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(AppointmentConstants.LOG_INFO_SENT_COMPLETED_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_COMPLETED_EMAIL, e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi email thông báo hủy cuộc hẹn khi appointment chuyển sang CANCELLED
+     */
+    private void sendCancelledEmail(AppointmentEntity appointment) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(AppointmentConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = AppointmentConstants.EMAIL_SUBJECT_CANCELLED;
+            String emailBody = String.format(
+                AppointmentConstants.EMAIL_BODY_CANCELLED_GREETING +
+                AppointmentConstants.EMAIL_BODY_CANCELLED_CONTENT +
+                AppointmentConstants.EMAIL_BODY_CANCELLED_APPOINTMENT_INFO +
+                AppointmentConstants.EMAIL_BODY_CANCELLED_APPOINTMENT_ID +
+                AppointmentConstants.EMAIL_BODY_CANCELLED_VEHICLE +
+                AppointmentConstants.EMAIL_BODY_CANCELLED_TIME +
+                AppointmentConstants.EMAIL_BODY_CANCELLED_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate(),
+                appointment.getScheduledAt() != null ? appointment.getScheduledAt().toString() : "N/A"
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(AppointmentConstants.LOG_INFO_SENT_CANCELLED_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_CANCELLED_EMAIL, e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi email thông báo chờ thanh toán với thông tin hóa đơn chi tiết
+     */
+    private void sendPendingPaymentEmail(AppointmentEntity appointment) {
+        if (appointment.getCustomerEmail() == null || appointment.getCustomerEmail().isEmpty()) {
+            log.warn(AppointmentConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            // Lấy invoice của appointment
+            List<InvoiceEntity> invoices = invoiceRepository.findByAppointmentAndIsDeletedFalse(appointment);
+            if (invoices.isEmpty()) {
+                log.warn("No invoice found for appointment: {}", appointment.getAppointmentId());
+                return;
+            }
+
+            InvoiceEntity invoice = invoices.get(0);
+            
+            // Lấy thông tin maintenance management để tạo chi tiết hóa đơn
+            List<MaintenanceManagementEntity> maintenanceList = 
+                maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointment.getAppointmentId());
+            
+            // Format thông tin hóa đơn chi tiết
+            StringBuilder invoiceDetails = new StringBuilder();
+            invoiceDetails.append(String.format("- Mã hóa đơn: %s\n", invoice.getInvoiceId()));
+            invoiceDetails.append(String.format("- Tổng tiền: %s VNĐ\n", invoice.getTotalAmount()));
+            invoiceDetails.append(String.format("- Ngày tạo: %s\n", invoice.getInvoiceDate()));
+            if (invoice.getDueDate() != null) {
+                invoiceDetails.append(String.format("- Hạn thanh toán: %s\n", invoice.getDueDate()));
+            }
+            
+            // Thêm chi tiết dịch vụ và phụ tùng
+            if (!maintenanceList.isEmpty()) {
+                invoiceDetails.append("\nChi tiết dịch vụ và phụ tùng:\n");
+                for (MaintenanceManagementEntity mm : maintenanceList) {
+                    String serviceName = mm.getServiceType() != null ? mm.getServiceType().getServiceName() : "N/A";
+                    BigDecimal serviceCost = mm.getTotalCost() != null ? mm.getTotalCost() : BigDecimal.ZERO;
+                    invoiceDetails.append(String.format("\n• %s - %s VNĐ\n", serviceName, serviceCost));
+                    
+                    if (mm.getMaintenanceRecords() != null && !mm.getMaintenanceRecords().isEmpty()) {
+                        for (MaintenanceRecordEntity record : mm.getMaintenanceRecords()) {
+                            if (record.getIsDeleted() || !Boolean.TRUE.equals(record.getApprovedByUser())) {
+                                continue;
+                            }
+                            
+                            String partName = record.getVehiclePart() != null ? 
+                                record.getVehiclePart().getVehiclePartName() : "N/A";
+                            BigDecimal unitPrice = record.getVehiclePart() != null ? 
+                                record.getVehiclePart().getUnitPrice() : BigDecimal.ZERO;
+                            BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(record.getQuantityUsed()));
+                            
+                            invoiceDetails.append(String.format("  - %s: %d x %s = %s VNĐ\n",
+                                partName, record.getQuantityUsed(), unitPrice, totalPrice));
+                        }
+                    }
+                }
+            }
+
+            String emailSubject = AppointmentConstants.EMAIL_SUBJECT_PENDING_PAYMENT;
+            String emailBody = String.format(
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_GREETING +
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_CONTENT +
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_APPOINTMENT_INFO +
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_APPOINTMENT_ID +
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_VEHICLE +
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_INVOICE_INFO +
+                invoiceDetails.toString() +
+                AppointmentConstants.EMAIL_BODY_PENDING_PAYMENT_FOOTER,
+                appointment.getCustomerFullName(),
+                appointment.getAppointmentId(),
+                appointment.getVehicleNumberPlate()
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(appointment.getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(appointment.getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(AppointmentConstants.LOG_INFO_SENT_PENDING_PAYMENT_EMAIL, appointment.getCustomerEmail());
+        } catch (Exception e) {
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_PENDING_PAYMENT_EMAIL, e.getMessage());
         }
     }
 }

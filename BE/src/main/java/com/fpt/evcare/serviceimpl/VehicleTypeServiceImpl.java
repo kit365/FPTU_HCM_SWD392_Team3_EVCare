@@ -6,11 +6,12 @@ import com.fpt.evcare.dto.request.vehicle_type.UpdationVehicleTypeRequest;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.dto.response.VehicleTypeResponse;
 import com.fpt.evcare.entity.VehicleTypeEntity;
+import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.VehicleTypeValidationException;
 import com.fpt.evcare.mapper.VehicleTypeMapper;
+import com.fpt.evcare.repository.AppointmentRepository;
 import com.fpt.evcare.repository.VehicleTypeRepository;
-import com.fpt.evcare.service.ServiceTypeVehiclePartService;
 import com.fpt.evcare.service.VehicleTypeService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -21,7 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -35,6 +35,7 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
 
     VehicleTypeRepository vehicleTypeRepository;
     VehicleTypeMapper vehicleTypeMapper;
+    AppointmentRepository appointmentRepository;
 
     // Hàm lấy tên và id của loại xe
     @Override
@@ -132,6 +133,20 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
             throw new VehicleTypeValidationException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
         }
 
+        // Kiểm tra nếu có appointment IN_PROGRESS sử dụng vehicleType này
+        boolean hasInProgressAppointment = appointmentRepository.existsInProgressAppointmentByVehicleTypeId(id);
+        if(hasInProgressAppointment){
+            log.warn(VehicleTypeConstants.LOG_ERR_CAN_NOT_UPDATE_VEHICLE_TYPE + id);
+            throw new EntityValidationException(VehicleTypeConstants.MESSAGE_ERR_CAN_NOT_UPDATE_VEHICLE_TYPE);
+        }
+
+        // Kiểm tra nếu có appointment IN_PROGRESS sử dụng serviceType của vehicleType này
+        boolean hasInProgressAppointmentByServiceType = appointmentRepository.existsInProgressAppointmentByServiceTypeOfVehicleType(id);
+        if(hasInProgressAppointmentByServiceType){
+            log.warn(VehicleTypeConstants.LOG_ERR_CAN_NOT_UPDATE_VEHICLE_TYPE + id);
+            throw new EntityValidationException(VehicleTypeConstants.MESSAGE_ERR_CAN_NOT_UPDATE_VEHICLE_TYPE);
+        }
+
         if(Objects.equals(vehicleType.getVehicleTypeName(), updationVehicleTypeRequest.getVehicleTypeName())){
             vehicleType.setVehicleTypeName(updationVehicleTypeRequest.getVehicleTypeName());
         } else {
@@ -150,6 +165,20 @@ public class VehicleTypeServiceImpl implements VehicleTypeService {
         if(existedVehicleType == null){
             log.warn(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
             throw new ResourceNotFoundException(VehicleTypeConstants.MESSAGE_ERR_VEHICLE_TYPE_NOT_FOUND);
+        }
+
+        // Kiểm tra nếu có appointment IN_PROGRESS sử dụng vehicleType này
+        boolean hasInProgressAppointment = appointmentRepository.existsInProgressAppointmentByVehicleTypeId(id);
+        if(hasInProgressAppointment){
+            log.warn(VehicleTypeConstants.LOG_ERR_CAN_NOT_DELETE_VEHICLE_TYPE + id);
+            throw new EntityValidationException(VehicleTypeConstants.MESSAGE_ERR_CAN_NOT_DELETE_VEHICLE_TYPE);
+        }
+
+        // Kiểm tra nếu có appointment IN_PROGRESS sử dụng serviceType của vehicleType này
+        boolean hasInProgressAppointmentByServiceType = appointmentRepository.existsInProgressAppointmentByServiceTypeOfVehicleType(id);
+        if(hasInProgressAppointmentByServiceType){
+            log.warn(VehicleTypeConstants.LOG_ERR_CAN_NOT_DELETE_VEHICLE_TYPE + id);
+            throw new EntityValidationException(VehicleTypeConstants.MESSAGE_ERR_CAN_NOT_DELETE_VEHICLE_TYPE);
         }
 
         existedVehicleType.setIsDeleted(true);

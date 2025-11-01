@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAuthContext } from '../../context/useAuthContext';
 import { notification } from 'antd';
 import { useEffect, useState, useRef } from 'react';
-import { UserBadgeCheck, LogOut } from "iconoir-react";
+import { UserBadgeCheck, LogOut, Calendar } from "iconoir-react";
 import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 
 const ClientHeader = () => {
@@ -109,6 +109,12 @@ const ClientHeader = () => {
                                         <div className='flex items-center'>
                                             <UserBadgeCheck className='mr-[10px]' />
                                             Hồ sơ xe
+                                        </div>
+                                    </Link>
+                                    <Link to="/client/appointment-history" className='px-[24px] py-[6px] block bg-white hover:bg-[#f4f6f9] transition-all duration-300 text-[#2b2d3b] text-[1.4rem]'>
+                                        <div className='flex items-center'>
+                                            <Calendar className='mr-[10px]' />
+                                            Lịch sử đặt lịch
                                         </div>
                                     </Link>
                                     <Link to="/client/profile" className='px-[24px] py-[6px] block bg-white hover:bg-[#f4f6f9] transition-all duration-300 text-[#2b2d3b] text-[1.4rem]'>
