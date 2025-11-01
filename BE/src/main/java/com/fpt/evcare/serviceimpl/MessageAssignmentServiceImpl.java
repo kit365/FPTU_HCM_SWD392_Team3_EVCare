@@ -28,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.user.SimpUser;
+import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +52,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
     MessageMapper messageMapper;
     UserMapper userMapper;
     ApplicationEventPublisher eventPublisher;
+    SimpUserRegistry simpUserRegistry; // Để check WebSocket session thực tế
     
     @Override
     @Transactional
@@ -82,42 +85,58 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
         
-        // Kiểm tra xem customer đã được assign chưa
-        Optional<MessageAssignmentEntity> existingAssignment = 
-            assignmentRepository.findActiveByCustomerId(request.getCustomerId());
+        // Kiểm tra xem customer đã có assignment chưa (bất kể is_active)
+        Optional<MessageAssignmentEntity> existingAny = 
+            assignmentRepository.findByCustomerId(request.getCustomerId());
         
-        if (existingAssignment.isPresent()) {
-            // Nếu assign cho cùng 1 staff -> không làm gì
-            if (existingAssignment.get().getAssignedStaff().getUserId().equals(request.getStaffId())) {
-                log.info("Customer {} already assigned to staff {}", request.getCustomerId(), request.getStaffId());
-                MessageAssignmentResponse response = assignmentMapper.toResponse(existingAssignment.get());
-                enrichAssignmentResponse(response);
-                return response;
+        MessageAssignmentEntity savedAssignment;
+        
+        if (existingAny.isPresent()) {
+            MessageAssignmentEntity existing = existingAny.get();
+            
+            // Nếu assign cho cùng 1 staff -> UPDATE assignment hiện có (set isActive = true)
+            if (existing.getAssignedStaff().getUserId().equals(request.getStaffId())) {
+                log.info("Customer {} already assigned to staff {}, updating assignment", 
+                    request.getCustomerId(), request.getStaffId());
+                
+                existing.setIsActive(true);
+                existing.setAssignedBy(admin);
+                existing.setNotes(request.getNotes());
+                existing.setUpdatedBy(admin.getFullName());
+                
+                savedAssignment = assignmentRepository.save(existing);
+            } else {
+                // Nếu assign cho staff khác -> UPDATE assignment hiện có (thay đổi staff)
+                log.info(MessageConstants.LOG_SUCCESS_REASSIGN, 
+                    request.getCustomerId(), 
+                    existing.getAssignedStaff().getUserId(), 
+                    request.getStaffId());
+                
+                existing.setAssignedStaff(staff);
+                existing.setAssignedBy(admin);
+                existing.setIsActive(true);
+                existing.setNotes(request.getNotes());
+                existing.setUpdatedBy(admin.getFullName());
+                // assignedAt không thể update (updatable = false), giữ nguyên thời gian tạo ban đầu
+                
+                savedAssignment = assignmentRepository.save(existing);
             }
             
-            // Nếu assign cho staff khác -> inactive assignment cũ
-            MessageAssignmentEntity oldAssignment = existingAssignment.get();
-            oldAssignment.setIsActive(false);
-            oldAssignment.setUpdatedBy(admin.getFullName());
-            assignmentRepository.save(oldAssignment);
-            log.info(MessageConstants.LOG_SUCCESS_REASSIGN, 
-                request.getCustomerId(), 
-                oldAssignment.getAssignedStaff().getUserId(), 
-                request.getStaffId());
+            log.info(MessageConstants.LOG_SUCCESS_ASSIGN, request.getCustomerId(), request.getStaffId());
+        } else {
+            // Chưa có assignment -> tạo mới
+            MessageAssignmentEntity assignment = MessageAssignmentEntity.builder()
+                    .customer(customer)
+                    .assignedStaff(staff)
+                    .assignedBy(admin)
+                    .notes(request.getNotes())
+                    .createdBy(admin.getFullName())
+                    .updatedBy(admin.getFullName())
+                    .build();
+            
+            savedAssignment = assignmentRepository.save(assignment);
+            log.info(MessageConstants.LOG_SUCCESS_ASSIGN, request.getCustomerId(), request.getStaffId());
         }
-        
-        // Tạo assignment mới
-        MessageAssignmentEntity assignment = MessageAssignmentEntity.builder()
-                .customer(customer)
-                .assignedStaff(staff)
-                .assignedBy(admin)
-                .notes(request.getNotes())
-                .createdBy(admin.getFullName())
-                .updatedBy(admin.getFullName())
-                .build();
-        
-        MessageAssignmentEntity savedAssignment = assignmentRepository.save(assignment);
-        log.info(MessageConstants.LOG_SUCCESS_ASSIGN, request.getCustomerId(), request.getStaffId());
         
         MessageAssignmentResponse response = assignmentMapper.toResponse(savedAssignment);
         enrichAssignmentResponse(response);
@@ -389,32 +408,51 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
     }
     
     /**
-     * Find ONLINE staff with least customers (load balancing)
-     * Only considers staff where isActive = true
+     * Find ONLINE STAFF with least customers (load balancing)
+     * CHỈ lấy STAFF, KHÔNG lấy ADMIN (vì admin không nhắn tin với customer)
+     * CHỈ lấy STAFF có WebSocket session ACTIVE (không chỉ dựa vào isActive trong DB)
      */
     private UserEntity findOnlineStaffWithLeastCustomers() {
-        // Get all staff (including isActive status)
+        // Get all STAFF only (not ADMIN)
         List<UserEntity> allStaff = userRepository.findByRoleNameAndIsDeletedFalse(RoleEnum.STAFF);
         
-        // Filter only ONLINE staff (isActive = true)
+        // Filter chỉ STAFF có WebSocket session ACTIVE (check qua SimpUserRegistry)
         List<UserEntity> onlineStaff = allStaff.stream()
-                .filter(staff -> staff.getIsActive() != null && staff.getIsActive())
+                .filter(staff -> {
+                    // Check WebSocket session thực tế (không chỉ dựa vào DB isActive)
+                    String userIdStr = staff.getUserId().toString();
+                    SimpUser simpUser = simpUserRegistry.getUser(userIdStr);
+                    
+                    boolean hasActiveSession = simpUser != null && !simpUser.getSessions().isEmpty();
+                    
+                    if (!hasActiveSession) {
+                        log.debug("   ⏭️ Staff {} ({} {}) has NO active WebSocket session - skipping", 
+                                staff.getUserId(), staff.getFullName(), staff.getRole().getRoleName());
+                        return false;
+                    }
+                    
+                    // Có active WebSocket session -> OK
+                    log.debug("   ✅ Staff {} ({} {}) has active WebSocket session", 
+                            staff.getUserId(), staff.getFullName(), staff.getRole().getRoleName());
+                    return true;
+                })
                 .collect(java.util.stream.Collectors.toList());
         
         if (onlineStaff.isEmpty()) {
-            log.warn("⚠️ No ONLINE staff found");
+            log.warn("⚠️ No STAFF with active WebSocket session found (admin is excluded)");
             return null;
         }
         
-        log.info("📊 Found {} online staff", onlineStaff.size());
+        log.info("📊 Found {} STAFF with active WebSocket sessions", onlineStaff.size());
         
-        // Find online staff with minimum customer count (load balancing)
+        // Find STAFF with active WebSocket session and minimum customer count (load balancing)
         UserEntity selectedStaff = null;
         long minCustomers = Long.MAX_VALUE;
         
         for (UserEntity staff : onlineStaff) {
             long customerCount = assignmentRepository.countActiveByStaffId(staff.getUserId());
-            log.debug("   Staff {} (ONLINE) has {} active customers", staff.getUserId(), customerCount);
+            log.info("   Staff {} ({} {}) (WebSocket ACTIVE) has {} active customers", 
+                    staff.getUserId(), staff.getFullName(), staff.getRole().getRoleName(), customerCount);
             
             if (customerCount < minCustomers) {
                 minCustomers = customerCount;
@@ -422,8 +460,13 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             }
         }
         
-        log.info("✅ Selected ONLINE staff {} with {} customers (least loaded)", 
-                selectedStaff != null ? selectedStaff.getUserId() : "null", minCustomers);
+        if (selectedStaff != null) {
+            log.info("✅ Selected STAFF {} ({} {}) with active WebSocket session and {} customers (least loaded)", 
+                    selectedStaff.getUserId(), selectedStaff.getFullName(), 
+                    selectedStaff.getRole().getRoleName(), minCustomers);
+        } else {
+            log.error("❌ No STAFF selected (should not happen)");
+        }
         
         return selectedStaff;
     }

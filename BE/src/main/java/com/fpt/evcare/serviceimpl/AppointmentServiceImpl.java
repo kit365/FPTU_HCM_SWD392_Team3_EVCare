@@ -135,6 +135,19 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public AppointmentEntity getAppointmentEntityById(UUID id) {
+        AppointmentEntity appointmentEntity = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(id);
+        if(appointmentEntity == null) {
+            log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_NOT_FOUND);
+            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_NOT_FOUND);
+        }
+
+
+        log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT + id);
+        return appointmentEntity;
+    }
+
+    @Override
     public PageResponse<AppointmentResponse> getAppointmentsByUserId(UUID userId, String keyword, Pageable pageable){
         UserEntity userEntity =  userRepository.findByUserIdAndIsDeletedFalse(userId);
         if(userEntity == null) {

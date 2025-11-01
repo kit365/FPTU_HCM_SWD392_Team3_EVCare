@@ -11,6 +11,8 @@ import { AuthProvider } from './context/AuthContext.tsx';
 import RoleProtectedRoute from './components/common/RoleProtectedRoute';
 import { RootRedirect } from './components/common/RootRedirect';
 import { useAuthContext } from './context/useAuthContext';
+import { PaymentSuccessMessage } from './pages/admin/payment/PaymentSuccessMessage';
+import { PaymentFailMessage } from './pages/admin/payment/PaymentFailMessage';
 
 
 const AdminIndexRedirect: React.FC = () => {
@@ -58,6 +60,10 @@ function App() {
                 <Route key={path} path={path} element={element} />
               ))}
             </Route>
+
+            {/* Public payment message pages (for mobile users after payment) */}
+            <Route path="/payment/success-message" element={<PaymentSuccessMessage />} />
+            <Route path="/payment/fail-message" element={<PaymentFailMessage />} />
           </Routes>
         </AuthProvider>
         <Toast />

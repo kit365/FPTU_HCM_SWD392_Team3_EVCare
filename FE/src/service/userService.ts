@@ -105,6 +105,14 @@ export const userService = {
     );
     return response.data.data;
   },
+  // Alias: getProfile (for convenience)
+  getProfile: async (userInformation: string): Promise<UserResponse> => {
+    const response = await apiClient.get<ApiResponse<UserResponse>>(
+      `/user/profile`,
+      { params: { userInformation } }
+    );
+    return response.data.data;
+  },
 
   // Get users by role
   getUsersByRole: async (roleName: string): Promise<UserResponse[]> => {

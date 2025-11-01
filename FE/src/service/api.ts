@@ -16,14 +16,19 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = typeof window !== 'undefined' ? window.localStorage.getItem('access_token') : null;
 
-    console.log("🟢 Interceptor chạy!"); // Kiểm tra xem interceptor có được kích hoạt không
-    console.log("Token lấy từ localStorage:", token); // Xem token có tồn tại không
-    console.log("Trước khi thêm header:", config.headers); // Xem header trước khi thêm
+    // Log URL để debug
+    const finalUrl = config.baseURL 
+      ? (config.url?.startsWith('/') ? `${config.baseURL}${config.url}` : `${config.baseURL}/${config.url}`)
+      : config.url;
+    console.log("🟢 Request URL:", {
+      baseURL: config.baseURL,
+      url: config.url,
+      finalURL: finalUrl
+    });
 
     if (token) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("Sau khi thêm header Authorization:", config.headers);
     }
 
     return config;

@@ -108,6 +108,27 @@ public interface ShiftRepository extends JpaRepository<ShiftEntity, UUID> {
         AND s.startTime <= :now
     """)
     List<ShiftEntity> findShiftsWithLateAssignment(@Param("now") LocalDateTime now);
+    
+    // Tìm shifts với filters (status, shiftType, date range)
+    @Query(value = """
+        SELECT s.* 
+        FROM shifts s
+        WHERE s.is_deleted = FALSE
+          AND s.is_active = TRUE
+          AND (:keyword IS NULL OR :keyword = '' OR LOWER(s.search) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:status IS NULL OR :status = '' OR UPPER(s.status) = UPPER(:status))
+          AND (:shiftType IS NULL OR :shiftType = '' OR UPPER(s.shift_type) = UPPER(:shiftType))
+          AND (:fromDate IS NULL OR s.start_time >= CAST(:fromDate AS TIMESTAMP))
+          AND (:toDate IS NULL OR s.start_time <= CAST(:toDate AS TIMESTAMP))
+        ORDER BY s.start_time DESC
+        """, nativeQuery = true)
+    Page<ShiftEntity> findShiftsWithFilters(
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("shiftType") String shiftType,
+            @Param("fromDate") String fromDate,
+            @Param("toDate") String toDate,
+            Pageable pageable);
 }
 
 

@@ -191,6 +191,21 @@ export const useShift = () => {
     }
   }, []);
 
+  // Update shift status (e.g., SCHEDULED → IN_PROGRESS)
+  const updateStatus = useCallback(async (id: string, status: string) => {
+    setLoading(true);
+    try {
+      await shiftService.updateStatus(id, status);
+      toast.success('Cập nhật trạng thái ca làm việc thành công!');
+      return true;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể cập nhật trạng thái ca làm việc!');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     list,
     detail,
@@ -208,7 +223,8 @@ export const useShift = () => {
     create,
     update,
     remove,
-    restore
+    restore,
+    updateStatus
   };
 };
 

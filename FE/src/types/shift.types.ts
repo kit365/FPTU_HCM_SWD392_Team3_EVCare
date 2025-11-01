@@ -86,5 +86,9 @@ export interface ShiftSearchRequest {
   page: number;
   pageSize: number;
   keyword?: string;
+  status?: string;
+  shiftType?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 

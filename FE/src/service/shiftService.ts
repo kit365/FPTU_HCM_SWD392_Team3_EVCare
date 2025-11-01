@@ -1,5 +1,4 @@
 import { apiClient } from "./api";
-import { API_BASE_URL } from "../constants/apiConstants";
 import type {
   ShiftResponse,
   CreationShiftRequest,
@@ -10,7 +9,7 @@ import type {
 import type { PageResponse } from "../types/pageResponse.types";
 import type { UserResponse } from "../types/user.types";
 
-const SHIFT_BASE = `${API_BASE_URL}/shift`;
+const SHIFT_BASE = "/shift";
 
 export const shiftService = {
   // Get available technicians for time range
@@ -66,11 +65,21 @@ export const shiftService = {
 
   // Search shifts
   search: async (params: ShiftSearchRequest) => {
+    const queryParams = new URLSearchParams({
+      page: String(params.page),
+      pageSize: String(params.pageSize),
+      ...(params.keyword ? { keyword: params.keyword } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.shiftType ? { shiftType: params.shiftType } : {}),
+      ...(params.fromDate ? { fromDate: params.fromDate } : {}),
+      ...(params.toDate ? { toDate: params.toDate } : {}),
+    }).toString();
+    
     const response = await apiClient.get<{
       success: boolean;
       message: string;
       data: PageResponse<ShiftResponse>;
-    }>(`${SHIFT_BASE}/search`, { params });
+    }>(`${SHIFT_BASE}/search?${queryParams}`);
     return response;
   },
 
@@ -90,6 +99,19 @@ export const shiftService = {
       success: boolean;
       message: string;
     }>(`${SHIFT_BASE}/${id}`, data);
+    return response;
+  },
+
+  // Update shift status (e.g., SCHEDULED → IN_PROGRESS)
+  updateStatus: async (id: string, status: string) => {
+    const response = await apiClient.patch<{
+      success: boolean;
+      message: string;
+    }>(`${SHIFT_BASE}/status/${id}`, status, {
+      headers: {
+        'Content-Type': 'text/plain'
+      }
+    });
     return response;
   },
 

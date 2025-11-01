@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -20,18 +20,23 @@ import {
   MenuItem
 } from "@mui/material";
 import { ArrowBack, Payment } from "@mui/icons-material";
+import QRCodeSVG from "react-qr-code";
 import { useInvoice } from "../../../hooks/useInvoice";
 import moment from "moment";
 
 export const InvoiceView = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
-  const { invoice, loading, paying, getByAppointmentId, payCash } = useInvoice();
+  const { invoice, loading, paying, getByAppointmentId, payCash, createVnPayPayment } = useInvoice();
   
   const [openPayDialog, setOpenPayDialog] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [notes, setNotes] = useState("");
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [openQrDialog, setOpenQrDialog] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasNavigatedRef = useRef<boolean>(false); // Flag để đảm bảo chỉ navigate 1 lần
 
   useEffect(() => {
     if (appointmentId) {
@@ -39,11 +44,54 @@ export const InvoiceView = () => {
     }
   }, [appointmentId]);
 
+  const previousStatusRef = useRef<string | undefined>();
+  
   useEffect(() => {
     if (invoice) {
       setPaidAmount(invoice.totalAmount);
+      
+      // Log để debug
+      if (previousStatusRef.current !== invoice.status) {
+        console.log("📊 Invoice status changed:", {
+          previous: previousStatusRef.current,
+          current: invoice.status,
+          openQrDialog,
+          hasNavigated: hasNavigatedRef.current
+        });
+        previousStatusRef.current = invoice.status;
+      }
+      
+      // Nếu invoice đã được thanh toán và đang mở QR dialog
+      if (invoice.status === "PAID" && openQrDialog && !hasNavigatedRef.current) {
+        console.log("✅ Invoice PAID detected, navigating to success page");
+        
+        // Set flag để tránh navigate lại
+        hasNavigatedRef.current = true;
+        
+        // Dừng polling ngay lập tức (nếu có)
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        
+        // Đóng QR dialog ngay lập tức
+        setOpenQrDialog(false);
+        setPaymentUrl(null);
+        
+        // Navigate ngay đến success page (không delay)
+        navigate(`/admin/payment/success?appointmentId=${appointmentId}`, { replace: true });
+      }
     }
-  }, [invoice]);
+  }, [invoice, appointmentId, navigate, openQrDialog]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleOpenPayDialog = () => {
     setOpenPayDialog(true);
@@ -53,38 +101,118 @@ export const InvoiceView = () => {
     setOpenPayDialog(false);
     setPaymentMethod("CASH");
     setNotes("");
+    setPaymentUrl(null);
+  };
+
+  const handleCloseQrDialog = () => {
+    setOpenQrDialog(false);
+    setPaymentUrl(null);
+    hasNavigatedRef.current = false; // Reset flag khi đóng dialog
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  };
+
+  const startPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Poll ngay lập tức lần đầu, sau đó mới set interval
+    const checkStatus = async () => {
+      // Chỉ check nếu dialog vẫn mở và chưa navigate
+      if (appointmentId && openQrDialog && !hasNavigatedRef.current) {
+        try {
+          console.log("🔄 Polling invoice status...");
+          await getByAppointmentId(appointmentId);
+        } catch (error) {
+          console.error("Error polling invoice status:", error);
+        }
+      } else {
+        // Nếu đã navigate hoặc dialog đóng, dừng polling
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
+    };
+    
+    // Check ngay lập tức
+    checkStatus();
+    
+    // Sau đó check mỗi 1.5 giây (nhanh hơn để detect sớm hơn)
+    pollingIntervalRef.current = setInterval(checkStatus, 1500);
   };
 
   const handlePayment = async () => {
-    if (!invoice) return;
+    if (!invoice || !appointmentId) return;
     
-    // Validation
-    if (!paidAmount || paidAmount <= 0) {
-      alert("Số tiền thanh toán không hợp lệ");
-      return;
-    }
-    
-    if (paidAmount < invoice.totalAmount) {
-      alert("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
-      return;
-    }
-    
-    const success = await payCash(invoice.invoiceId, {
-      paymentMethod,
-      paidAmount,
-      notes
-    });
+    switch (paymentMethod) {
+      case "VNPAY":
+        try {
+          // Reset flag
+          hasNavigatedRef.current = false;
+          
+          // Mở QR dialog trước để hiển thị loading
+          setOpenQrDialog(true);
+          handleClosePayDialog();
+          
+          // Tạo payment URL
+          const url = await createVnPayPayment(appointmentId, "admin");
+          
+          console.log("Payment URL received:", url); // Debug log
+          
+          // Set payment URL để hiển thị QR code
+          if (url && url.trim() !== "") {
+            setPaymentUrl(url);
+            // Start polling to check payment status
+            startPolling();
+          } else {
+            console.error("Payment URL is empty or invalid:", url);
+            alert("Không thể tạo URL thanh toán. Vui lòng thử lại.");
+            setOpenQrDialog(false);
+          }
+        } catch (error) {
+          // Error đã được handle trong createVnPayPayment
+          setOpenQrDialog(false);
+          hasNavigatedRef.current = false;
+          return;
+        }
+        break;
+      
+      case "CASH":
+        // Validation
+        if (!paidAmount || paidAmount <= 0) {
+          alert("Số tiền thanh toán không hợp lệ");
+          return;
+        }
+        
+        if (paidAmount < invoice.totalAmount) {
+          alert("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
+          return;
+        }
+        
+        const success = await payCash(invoice.invoiceId, {
+          paymentMethod,
+          paidAmount,
+          notes
+        });
 
-    if (success) {
-      handleClosePayDialog();
-      // Reload invoice
-      if (appointmentId) {
-        await getByAppointmentId(appointmentId);
-      }
-      // Navigate back to appointment list
-      setTimeout(() => {
-        navigate("/admin/appointment-manage");
-      }, 1500);
+        if (success) {
+          handleClosePayDialog();
+          // Reload invoice để đảm bảo có data mới nhất
+          if (appointmentId) {
+            await getByAppointmentId(appointmentId);
+          }
+          // Navigate đến trang thành công giống VNPay
+          navigate(`/admin/payment/success?appointmentId=${appointmentId}`, { replace: true });
+        }
+        break;
+      
+      default:
+        alert("Phương thức thanh toán không hợp lệ");
+        break;
     }
   };
 
@@ -419,31 +547,36 @@ export const InvoiceView = () => {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
                   <MenuItem value="CASH">Tiền mặt (CASH)</MenuItem>
-                  {/* Có thể thêm các phương thức khác sau */}
+                  <MenuItem value="VNPAY">Thanh toán qua VNPay</MenuItem>
                 </Select>
               </FormControl>
 
-              <TextField
-                label="Số tiền thanh toán"
-                type="number"
-                value={paidAmount}
-                disabled
-                fullWidth
-                InputProps={{
-                  endAdornment: <Typography sx={{ color: "#6b7280" }}>₫</Typography>,
-                }}
-                helperText="Thanh toán đủ số tiền hóa đơn"
-              />
+              {paymentMethod === "CASH" && (
+                <>
+                  <TextField
+                    label="Số tiền thanh toán"
+                    type="number"
+                    value={paidAmount}
+                    disabled
+                    fullWidth
+                    InputProps={{
+                      endAdornment: <Typography sx={{ color: "#6b7280" }}>₫</Typography>,
+                    }}
+                    helperText="Thanh toán đủ số tiền hóa đơn"
+                  />
 
-              <TextField
-                label="Ghi chú (tùy chọn)"
-                multiline
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                fullWidth
-                placeholder="Nhập ghi chú về thanh toán..."
-              />
+                  <TextField
+                    label="Ghi chú (tùy chọn)"
+                    multiline
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    fullWidth
+                    placeholder="Nhập ghi chú về thanh toán..."
+                  />
+                </>
+              )}
+              
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
@@ -463,6 +596,92 @@ export const InvoiceView = () => {
               }}
             >
               {paying ? "Đang xử lý..." : "Xác nhận thanh toán"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* QR Code Dialog */}
+        <Dialog 
+          open={openQrDialog} 
+          onClose={handleCloseQrDialog} 
+          maxWidth="sm" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+            }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem", textAlign: "center" }}>
+            Quét mã QR để thanh toán
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, py: 2 }}>
+              <Alert severity="info" sx={{ width: "100%" }}>
+                Quét mã QR bằng ứng dụng ngân hàng hoặc VNPay để thanh toán.
+                <br />
+                <strong>Lưu ý:</strong> Khi khách hàng thanh toán thành công, cửa sổ này sẽ tự động đóng và chuyển đến trang thành công.
+              </Alert>
+              
+              {paymentUrl ? (
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: "#fff",
+                    borderRadius: 2,
+                    border: "2px solid #e5e7eb",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <QRCodeSVG
+                    value={paymentUrl}
+                    size={256}
+                    level="H"
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                  />
+                </Box>
+              ) : (
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                  <CircularProgress size={40} />
+                  <Typography variant="body2" color="text.secondary">
+                    Đang tạo mã QR...
+                  </Typography>
+                </Box>
+              )}
+
+              {paymentUrl && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, width: "100%" }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+                    Hoặc nhấn vào nút bên dưới để mở trang thanh toán
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Payment />}
+                    onClick={() => paymentUrl && window.open(paymentUrl, "_blank")}
+                    fullWidth
+                    sx={{
+                      mt: 1,
+                      py: 1.5,
+                    }}
+                  >
+                    Mở trang thanh toán VNPay
+                  </Button>
+                </Box>
+              )}
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <CircularProgress size={16} />
+                <Typography variant="body2" color="text.secondary">
+                  Đang chờ thanh toán...
+                </Typography>
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, justifyContent: "center" }}>
+            <Button onClick={handleCloseQrDialog} variant="outlined">
+              Đóng
             </Button>
           </DialogActions>
         </Dialog>

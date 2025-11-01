@@ -62,4 +62,20 @@ export const bookingService = {
     console.log("GET USER APPOINTMENTS RESPONSE:", response);
     return response;
   },
+
+  // Search appointments for customer by email or phone
+  searchAppointmentsForCustomer: async (params: { page?: number; pageSize?: number; keyword?: string }) => {
+    const response = await apiClient.get(
+      `${API_BASE}/appointment/search/customer/`,
+      {
+        params: {
+          page: params.page ?? 0,
+          pageSize: params.pageSize ?? 10,
+          keyword: params.keyword ?? '',
+        }
+      }
+    );
+    console.log("SEARCH APPOINTMENTS (CUSTOMER) RESPONSE:", response);
+    return response;
+  },
 };

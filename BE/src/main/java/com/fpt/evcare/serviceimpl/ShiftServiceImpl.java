@@ -16,6 +16,7 @@ import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.enums.ShiftStatusEnum;
 import com.fpt.evcare.enums.ShiftTypeEnum;
 import com.fpt.evcare.exception.BusinessException;
+import com.fpt.evcare.exception.EntityValidationException;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.mapper.ShiftMapper;
 import com.fpt.evcare.mapper.UserMapper;
@@ -89,6 +90,28 @@ public class ShiftServiceImpl implements ShiftService {
         } else {
             shiftPage = shiftRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
         }
+
+        List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
+                .map(shiftMapper::toResponse)
+                .toList();
+
+        return PageResponse.<ShiftResponse>builder()
+                .data(shiftResponses)
+                .page(shiftPage.getNumber())
+                .size(shiftPage.getSize())
+                .totalElements(shiftPage.getTotalElements())
+                .totalPages(shiftPage.getTotalPages())
+                .last(shiftPage.isLast())
+                .build();
+    }
+    
+    @Override
+    public PageResponse<ShiftResponse> searchShiftWithFilters(String keyword, String status, String shiftType,
+                                                              String fromDate, String toDate, Pageable pageable) {
+        log.info(ShiftConstants.LOG_INFO_SHOWING_SHIFT_LIST);
+        
+        Page<ShiftEntity> shiftPage = shiftRepository.findShiftsWithFilters(
+                keyword, status, shiftType, fromDate, toDate, pageable);
 
         List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
                 .map(shiftMapper::toResponse)
@@ -551,6 +574,75 @@ public class ShiftServiceImpl implements ShiftService {
         Duration duration = Duration.between(startTime, endTime);
         double totalHoursDouble = duration.toMinutes() / 60.0;
         return BigDecimal.valueOf(totalHoursDouble).setScale(2, RoundingMode.HALF_UP);
+    }
+    
+    @Override
+    @Transactional
+    public void updateShiftStatus(UUID id, String status) {
+        ShiftEntity shiftEntity = shiftRepository.findByShiftIdAndIsDeletedFalse(id);
+        if (shiftEntity == null) {
+            log.warn(ShiftConstants.LOG_ERR_SHIFT_NOT_FOUND);
+            throw new ResourceNotFoundException(ShiftConstants.MESSAGE_ERR_SHIFT_NOT_FOUND);
+        }
+        
+        ShiftStatusEnum currentStatus = shiftEntity.getStatus();
+        ShiftStatusEnum newStatus = isValidShiftStatus(status);
+        
+        // Không cho phép chỉnh sửa nếu đã COMPLETED hoặc CANCELLED
+        if (currentStatus == ShiftStatusEnum.COMPLETED || currentStatus == ShiftStatusEnum.CANCELLED) {
+            log.warn("Cannot update shift that is already COMPLETED or CANCELLED: {}", currentStatus);
+            throw new EntityValidationException("Không thể cập nhật ca làm việc đã hoàn thành hoặc đã hủy");
+        }
+        
+        // Chỉ cho phép chuyển sang IN_PROGRESS khi đang ở SCHEDULED
+        if (newStatus == ShiftStatusEnum.IN_PROGRESS) {
+            if (currentStatus != ShiftStatusEnum.SCHEDULED) {
+                log.warn("Cannot transition to IN_PROGRESS from status: {}", currentStatus);
+                throw new EntityValidationException("Chỉ có thể bắt đầu ca làm việc từ trạng thái SCHEDULED (Đã lên lịch)");
+            }
+            
+            // ✅ Khi shift chuyển sang IN_PROGRESS → tự động chuyển appointment sang IN_PROGRESS (nếu có)
+            // → AppointmentServiceImpl sẽ tự động tạo Maintenance Management và gửi email
+            if (shiftEntity.getAppointment() != null) {
+                AppointmentEntity appointment = shiftEntity.getAppointment();
+                // Chỉ chuyển appointment sang IN_PROGRESS nếu đang ở CONFIRMED
+                // (Logic trong AppointmentServiceImpl.updateAppointmentStatus sẽ validate)
+                if (appointment.getStatus() != com.fpt.evcare.enums.AppointmentStatusEnum.IN_PROGRESS) {
+                    try {
+                        appointmentService.updateAppointmentStatus(appointment.getAppointmentId(), "IN_PROGRESS");
+                        log.info("✅ Auto-updated appointment {} to IN_PROGRESS when shift {} started", 
+                                appointment.getAppointmentId(), id);
+                    } catch (Exception e) {
+                        log.warn("⚠️ Failed to auto-update appointment to IN_PROGRESS when shift started: {}", e.getMessage());
+                        // Không throw exception để không block việc update shift status
+                        // Có thể appointment chưa đủ điều kiện (chưa CONFIRMED hoặc thiếu assignee/technicians)
+                    }
+                }
+            }
+        }
+        
+        // Không cho phép quay ngược từ IN_PROGRESS
+        if (currentStatus == ShiftStatusEnum.IN_PROGRESS && 
+            (newStatus == ShiftStatusEnum.PENDING_ASSIGNMENT || newStatus == ShiftStatusEnum.LATE_ASSIGNMENT || newStatus == ShiftStatusEnum.SCHEDULED)) {
+            log.warn("Cannot transition backward from IN_PROGRESS to {}", newStatus);
+            throw new EntityValidationException("Không thể quay ngược trạng thái từ Đang thực hiện");
+        }
+        
+        // Cập nhật trạng thái mới
+        shiftEntity.setStatus(newStatus);
+        shiftEntity.setSearch(buildSearchString(shiftEntity));
+        shiftRepository.save(shiftEntity);
+        
+        log.info("Shift {} status updated from {} to {}", id, currentStatus, newStatus);
+    }
+    
+    private ShiftStatusEnum isValidShiftStatus(String statusEnum) {
+        try {
+            return ShiftStatusEnum.valueOf(statusEnum.toUpperCase().trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid shift status: {}", statusEnum);
+            throw new EntityValidationException("Trạng thái không hợp lệ: " + statusEnum);
+        }
     }
 }
 

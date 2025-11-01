@@ -31,9 +31,8 @@ public class VehicleTypeController {
 
     VehicleTypeService vehicleTypeService;
 
-    @Operation(summary = "Lấy danh sách tên loại xe", description = "🔐 **Roles:** Authenticated (All roles) - Sử dụng để làm dropdown lấy loại xe")
+    @Operation(summary = "Lấy danh sách tên loại xe", description = "🔓 **Public** - Sử dụng để làm dropdown lấy loại xe")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST)
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameList() {
         List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameList();
 
@@ -45,9 +44,8 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Lấy danh sách tên loại xe cho danh sách dịch vụ", description = "🔐 **Roles:** Authenticated (All roles) - Sử dụng để dropdown cho danh sách dịch vụ của trang admin")
+    @Operation(summary = "Lấy danh sách tên loại xe cho danh sách dịch vụ", description = "🔓 **Public** - Sử dụng để dropdown cho danh sách dịch vụ")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_NAME_LIST_FOR_SERVICE_TYPE)
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<VehicleTypeResponse>>> getVehicleTypeNameListForServiceType() {
         List<VehicleTypeResponse> vehicleTypeResponses = vehicleTypeService.getVehicleTypeNameListForServiceType();
 
@@ -59,9 +57,8 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Lấy thông tin loại xe theo ID", description = "🔐 **Roles:** Authenticated (All roles)")
+    @Operation(summary = "Lấy thông tin loại xe theo ID", description = "🔓 **Public**")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE)
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<VehicleTypeResponse>> getVehicleType(@PathVariable UUID id) {
         VehicleTypeResponse response = vehicleTypeService.getVehicleTypeById(id);
 
@@ -73,9 +70,8 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Tìm kiếm loại xe", description = "🔐 **Roles:** Authenticated (All roles)")
+    @Operation(summary = "Tìm kiếm loại xe", description = "🔓 **Public**")
     @GetMapping(VehicleTypeConstants.VEHICLE_TYPE_LIST)
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<VehicleTypeResponse>>> searchVehicleType(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
