@@ -26,3 +26,23 @@
     background: #22c55e;
     border-color: #22c55e;
 }
+
+.bg-login {
+    background-image: linear-gradient(#00000080, #00000080), url("https://charger-next.vercel.app/_next/static/media/page-banner.2fbc6bfd.jpg");
+}
+
+.google-login-btn.ant-btn {
+    padding: 17px 30px !important;
+    border-radius: 0 !important;
+}
+
+.booking-title::after {
+    width: 80px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    display: block;
+    content: "";
+    background: #1E69B8;
+    height: 2px;
+}

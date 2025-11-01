@@ -1,123 +1,149 @@
 import { Link } from 'react-router-dom';
-import { Divider } from 'antd';
 import { useAuth } from '../../../hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import type { RegisterUserRequest } from '../../../types/admin/auth';
 import { GoogleLoginButton } from '../../../components/client/GoogleLoginButton';
+import { ClientHeader } from '../../../components/client';
+
 const ClientRegister = () => {
   const { registerUser, isLoading } = useAuth({ type: 'client' });
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterUserRequest>();
-  const onSubmit = async (values: RegisterUserRequest) => {
-    await registerUser(values);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<RegisterUserRequest>();
+
+  const onSubmit = async (data: RegisterUserRequest) => {
+    await registerUser(data);
     // Auto-login logic handled in useAuth (type: 'client')
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Content */}
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-md p-12">
-          <h2 className="text-center text-2xl font-bold mb-6">
-            ĐĂNG KÝ TÀI KHOẢN
-          </h2>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Email */}
-            <div className="ant-form-item">
-              <label className="ant-form-item-label block mb-1 font-medium">Email</label>
-              <input
-                type="email"
-                className={`ant-input w-full px-3 py-2 rounded border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                placeholder="Nhập email của bạn"
-                {...register('email', {
-                  required: 'Vui lòng nhập email',
-                  pattern: {
-                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: 'Email không hợp lệ'
-                  }
-                })}
-              />
-              {errors.email && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.email.message}</div>}
+    <>
+      <ClientHeader />
+      <section className='py-[130px] bg-login'>
+        <div className='w-[1410px] mx-auto'>
+          <h2 className='text-white mb-[20px] text-[4rem] font-[700] text-center'>Tạo tài khoản</h2>
+          <div className='text-white text-center'><Link to={"/"}>Trang chủ</Link><span className='mx-[5px]'>-</span> <span className='text-[#41cb5a]'>Tạo tài khoản</span></div>
+        </div>
+      </section>
+      <section className='py-[130px]'>
+        <div className='w-[1410px] mx-auto p-[65px] bg-[#41cb5a] rounded-[10px] mt-[24px] flex'>
+          <div className='w-[67%] px-[12px] relative'>
+            <img src="https://sf-static.upanhlaylink.com/img/image_202511017c2279b759f2fd71edb9c4812ff3db9f.jpg" alt="" className='w-full h-auto object-cover rounded-[10px]' />
+            <div className='absolute top-[50%] right-[-50px] translate-y-[-50%] rotate-[-90deg]'>
+              <Link to="/client/login" className='bg-transparent hover:bg-[#41cb5a] border border-[#fff] hover:border-[#41cb5a] text-white px-[20px] py-[10px] transition-colors duration-[400ms] ease-in-out'>Đăng nhập</Link>
+              <Link to="/client/register" className='bg-[#41cb5a] border border-[#41cb5a] text-white px-[20px] py-[10px]'>Đăng ký</Link>
             </div>
-
-            {/* Full Name */}
-            <div className="ant-form-item">
-              <label className="ant-form-item-label block mb-1 font-medium">Họ và tên</label>
-              <input
-                type="text"
-                className={`ant-input w-full px-3 py-2 rounded border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                placeholder="Nhập họ và tên của bạn"
-                {...register('fullName', {
-                  required: 'Vui lòng nhập họ và tên',
-                  minLength: { value: 2, message: 'Họ và tên phải có ít nhất 2 ký tự' }
-                })}
-              />
-              {errors.fullName && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.fullName.message}</div>}
-            </div>
-
-            {/* Password */}
-            <div className="ant-form-item">
-              <label className="ant-form-item-label block mb-1 font-medium">Mật khẩu</label>
-              <input
-                type="password"
-                className={`ant-input w-full px-3 py-2 rounded border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                placeholder="Nhập mật khẩu"
-                {...register('password', {
-                  required: 'Vui lòng nhập mật khẩu!',
-                  minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-                })}
-              />
-              {errors.password && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.password.message}</div>}
-            </div>
-            {/* Username */}
-            <div className="ant-form-item">
-              <label className="ant-form-item-label block mb-1 font-medium">Tên người dùng</label>
-              <input
-                type="text"
-                className={`ant-input w-full px-3 py-2 rounded border ${errors.username ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                placeholder="Nhập tên người dùng"
-                {...register('username', {
-                  required: 'Vui lòng nhập tên người dùng',
-                  minLength: { value: 3, message: 'Tên người dùng phải có ít nhất 3 ký tự!' }
-                })}
-              />
-              {errors.username && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.username.message}</div>}
-            </div>
-            {/* Phone */}
-            <div className="ant-form-item">
-              <label className="ant-form-item-label block mb-1 font-medium">Số điện thoại</label>
-              <input
-                type="text"
-                className={`ant-input w-full px-3 py-2 rounded border ${errors.numberPhone ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                placeholder="Nhập số điện thoại"
-                {...register('numberPhone', {
-                  required: 'Vui lòng nhập số điện thoại!',
-                  pattern: { value: /^[0-9]+$/, message: 'Số điện thoại chỉ được chứa số!' },
-                  minLength: { value: 10, message: 'Số điện thoại phải có ít nhất 10 số!' }
-                })}
-              />
-              {errors.numberPhone && <div className="ant-form-item-explain ant-form-item-explain-error text-red-500 text-sm mt-1">{errors.numberPhone.message}</div>}
-            </div>
-            {/* Submit Button */}
-            <div className="ant-form-item">
-              <button type="submit" className="ant-btn ant-btn-primary w-full text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-base font-medium" style={{height: 40, fontSize: 16}} disabled={isLoading}>
+          </div>
+          <div className='flex-1 px-[12px]'>
+            <div className='text-white text-[4rem] mb-[65px] font-[700]'>Tạo tài khoản</div>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className='mb-[30px]'>
+                <input
+                  type="text"
+                  placeholder='Họ và tên'
+                  className='border-b border-[#d9d9d9] text-white placeholder:text-white outline-none py-[15px] pr-[20px] w-full bg-transparent'
+                  {...register('fullName', {
+                    required: 'Vui lòng nhập họ và tên',
+                    minLength: { value: 2, message: 'Họ và tên phải có ít nhất 2 ký tự' }
+                  })}
+                />
+                {errors.fullName && (
+                  <p className='text-red-300 text-[1.2rem] mt-[5px]'>{errors.fullName.message}</p>
+                )}
+              </div>
+              <div className='mb-[30px]'>
+                <input
+                  type="email"
+                  placeholder='Email'
+                  className='border-b border-[#d9d9d9] text-white placeholder:text-white outline-none py-[15px] pr-[20px] w-full bg-transparent'
+                  {...register('email', {
+                    required: 'Vui lòng nhập email',
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: 'Email không hợp lệ'
+                    }
+                  })}
+                />
+                {errors.email && (
+                  <p className='text-red-300 text-[1.2rem] mt-[5px]'>{errors.email.message}</p>
+                )}
+              </div>
+              <div className='mb-[30px]'>
+                <input
+                  type="text"
+                  placeholder='Số điện thoại'
+                  className='border-b border-[#d9d9d9] text-white placeholder:text-white outline-none py-[15px] pr-[20px] w-full bg-transparent'
+                  {...register('numberPhone', {
+                    required: 'Vui lòng nhập số điện thoại',
+                    pattern: {
+                      value: /^[0-9]+$/,
+                      message: 'Số điện thoại chỉ được chứa số'
+                    },
+                    minLength: { value: 10, message: 'Số điện thoại phải có ít nhất 10 số' }
+                  })}
+                />
+                {errors.numberPhone && (
+                  <p className='text-red-300 text-[1.2rem] mt-[5px]'>{errors.numberPhone.message}</p>
+                )}
+              </div>
+              <div className='mb-[30px]'>
+                <input
+                  type="text"
+                  placeholder='Tên người dùng'
+                  className='border-b border-[#d9d9d9] text-white placeholder:text-white outline-none py-[15px] pr-[20px] w-full bg-transparent'
+                  {...register('username', {
+                    required: 'Vui lòng nhập tên người dùng',
+                    minLength: { value: 3, message: 'Tên người dùng phải có ít nhất 3 ký tự' }
+                  })}
+                />
+                {errors.username && (
+                  <p className='text-red-300 text-[1.2rem] mt-[5px]'>{errors.username.message}</p>
+                )}
+              </div>
+              <div className='mb-[30px]'>
+                <input
+                  type="password"
+                  placeholder='Mật khẩu'
+                  className='border-b border-[#d9d9d9] text-white placeholder:text-white outline-none py-[15px] pr-[20px] w-full bg-transparent'
+                  {...register('password', {
+                    required: 'Vui lòng nhập mật khẩu',
+                    minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+                  })}
+                />
+                {errors.password && (
+                  <p className='text-red-300 text-[1.2rem] mt-[5px]'>{errors.password.message}</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className='mb-[30px] border-2 border-white w-full px-[26px] py-[12px] cursor-pointer font-[600] text-white transition-colors duration-[400ms] ease-in-out hover:bg-white hover:text-[#41cb5a] disabled:opacity-50 disabled:cursor-not-allowed'
+              >
                 {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
               </button>
+            </form>
+            <div className='flex items-center mb-[30px]'>
+              <span className='w-[20px] h-[20px] border border-[#41cb5a] rounded-full bg-white cursor-pointer relative after:absolute after:top-[6px] after:left-[6px] after:bg-[#41cb5a] after:content-[""] after:w-[6px] after:h-[6px] after:rounded-full'></span>
+              <span className='ml-[10px] mt-[4px] text-white text-[1.4rem]'>Đồng ý các điều khoản & điều kiện của bạn</span>
             </div>
-          </form>
-
-          <Divider className="my-6">Hoặc</Divider>
-
-          <GoogleLoginButton 
-            text="Đăng ký bằng Google" 
-            fullWidth={true}
-          />
-
-          <div className="text-center mt-6">
-            Đã có tài khoản? <Link to="/client/login" className="text-blue-600 hover:text-blue-800">Đăng nhập tại đây</Link>
+            <div className='text-white text-center font-[500] mb-[30px]'>Hoặc</div>
+            <GoogleLoginButton
+              text="Đăng nhập bằng Google"
+              fullWidth={true}
+            />
           </div>
         </div>
+      </section>
+      <div className='bg-[url("https://charger-next.vercel.app/_next/static/media/our-info.730cd5ce.jpg")] bg-no-repeat bg-cover py-[65px] bg-center relative'>
+        <div className='absolute inset-0 bg-black opacity-50 z-0'></div>
+        <div className='relative z-10 w-[1410px] mx-auto flex items-center justify-center'>
+          <img src="https://i.imgur.com/XAy1f1e.jpeg" alt="EVCare" className='w-[80px] h-[80px] object-cover' />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
