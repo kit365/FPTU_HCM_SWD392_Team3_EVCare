@@ -35,8 +35,7 @@ public class AppointmentController {
     AppointmentService appointmentService;
 
     @GetMapping(AppointmentConstants.SERVICE_MODE)
-    @Operation(summary = "Lấy danh sách Service Mode", description = "🔐 **Roles:** Authenticated (All roles) - Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy danh sách Service Mode", description = "🔓 **Public** - Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
     public ResponseEntity<ApiResponse<List<String>>> getAllServiceModes() {
         List<String> serviceModes = appointmentService.getAllServiceMode();
 
@@ -218,8 +217,7 @@ public class AppointmentController {
     }
 
     @PostMapping(AppointmentConstants.APPOINTMENT_CREATION)
-    @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔐 **Roles:** Authenticated (All roles) - Tạo cuộc hẹn cho người dùng")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔓 **Public** - Tạo cuộc hẹn (không cần đăng nhập)")
     public ResponseEntity<ApiResponse<String>> createAppointment(@Valid @RequestBody CreationAppointmentRequest creationAppointmentRequest) {
         boolean response = appointmentService.addAppointment(creationAppointmentRequest);
 

@@ -1,8 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Pagination } from "@mui/material";
+import { 
+  Card, 
+  Pagination, 
+  Box,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
+} from "@mui/material";
 import { Plus } from 'iconoir-react';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import { useNavigate } from 'react-router-dom';
 import { pathAdmin } from "../../../constants/paths.constant";
 import { TableAdmin } from "../../../components/admin/ui/Table";
@@ -15,21 +31,38 @@ type ViewMode = 'list' | 'calendar';
 
 const ShiftList = () => {
   const navigate = useNavigate();
-  const { list, loading, totalPages, search } = useShift();
+  const { list, loading, totalPages, search, updateStatus, shiftTypes, shiftStatuses, getAllTypes, getAllStatuses } = useShift();
   
   const [keyword, setKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [shiftTypeFilter, setShiftTypeFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<ShiftResponse | null>(null);
+  const [newStatus, setNewStatus] = useState('');
   const pageSize = 10;
+
+  // Load enums
+  useEffect(() => {
+    getAllTypes();
+    getAllStatuses();
+  }, [getAllTypes, getAllStatuses]);
 
   // Load data
   const loadData = useCallback(async () => {
     await search({ 
       keyword: keyword.trim() || undefined, 
       page: currentPage - 1, 
-      pageSize 
+      pageSize,
+      status: statusFilter || undefined,
+      shiftType: shiftTypeFilter || undefined,
+      fromDate: fromDate || undefined,
+      toDate: toDate || undefined
     });
-  }, [keyword, currentPage, pageSize, search]);
+  }, [keyword, statusFilter, shiftTypeFilter, fromDate, toDate, currentPage, pageSize, search]);
 
   useEffect(() => {
     loadData();
@@ -116,12 +149,21 @@ const ShiftList = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('🎯 Assigning shift:', shift.shiftId);
                 handleAssign(shift.shiftId);
               }}
               className="px-[1.2rem] py-[0.6rem] text-[1.2rem] font-[500] text-white bg-amber-500 rounded-[0.4rem] hover:bg-amber-600 transition-colors"
             >
               Phân công
+            </button>
+          ) : originalStatus === 'SCHEDULED' ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenStatusDialog(shift);
+              }}
+              className="px-[1.2rem] py-[0.6rem] text-[1.2rem] font-[500] text-white bg-blue-600 rounded-[0.4rem] hover:bg-blue-700 transition-colors"
+            >
+              Bắt đầu
             </button>
           ) : (
             <span className="text-[1.2rem] text-gray-400">-</span>
@@ -145,6 +187,33 @@ const ShiftList = () => {
   // Handle assign
   const handleAssign = (shiftId: string) => {
     navigate(`/${pathAdmin}/shift/assign/${shiftId}`);
+  };
+
+  // Handle open status dialog (for "Bắt đầu" button)
+  const handleOpenStatusDialog = (shift: ShiftResponse) => {
+    if (shift.status === 'SCHEDULED') {
+      setSelectedShift(shift);
+      setNewStatus('IN_PROGRESS');
+      setOpenStatusDialog(true);
+    }
+  };
+
+  // Handle close status dialog
+  const handleCloseStatusDialog = () => {
+    setOpenStatusDialog(false);
+    setSelectedShift(null);
+    setNewStatus('');
+  };
+
+  // Handle update status
+  const handleUpdateStatus = async () => {
+    if (!selectedShift || !newStatus) return;
+
+    const success = await updateStatus(selectedShift.shiftId, newStatus);
+    if (success) {
+      handleCloseStatusDialog();
+      loadData(); // Reload list
+    }
   };
 
   // Handle manual create (with warning)
@@ -362,6 +431,17 @@ const ShiftList = () => {
                                     Phân công
                                   </button>
                                 )}
+                                {shift.status === 'SCHEDULED' && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenStatusDialog(shift);
+                                    }}
+                                    className="px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[600] text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[0.6rem] hover:shadow-lg transition-all"
+                                  >
+                                    Bắt đầu
+                                  </button>
+                                )}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -436,6 +516,90 @@ const ShiftList = () => {
           <FormSearch
             onSearch={handleSearch}
           />
+          
+          {/* ✅ Bộ lọc nâng cao */}
+          <Box className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <Typography className="text-[1.3rem] font-semibold mb-3">
+              🔍 Bộ lọc
+            </Typography>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Status Filter */}
+              <FormControl size="small" fullWidth>
+                <InputLabel className="text-[1.2rem]">Trạng thái</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Trạng thái"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-[1.2rem]"
+                >
+                  <MenuItem value="">
+                    <em>Tất cả</em>
+                  </MenuItem>
+                  <MenuItem value="PENDING_ASSIGNMENT">Chờ phân công</MenuItem>
+                  <MenuItem value="LATE_ASSIGNMENT">Quá giờ chưa phân công</MenuItem>
+                  <MenuItem value="SCHEDULED">Đã lên lịch</MenuItem>
+                  <MenuItem value="IN_PROGRESS">Đang thực hiện</MenuItem>
+                  <MenuItem value="COMPLETED">Hoàn thành</MenuItem>
+                  <MenuItem value="CANCELLED">Đã hủy</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Shift Type Filter */}
+              <FormControl size="small" fullWidth>
+                <InputLabel className="text-[1.2rem]">Loại ca</InputLabel>
+                <Select
+                  value={shiftTypeFilter}
+                  label="Loại ca"
+                  onChange={(e) => {
+                    setShiftTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-[1.2rem]"
+                >
+                  <MenuItem value="">
+                    <em>Tất cả</em>
+                  </MenuItem>
+                  <MenuItem value="APPOINTMENT">Theo lịch hẹn</MenuItem>
+                  <MenuItem value="ON_DUTY">Trực</MenuItem>
+                  <MenuItem value="INVENTORY_CHECK">Kiểm kê</MenuItem>
+                  <MenuItem value="OTHER">Khác</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* From Date */}
+              <TextField
+                size="small"
+                fullWidth
+                type="date"
+                label="Từ ngày"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ className: "text-[1.2rem]" }}
+              />
+
+              {/* To Date */}
+              <TextField
+                size="small"
+                fullWidth
+                type="date"
+                label="Đến ngày"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ className: "text-[1.2rem]" }}
+              />
+            </div>
+          </Box>
         </div>
 
         {/* Content */}
@@ -488,6 +652,97 @@ const ShiftList = () => {
           )}
         </div>
       </Card>
+
+      {/* Dialog xác nhận bắt đầu ca làm việc */}
+      <Dialog 
+        open={openStatusDialog} 
+        onClose={handleCloseStatusDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1.5, pt: 2.5 }}>
+          <Typography variant="h6" className="text-[1.6rem] font-[600]">
+            Bắt đầu ca làm việc
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ pb: 2 }}>
+          <Typography className="text-[1.3rem] mb-4">
+            Bạn có chắc muốn bắt đầu ca làm việc này?
+          </Typography>
+          
+          {selectedShift && (
+            <Box className="bg-gray-50 p-4 rounded-lg">
+              <Typography className="text-[1.2rem] mb-2">
+                <strong>Thông tin ca làm việc:</strong>
+              </Typography>
+              <Typography className="text-[1.2rem] mb-1">
+                <strong>Thời gian:</strong> {formatDateTime(selectedShift.startTime)} - {formatDateTime(selectedShift.endTime)}
+              </Typography>
+              {selectedShift.appointment && (
+                <Typography className="text-[1.2rem] mb-1">
+                  <strong>Khách hàng:</strong> {selectedShift.appointment.customerFullName || 'N/A'}
+                </Typography>
+              )}
+              {selectedShift.assignee && (
+                <Typography className="text-[1.2rem]">
+                  <strong>Người phụ trách:</strong> {selectedShift.assignee.fullName || selectedShift.assignee.username}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions 
+          sx={{ 
+            px: 3, 
+            pb: 3, 
+            pt: 1,
+            gap: 1.5,
+            backgroundColor: '#fafafa'
+          }}
+        >
+          <Button 
+            onClick={handleCloseStatusDialog}
+            variant="outlined"
+            size="large"
+            sx={{
+              flex: 1,
+              py: 1.2,
+              fontWeight: 600,
+              borderColor: '#ddd',
+              color: '#666',
+              '&:hover': {
+                borderColor: '#999',
+                backgroundColor: 'rgba(0,0,0,0.02)'
+              }
+            }}
+          >
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleUpdateStatus}
+            variant="contained"
+            size="large"
+            startIcon={<PlayCircleFilledIcon />}
+            sx={{
+              flex: 1,
+              py: 1.2,
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 14px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5568d3 0%, #653993 100%)',
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.4)',
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.3s'
+            }}
+          >
+            Bắt đầu
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

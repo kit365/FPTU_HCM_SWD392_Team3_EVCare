@@ -44,10 +44,10 @@ public class PaymentTransactionEntity extends BaseEntity {
     @Builder.Default
     String currency = "VND";
 
-    @Column(name = "transaction_reference", unique = true, nullable = false)
+    @Column(name = "transaction_reference", unique = true, nullable = false, length = 100)
     String transactionReference;
 
-    @Column(name = "payment_url")
+    @Column(name = "payment_url", length = 2000)
     String paymentUrl;
 
     @Column(name = "status", nullable = false)
@@ -61,7 +61,7 @@ public class PaymentTransactionEntity extends BaseEntity {
     @Column(name = "payment_date")
     LocalDateTime paymentDate;
 
-    @Column(name = "gateway_transaction_id")
+    @Column(name = "gateway_transaction_id", length = 100)
     String gatewayTransactionId;
 
     @Column(name = "customer_info", length = 500)
