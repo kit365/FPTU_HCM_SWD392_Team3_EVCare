@@ -30,6 +30,9 @@ export const ServiceBookingPage: React.FC = () => {
     const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
     const [isUseOldData, setIsUseOldData] = useState(false);
 
+    // Watch form value để hiển thị đúng input khi serviceType thay đổi
+    const formServiceType = Form.useWatch('serviceType', form);
+
     // Lấy thông tin user từ AuthContext
     const { user } = useAuthContext();
 
@@ -458,14 +461,18 @@ export const ServiceBookingPage: React.FC = () => {
                                         };
                                     })}
                                     loading={loadingServiceModes}
-                                    onChange={(value) => setServiceType(value)}
+                                    onChange={(value) => {
+                                        setServiceType(value);
+                                        // Đảm bảo form value được cập nhật mà không reset các field khác
+                                        form.setFieldValue("serviceType", value);
+                                    }}
                                     className="w-full"
                                     style={{ height: '48px' }}
                                 />
                             </Form.Item>
 
                             {/* Nếu STATIONARY → hiện địa điểm, MOBILE → hiện input */}
-                            {serviceType === "STATIONARY" && (
+                            {formServiceType === "STATIONARY" && (
                                 <Form.Item
                                     name="location"
                                 >
@@ -478,7 +485,7 @@ export const ServiceBookingPage: React.FC = () => {
                                 </Form.Item>
                             )}
 
-                            {serviceType === "MOBILE" && (
+                            {formServiceType === "MOBILE" && (
                                 <Form.Item
                                     name="userAddress"
                                     rules={[
@@ -496,8 +503,8 @@ export const ServiceBookingPage: React.FC = () => {
 
                     {/* Thời gian hẹn */}
                     <div className="mt-[30px]">
-                        <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]">Thời gian hẹn</div>
                         <Form.Item
+                            label="Thời gian hẹn"
                             name="dateTime"
                             rules={[{ required: true, message: "Vui lòng chọn thời gian" }]}
                         >
@@ -505,21 +512,22 @@ export const ServiceBookingPage: React.FC = () => {
                                 showTime
                                 format="YYYY-MM-DD HH:mm:ss"
                                 className="w-full"
-                                placeholder="Thời gian hẹn"
+                                placeholder="Chọn ngày và giờ"
                                 style={{ height: '48px' }}
                             />
                         </Form.Item>
                     </div>
 
                     {/* Ghi chú */}
-                    <div className="mt-[30px]">
-                        <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]">Ghi chú</div>
+                    <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+                        <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center">
+                            <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-slate-500 rounded-lg flex items-center justify-center mr-3">
+                                <span className="text-white font-bold text-sm">5</span>
+                            </div>
+                            Ghi chú
+                        </h3>
                         <Form.Item name="notes">
-                            <TextArea
-                                rows={4}
-                                placeholder="Nhập ghi chú (nếu có)"
-                                className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
-                            />
+                            <TextArea rows={4} placeholder="Nhập ghi chú (nếu có)" />
                         </Form.Item>
                     </div>
 
@@ -606,23 +614,26 @@ export const ServiceBookingPage: React.FC = () => {
             box-shadow: 0 4px 12px rgba(30, 105, 184, 0.4);
           }
         `}</style>
-                    <div className="flex gap-[20px] justify-center mt-[30px]">
-                        <Button
-                            type="default"
-                            htmlType="submit"
-                            size="large"
-                            className="booking-btn-primary"
-                        >
-                            Đặt lịch hẹn
-                        </Button>
-                        <Button
-                            type="default"
-                            onClick={handleOldData}
-                            size="large"
-                            className="booking-btn-secondary"
-                        >
-                            Sử dụng hồ sơ xe
-                        </Button>
+                    {/* Nút Submit */}
+                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 border border-blue-200">
+                        <div className="text-center space-x-4">
+                            <Button
+                                type="default"
+                                htmlType="submit"
+                                size="large"
+                                className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
+                            >
+                                Đặt lịch hẹn
+                            </Button>
+                            <Button
+                                type="default"
+                                onClick={handleOldData}
+                                size="large"
+                                className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
+                            >
+                                Sử dụng hồ sơ xe
+                            </Button>
+                        </div>
                     </div>
                 </Form>
 

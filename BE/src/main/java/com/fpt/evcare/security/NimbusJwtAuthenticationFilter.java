@@ -138,7 +138,9 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
         
         // Appointment - POST create và GET service-mode, guest-search không cần auth
         if (path.equals("/api/v1/appointment/service-mode") ||
+                path.equals("/api/v1/appointment/service-mode/") ||
                 path.equals("/api/v1/appointment/guest-search") ||
+                path.equals("/api/v1/appointment/guest-search/") ||
                 (path.equals("/api/v1/appointment/") && "POST".equals(method))) {
             return true;
         }

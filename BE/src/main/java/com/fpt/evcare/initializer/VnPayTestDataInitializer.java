@@ -56,10 +56,22 @@ public class VnPayTestDataInitializer implements CommandLineRunner {
         log.info("🚀 Creating VNPay test data...");
 
         try {
-            // 1. Tạo hoặc lấy customer
+            // 1. Tạo hoặc lấy customer - check cả deleted users để tránh duplicate
             UserEntity customer = userRepository.findByEmailAndIsDeletedFalse("customer_test_vnpay@test.com");
             if (customer == null) {
+                // Check xem email đã tồn tại chưa (kể cả deleted)
+                boolean emailExists = userRepository.existsByEmail("customer_test_vnpay@test.com");
+                if (emailExists) {
+                    log.warn("⚠️ Email customer_test_vnpay@test.com already exists (possibly deleted). Skipping user creation.");
+                    return;
+                }
+                
                 RoleEntity customerRole = roleRepository.findByRoleName(RoleEnum.CUSTOMER);
+                if (customerRole == null) {
+                    log.error("❌ Customer role not found. Please run RoleAndUserData initializer first.");
+                    return;
+                }
+                
                 customer = new UserEntity();
                 customer.setUsername("customer_test_vnpay@test.com");
                 customer.setEmail("customer_test_vnpay@test.com");

@@ -59,135 +59,188 @@ public class RoleAndUserData implements CommandLineRunner {
         log.info("🚀 Initializing roles and sample users (811 total: 1 Admin, 20 Staff, 750 Customers, 40 Technicians)...");
 
         // ===== 1. ADMIN =====
-        RoleEntity adminRole = createRole(
-                RoleEnum.ADMIN,
-                "Quản trị viên hệ thống — có toàn quyền truy cập.",
-                List.of("MANAGE_USERS", "MANAGE_ROLES", "MANAGE_SERVICES", "VIEW_REPORTS")
-        );
-        RoleEntity a = roleRepository.save(adminRole);
+        RoleEntity a = roleRepository.findByRoleName(RoleEnum.ADMIN);
+        if (a == null) {
+            RoleEntity adminRole = createRole(
+                    RoleEnum.ADMIN,
+                    "Quản trị viên hệ thống — có toàn quyền truy cập.",
+                    List.of("MANAGE_USERS", "MANAGE_ROLES", "MANAGE_SERVICES", "VIEW_REPORTS")
+            );
+            a = roleRepository.save(adminRole);
+        }
 
-        UserEntity adminUser = createUser(
-                "admin123A",
-                "admin@gmail.com",
-                "1",
-                "Admin EVcare",
-                "Hà Nội, Việt Nam",
-                "0900000000",
-                a
-        );
-        userRepository.save(adminUser);
-        log.info("✅ Created 1 ADMIN user");
+        UserEntity existingAdmin = userRepository.findByUsernameAndIsDeletedFalse("admin123A");
+        if (existingAdmin == null) {
+            UserEntity adminUser = createUser(
+                    "admin123A",
+                    "admin@gmail.com",
+                    "1",
+                    "Admin EVcare",
+                    "Hà Nội, Việt Nam",
+                    "0900000000",
+                    a
+            );
+            userRepository.save(adminUser);
+            log.info("✅ Created 1 ADMIN user");
+        } else {
+            log.info("✅ ADMIN user already exists, skipping...");
+        }
 
         // ===== 2. STAFF =====
-        RoleEntity staffRole = createRole(
-                RoleEnum.STAFF,
-                "Nhân viên kỹ thuật, chăm sóc khách hàng.",
-                List.of("VIEW_APPOINTMENTS", "UPDATE_APPOINTMENTS", "MANAGE_SERVICE_TYPES")
-        );
-        RoleEntity s = roleRepository.save(staffRole);
+        RoleEntity s = roleRepository.findByRoleName(RoleEnum.STAFF);
+        if (s == null) {
+            RoleEntity staffRole = createRole(
+                    RoleEnum.STAFF,
+                    "Nhân viên kỹ thuật, chăm sóc khách hàng.",
+                    List.of("VIEW_APPOINTMENTS", "UPDATE_APPOINTMENTS", "MANAGE_SERVICE_TYPES")
+            );
+            s = roleRepository.save(staffRole);
+        }
 
         // Create default staff + 19 more = 20 staff total
-        UserEntity staffUser = createUser(
-                "staff123A",
-                "staff@gmail.com",
-                "123456",
-                "Nhân viên EVcare",
-                "Đà Nẵng, Việt Nam",
-                "0901111111",
-                s
-        );
-        userRepository.save(staffUser);
+        UserEntity existingStaff = userRepository.findByUsernameAndIsDeletedFalse("staff123A");
+        if (existingStaff == null) {
+            UserEntity staffUser = createUser(
+                    "staff123A",
+                    "staff@gmail.com",
+                    "123456",
+                    "Nhân viên EVcare",
+                    "Đà Nẵng, Việt Nam",
+                    "0901111111",
+                    s
+            );
+            userRepository.save(staffUser);
+        }
 
         List<UserEntity> staffUsers = new ArrayList<>();
         for (int i = 1; i <= 19; i++) {
-            String fullName = generateRandomName();
-            UserEntity staff = createUser(
-                    "staff" + i,
-                    "staff" + i + "@evcare.com",
-                    "Staff@123",
-                    fullName,
-                    generateRandomCity(),
-                    generateRandomPhone(901111110 + i),
-                    s
-            );
-            staffUsers.add(staff);
+            String username = "staff" + i;
+            String email = "staff" + i + "@evcare.com";
+            UserEntity existing = userRepository.findByUsernameAndIsDeletedFalse(username);
+            if (existing == null) {
+                String fullName = generateRandomName();
+                UserEntity staff = createUser(
+                        username,
+                        email,
+                        "Staff@123",
+                        fullName,
+                        generateRandomCity(),
+                        generateRandomPhone(901111110 + i),
+                        s
+                );
+                staffUsers.add(staff);
+            }
         }
-        userRepository.saveAll(staffUsers);
-        log.info("✅ Created 20 STAFF users");
+        if (!staffUsers.isEmpty()) {
+            userRepository.saveAll(staffUsers);
+            log.info("✅ Created {} new STAFF users", staffUsers.size());
+        } else {
+            log.info("✅ All STAFF users already exist, skipping...");
+        }
 
         // ===== 3. CUSTOMER =====
-        RoleEntity customerRole = createRole(
-                RoleEnum.CUSTOMER,
-                "Khách hàng sử dụng dịch vụ của EVcare.",
-                List.of("CREATE_APPOINTMENT", "VIEW_APPOINTMENT_HISTORY", "UPDATE_PROFILE")
-        );
-        RoleEntity c = roleRepository.save(customerRole);
+        RoleEntity c = roleRepository.findByRoleName(RoleEnum.CUSTOMER);
+        if (c == null) {
+            RoleEntity customerRole = createRole(
+                    RoleEnum.CUSTOMER,
+                    "Khách hàng sử dụng dịch vụ của EVcare.",
+                    List.of("CREATE_APPOINTMENT", "VIEW_APPOINTMENT_HISTORY", "UPDATE_PROFILE")
+            );
+            c = roleRepository.save(customerRole);
+        }
 
         // Create default customer + 749 more = 750 customers total
-        UserEntity customerUser = createUser(
-                "customer123A",
-                "customer@gmail.com",
-                "123456",
-                "Khách hàng EVcare",
-                "TP.HCM, Việt Nam",
-                "0902222222",
-                c
-        );
-        userRepository.save(customerUser);
+        UserEntity existingCustomer = userRepository.findByUsernameAndIsDeletedFalse("customer123A");
+        if (existingCustomer == null) {
+            UserEntity customerUser = createUser(
+                    "customer123A",
+                    "customer@gmail.com",
+                    "123456",
+                    "Khách hàng EVcare",
+                    "TP.HCM, Việt Nam",
+                    "0902222222",
+                    c
+            );
+            userRepository.save(customerUser);
+        }
 
         List<UserEntity> customers = new ArrayList<>();
         for (int i = 1; i <= 749; i++) {
-            String fullName = generateRandomName();
-            UserEntity customer = createUser(
-                    "customer" + i,
-                    "customer" + i + "@evcare.com",
-                    "@Customer123",
-                    fullName,
-                    generateRandomCity(),
-                    generateRandomPhone(902000000 + i * 11),  // Avoid phone number collision
-                    c
-            );
-            customers.add(customer);
+            String username = "customer" + i;
+            String email = "customer" + i + "@evcare.com";
+            UserEntity existing = userRepository.findByUsernameAndIsDeletedFalse(username);
+            if (existing == null) {
+                String fullName = generateRandomName();
+                UserEntity customer = createUser(
+                        username,
+                        email,
+                        "@Customer123",
+                        fullName,
+                        generateRandomCity(),
+                        generateRandomPhone(902000000 + i * 11),  // Avoid phone number collision
+                        c
+                );
+                customers.add(customer);
+            }
         }
-        userRepository.saveAll(customers);
-        log.info("✅ Created 750 CUSTOMER users");
+        if (!customers.isEmpty()) {
+            userRepository.saveAll(customers);
+            log.info("✅ Created {} new CUSTOMER users", customers.size());
+        } else {
+            log.info("✅ All CUSTOMER users already exist, skipping...");
+        }
 
         // ===== 4. TECHNICIAN =====
-        RoleEntity technicianRole = createRole(
-                RoleEnum.TECHNICIAN,
-                "Kỹ thuật viên EVcare chịu trách nhiệm sửa chữa và bảo trì xe.",
-                List.of("VIEW_APPOINTMENTS", "UPDATE_SERVICE_STATUS", "VIEW_REPORTS")
-        );
-        RoleEntity t = roleRepository.save(technicianRole);
+        RoleEntity t = roleRepository.findByRoleName(RoleEnum.TECHNICIAN);
+        if (t == null) {
+            RoleEntity technicianRole = createRole(
+                    RoleEnum.TECHNICIAN,
+                    "Kỹ thuật viên EVcare chịu trách nhiệm sửa chữa và bảo trì xe.",
+                    List.of("VIEW_APPOINTMENTS", "UPDATE_SERVICE_STATUS", "VIEW_REPORTS")
+            );
+            t = roleRepository.save(technicianRole);
+        }
 
         // Create default technician + 39 more = 40 technicians total
-        UserEntity technicianUser = createUser(
-                "technician123A",
-                "technician@gmail.com",
-                "123456",
-                "Kỹ thuật viên EVcare",
-                "Cần Thơ, Việt Nam",
-                "0903333333",
-                t
-        );
-        userRepository.save(technicianUser);
+        UserEntity existingTechnician = userRepository.findByUsernameAndIsDeletedFalse("technician123A");
+        if (existingTechnician == null) {
+            UserEntity technicianUser = createUser(
+                    "technician123A",
+                    "technician@gmail.com",
+                    "123456",
+                    "Kỹ thuật viên EVcare",
+                    "Cần Thơ, Việt Nam",
+                    "0903333333",
+                    t
+            );
+            userRepository.save(technicianUser);
+        }
 
         List<UserEntity> technicians = new ArrayList<>();
         for (int i = 1; i <= 39; i++) {
-            String fullName = generateRandomName();
-            UserEntity technician = createUser(
-                    "technician" + i,
-                    "technician" + i + "@evcare.com",
-                    "@Technician123",
-                    fullName,
-                    generateRandomCity(),
-                    generateRandomPhone(903333330 + i),
-                    t
-            );
-            technicians.add(technician);
+            String username = "technician" + i;
+            String email = "technician" + i + "@evcare.com";
+            UserEntity existing = userRepository.findByUsernameAndIsDeletedFalse(username);
+            if (existing == null) {
+                String fullName = generateRandomName();
+                UserEntity technician = createUser(
+                        username,
+                        email,
+                        "@Technician123",
+                        fullName,
+                        generateRandomCity(),
+                        generateRandomPhone(903333330 + i),
+                        t
+                );
+                technicians.add(technician);
+            }
         }
-        userRepository.saveAll(technicians);
-        log.info("✅ Created 40 TECHNICIAN users");
+        if (!technicians.isEmpty()) {
+            userRepository.saveAll(technicians);
+            log.info("✅ Created {} new TECHNICIAN users", technicians.size());
+        } else {
+            log.info("✅ All TECHNICIAN users already exist, skipping...");
+        }
 
         log.info("🎉 Roles and Users initialized successfully! Total: 1 Admin, 20 Staff, 750 Customers, 40 Technicians = 811 users");
     }

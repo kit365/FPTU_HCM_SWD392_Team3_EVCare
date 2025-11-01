@@ -74,7 +74,9 @@ public class SecurityConfig {
                                 "/api/v1/vehicle-type/**",  // Xem mẫu xe
                                 "/api/v1/service-type/**",  // Xem dịch vụ
                                 "/api/v1/appointment/service-mode",  // Service mode enum
-                                "/api/v1/appointment/guest-search"   // Guest search appointment
+                                "/api/v1/appointment/service-mode/",  // Service mode enum (with trailing slash)
+                                "/api/v1/appointment/guest-search",   // Guest search appointment
+                                "/api/v1/appointment/guest-search/"   // Guest search appointment (with trailing slash)
                         ).permitAll()
                         // POST appointment creation - cho phép cả guest và authenticated
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointment/").permitAll()
