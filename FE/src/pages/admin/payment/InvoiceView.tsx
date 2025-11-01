@@ -35,7 +35,7 @@ export const InvoiceView = () => {
   const [notes, setNotes] = useState("");
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [openQrDialog, setOpenQrDialog] = useState(false);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasNavigatedRef = useRef<boolean>(false); // Flag để đảm bảo chỉ navigate 1 lần
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export const InvoiceView = () => {
     }
   }, [appointmentId]);
 
-  const previousStatusRef = useRef<string | undefined>();
+  const previousStatusRef = useRef<string | undefined>(undefined);
   
   useEffect(() => {
     if (invoice) {

@@ -7,7 +7,7 @@ import { FacebookStyleChatWidget } from '../components/client/FacebookStyleChatW
 
 export const Layout = () => {
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-white">
             <ClientHeader />
             <main className="flex-1">
                 <Outlet />

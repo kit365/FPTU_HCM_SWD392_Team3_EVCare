@@ -5,6 +5,7 @@ const SIDEBAR_WIDTH = 270
 const SIDEBAR_COLLAPSE = 70
 
 const config: Config = {
+  important: true,
   content: [
     "./src/components/**/*.{ts,tsx}",
     "./src/layouts/**/*.{ts,tsx}",
