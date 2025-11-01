@@ -62,7 +62,7 @@ payment:
     tmn-code: ${VNPAY_TMN_CODE:test_tmn_code}
     hash-secret: ${VNPAY_HASH_SECRET:test_hash_secret}
     url: ${VNPAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-    return-url: ${VNPAY_RETURN_URL:http://localhost:5173/client/payment/callback}
+    return-url: "{baseUrl}/api/v1/vnpay/payment-return"
 
 springdoc:
   api-docs:

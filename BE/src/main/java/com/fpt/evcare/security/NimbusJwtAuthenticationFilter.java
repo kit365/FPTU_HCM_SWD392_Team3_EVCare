@@ -114,24 +114,58 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
+        String method = request.getMethod();
+        
         // Loại trừ các endpoint không cần xác thực JWT
-        // Chỉ bypass JWT filter cho public auth endpoints
-        return path.equals("/api/v1/auth/login") ||
+        // Public auth endpoints
+        if (path.equals("/api/v1/auth/login") ||
                 path.equals("/api/v1/auth/register") ||
                 path.equals("/api/v1/auth/refresh") ||
                 path.equals("/api/v1/auth/validate") ||
                 path.equals("/api/v1/auth/validate-google-token") ||
                 path.startsWith("/api/v1/auth/redis-tokens/") ||
-                path.equals("/api/v1/auth/user") ||  // OAuth2 endpoint - dùng session authentication
-                path.startsWith("/oauth2/") ||  // OAuth2 flow
-                path.startsWith("/login/oauth2/") ||  // OAuth2 callback
-                path.startsWith("/swagger-ui") ||
+                path.equals("/api/v1/auth/user") ||
+                path.startsWith("/oauth2/") ||
+                path.startsWith("/login/oauth2/")) {
+            return true;
+        }
+        
+        // Public endpoints cho booking (không cần đăng nhập)
+        if (path.startsWith("/api/v1/vehicle-type/") ||
+                path.startsWith("/api/v1/service-type/")) {
+            return true;
+        }
+        
+        // Appointment - POST create và GET service-mode, guest-search không cần auth
+        if (path.equals("/api/v1/appointment/service-mode") ||
+                path.equals("/api/v1/appointment/guest-search") ||
+                (path.equals("/api/v1/appointment/") && "POST".equals(method))) {
+            return true;
+        }
+        
+        // VNPay payment endpoints (public - guest cũng có thể thanh toán)
+        if (path.equals("/api/v1/vnpay/create-payment") ||
+            path.equals("/api/v1/vnpay/payment-return")) {
+            return true;
+        }
+        
+        // Invoice endpoints (public - guest cần xem invoice để thanh toán)
+        if (path.startsWith("/api/v1/invoice/appointment/")) {
+            return true;
+        }
+        
+        // Swagger/API docs
+        if (path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/api-docs") ||
                 path.startsWith("/swagger-resources/") ||
                 path.startsWith("/webjars/") ||
                 path.startsWith("/configuration/") ||
-                path.equals("/swagger-ui.html");
+                path.equals("/swagger-ui.html")) {
+            return true;
+        }
+        
+        return false;
     }
 }
 

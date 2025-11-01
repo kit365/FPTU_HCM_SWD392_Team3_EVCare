@@ -6,6 +6,7 @@ import com.fpt.evcare.dto.request.appointment.UpdationAppointmentRequest;
 import com.fpt.evcare.dto.request.appointment.UpdationCustomerAppointmentRequest;
 import com.fpt.evcare.dto.response.AppointmentResponse;
 import com.fpt.evcare.dto.response.PageResponse;
+import com.fpt.evcare.entity.AppointmentEntity;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 public interface AppointmentService {
     AppointmentResponse getAppointmentById(UUID id);
+    AppointmentEntity getAppointmentEntityById(UUID id);
     PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForCustomer(String keyword, Pageable pageable);
 
     PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForGuest(String keyword, Pageable pageable);

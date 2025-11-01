@@ -38,12 +38,28 @@ export const useInvoice = () => {
     }
   };
 
+  const createVnPayPayment = async (appointmentId: string, source: string = "client") => {
+    setPaying(true);
+    try {
+      const paymentUrl = await invoiceService.createVnPayPayment(appointmentId, source);
+      return paymentUrl;
+    } catch (error: any) {
+      setPaying(false);
+      message.error(error.response?.data?.message || "Không thể tạo thanh toán VNPay");
+      console.error("Error creating VNPay payment:", error);
+      throw error;
+    } finally {
+      setPaying(false);
+    }
+  };
+
   return {
     invoice,
     loading,
     paying,
     getByAppointmentId,
     payCash,
+    createVnPayPayment,
   };
 };
 

@@ -90,6 +90,7 @@ public class ShiftConstants {
     public static final String SHIFT_SEARCH_FOR_TECHNICIAN = "/technician/search/{technician_id}";
     public static final String SHIFT_CREATE = "";
     public static final String SHIFT_UPDATE = "/{id}";
+    public static final String SHIFT_UPDATE_STATUS = "/status/{id}";
     public static final String SHIFT_DELETE = "/{id}";
     public static final String SHIFT_RESTORE = "/restore/{id}";
     public static final String SHIFT_ASSIGN = "/{id}/assign";

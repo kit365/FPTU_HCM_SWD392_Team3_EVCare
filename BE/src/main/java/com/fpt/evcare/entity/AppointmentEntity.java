@@ -95,5 +95,5 @@ public class AppointmentEntity extends BaseEntity {
     List<MaintenanceManagementEntity> maintenanceManagementEntities = new ArrayList<>();
 
     @OneToMany(mappedBy = "appointment", fetch = FetchType.LAZY)
-    List<com.fpt.evcare.entity.InvoiceEntity> invoices = new ArrayList<>();
+    List<InvoiceEntity> invoices = new ArrayList<>();
 }

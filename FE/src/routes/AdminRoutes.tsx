@@ -49,6 +49,8 @@ import CustomerEdit from "../pages/admin/user/CustomerEdit";
 import CustomerCreate from "../pages/admin/user/CustomerCreate";
 import UserCreate from "../pages/admin/user/UserCreate";
 import { InvoiceView } from "../pages/admin/payment/InvoiceView";
+import { PaymentSuccess } from "../pages/admin/payment/PaymentSuccess";
+import { PaymentFail } from "../pages/admin/payment/PaymentFail";
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><DashboardPage /></RoleProtectedRoute> },
     { path: "setting", element: <SettingPage /> },
@@ -81,6 +83,8 @@ export const AdminRoutes: RouteObject[] = [
     { path: "appointment-manage", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><AppointmentManage/></RoleProtectedRoute> },
     { path: "appointment/view/:id", element: <AppointmentView/> },
     { path: "invoice/:appointmentId", element: <InvoiceView/> },
+    { path: "payment/success", element: <PaymentSuccess/> },
+    { path: "payment/fail", element: <PaymentFail/> },
     { path: "shift", element: <ShiftList/> },
     { path: "schedule", element: <MyShifts/> },
     { path: "my-maintenance", element: <MyMaintenanceManagement/> },

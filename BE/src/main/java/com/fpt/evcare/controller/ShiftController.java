@@ -83,15 +83,28 @@ public class ShiftController {
     }
 
     @GetMapping(ShiftConstants.SHIFT_SEARCH)
-    @Operation(summary = "Tìm kiếm ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Tìm kiếm ca làm việc theo từ khóa với phân trang")
+    @Operation(summary = "Tìm kiếm ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Tìm kiếm ca làm việc theo từ khóa với phân trang và filters")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<PageResponse<ShiftResponse>>> searchShift(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "shiftType", required = false) String shiftType,
+            @RequestParam(name = "fromDate", required = false) String fromDate,
+            @RequestParam(name = "toDate", required = false) String toDate
     ) {
         Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<ShiftResponse> response = shiftService.searchShift(keyword, pageable);
+        
+        // Nếu không có filter nào thì dùng method cũ
+        boolean hasFilters = status != null || shiftType != null || fromDate != null || toDate != null;
+        
+        PageResponse<ShiftResponse> response;
+        if (hasFilters) {
+            response = shiftService.searchShiftWithFilters(keyword, status, shiftType, fromDate, toDate, pageable);
+        } else {
+            response = shiftService.searchShift(keyword, pageable);
+        }
 
         return ResponseEntity.ok(
                 ApiResponse.<PageResponse<ShiftResponse>>builder()
@@ -257,6 +270,22 @@ public class ShiftController {
                 ApiResponse.<String>builder()
                         .success(result)
                         .message(ShiftConstants.MESSAGE_SUCCESS_ASSIGNING_SHIFT)
+                        .build()
+        );
+    }
+    
+    @PatchMapping(ShiftConstants.SHIFT_UPDATE_STATUS)
+    @Operation(summary = "Cập nhật trạng thái ca làm việc", description = "👨‍💼 **Roles:** ADMIN, STAFF - Cập nhật trạng thái ca làm việc (ví dụ: SCHEDULED → IN_PROGRESS)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<String>> updateShiftStatus(
+            @PathVariable("id") UUID id,
+            @RequestBody String status) {
+        shiftService.updateShiftStatus(id, status);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .success(true)
+                        .message(ShiftConstants.MESSAGE_SUCCESS_UPDATING_SHIFT)
                         .build()
         );
     }

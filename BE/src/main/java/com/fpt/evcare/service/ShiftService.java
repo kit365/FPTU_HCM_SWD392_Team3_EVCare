@@ -24,6 +24,9 @@ public interface ShiftService {
     
     PageResponse<ShiftResponse> searchShift(String keyword, Pageable pageable);
     
+    PageResponse<ShiftResponse> searchShiftWithFilters(String keyword, String status, String shiftType,
+                                                        String fromDate, String toDate, Pageable pageable);
+    
     PageResponse<ShiftResponse> getShiftsByAppointmentId(UUID appointmentId, Pageable pageable);
     
     PageResponse<ShiftResponse> searchShiftForTechnician(UUID technicianId, String keyword, Pageable pageable);
@@ -37,6 +40,8 @@ public interface ShiftService {
     boolean restoreShift(UUID id);
     
     boolean assignShift(UUID shiftId, AssignShiftRequest request);
+    
+    void updateShiftStatus(UUID id, String status);
 
     List<TechnicianAvailabilityResponse> checkTechnicianAvailability(
             CheckTechnicianAvailabilityRequest request);

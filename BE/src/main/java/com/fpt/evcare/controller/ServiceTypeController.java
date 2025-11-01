@@ -32,8 +32,7 @@ public class ServiceTypeController {
     ServiceTypeService serviceTypeService;
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE)
-    @Operation(summary = "Lấy 1 dịch vụ", description = "🔐 **Roles:** Authenticated (All roles) - Lấy ra thông tin cụ thể cho 1 dịch vụ theo id")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy 1 dịch vụ", description = "🔓 **Public** - Lấy ra thông tin cụ thể cho 1 dịch vụ theo id")
     public ResponseEntity<ApiResponse<ServiceTypeResponse>> getServiceType(@PathVariable UUID id) {
         ServiceTypeResponse response = serviceTypeService.getServiceTypeById(id);
         return ResponseEntity.ok(ApiResponse.<ServiceTypeResponse>builder()
@@ -45,8 +44,7 @@ public class ServiceTypeController {
     }
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST_FOR_APPOINTMENT)
-    @Operation(summary = "Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn", description = "🔐 **Roles:** Authenticated (All roles) - Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn", description = "🔓 **Public** - Lấy ra danh sách dịch vụ theo loại xe cho cuộc hẹn")
     public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getListServiceTypeByVehicleTypeIdForAppointment(@PathVariable(name = "serviceTypeId") UUID id) {
         List<ServiceTypeResponse> response = serviceTypeService.getAllServiceTypesByVehicleTypeForAppointment(id);
         return ResponseEntity.ok(ApiResponse.< List<ServiceTypeResponse>>builder()
@@ -58,8 +56,7 @@ public class ServiceTypeController {
     }
 
     @GetMapping(ServiceTypeConstants.PARENT_SERVICE_TYPE_LIST_BY_VEHICLE_TYPE_ID)
-    @Operation(summary = "Lấy ra danh sách dịch vụ cha theo loại xe", description = "🔐 **Roles:** Authenticated (All roles) - Lấy ra danh sách dịch vụ cha theo loại xe")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy ra danh sách dịch vụ cha theo loại xe", description = "🔓 **Public** - Lấy ra danh sách dịch vụ cha theo loại xe")
     public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getParentServiceListByVehicleTypeId(@PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
 
         List<ServiceTypeResponse> response = serviceTypeService.getParentServiceListByVehicleTypeId(vehicleTypeId);
@@ -72,8 +69,7 @@ public class ServiceTypeController {
     }
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST_BY_PARENT_ID_AND_VEHICLE_TYPE_ID)
-    @Operation(summary = "Lấy ra danh sách dịch vụ con theo loại xe và dịch vụ cha", description = "🔐 **Roles:** Authenticated (All roles) - Lấy ra danh sách dịch vụ con theo loại xe và dịch vụ cha")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy ra danh sách dịch vụ con theo loại xe và dịch vụ cha", description = "🔓 **Public** - Lấy ra danh sách dịch vụ con theo loại xe và dịch vụ cha")
     public ResponseEntity<ApiResponse<List<ServiceTypeResponse>>> getChildrenServiceByParentIdAndVehicleTypeId(@PathVariable(name = "serviceTypeId") UUID parentId, @PathVariable(name = "vehicleTypeId") UUID vehicleTypeId) {
         List<ServiceTypeResponse> response = serviceTypeService.getChildrenServiceByParentIdAndVehicleTypeId(parentId, vehicleTypeId);
         return ResponseEntity.ok(ApiResponse.< List<ServiceTypeResponse>>builder()
@@ -85,8 +81,7 @@ public class ServiceTypeController {
     }
 
     @GetMapping(ServiceTypeConstants.SERVICE_TYPE_LIST)
-    @Operation(summary = "Lấy ra danh sách dịch vụ theo id loại xe", description = "🔐 **Roles:** Authenticated (All roles) - Lấy ra thông tin tất cả dịch vụ theo id loại xe, có cấu trúc cây")
-    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy ra danh sách dịch vụ theo id loại xe", description = "🔓 **Public** - Lấy ra thông tin tất cả dịch vụ theo id loại xe, có cấu trúc cây")
     public ResponseEntity<ApiResponse<PageResponse<ServiceTypeResponse>>> getAllServiceTypes(
             @RequestParam(name = PaginationConstants.PAGE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(name = PaginationConstants.PAGE_SIZE_KEY, defaultValue = ServiceTypeConstants.DEFAULT_PAGE_SIZE) int pageSize,

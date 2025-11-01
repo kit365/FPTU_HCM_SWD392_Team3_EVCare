@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -58,11 +59,25 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/login/oauth2/**"
                         ).permitAll()
+                        // VNPay payment endpoints (public - guest cũng có thể thanh toán)
+                        .requestMatchers("/api/v1/vnpay/create-payment").permitAll()
+                        .requestMatchers("/api/v1/vnpay/payment-return").permitAll()
+                        // Invoice endpoints (public - guest cần xem invoice để thanh toán)
+                        .requestMatchers("/api/v1/invoice/appointment/**").permitAll()
                         // Public auth endpoints (không cần đăng nhập)
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/forgot-password/**"
                         ).permitAll()
+                        // Public endpoints cho booking (không cần đăng nhập)
+                        .requestMatchers(
+                                "/api/v1/vehicle-type/**",  // Xem mẫu xe
+                                "/api/v1/service-type/**",  // Xem dịch vụ
+                                "/api/v1/appointment/service-mode",  // Service mode enum
+                                "/api/v1/appointment/guest-search"   // Guest search appointment
+                        ).permitAll()
+                        // POST appointment creation - cho phép cả guest và authenticated
+                        .requestMatchers(HttpMethod.POST, "/api/v1/appointment/").permitAll()
                         // Message endpoints (cần authenticate qua JWT filter)
                         .requestMatchers("/api/v1/messages/**").authenticated()
                         // OAuth2 user info endpoint (cần OAuth2 authentication)
