@@ -39,7 +39,4 @@ export const vehicleTypeSchema = yup.object().shape({
         .string()
         .trim()
         .required("Vui lòng nhập mô tả"),
-    image: yup
-        .string()
-        .required("Vui lòng chọn hình ảnh mẫu xe"),
 });

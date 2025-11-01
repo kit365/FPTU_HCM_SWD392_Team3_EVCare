@@ -1,6 +1,6 @@
 
 import { pathAdmin } from "./paths.constant";
-import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase, UserCircle, UserScan, Calendar, Tools } from "iconoir-react";
+import { HomeSimple, Group, Car, UserBadgeCheck, Codepen, DownloadDataWindow, Menu, Erase, UserCircle, UserScan, Calendar, Tools, Shield } from "iconoir-react";
 export interface AdminMenuItem {
     href?: string
     label: string
@@ -58,6 +58,11 @@ export const adminMenuItems: AdminMenuItem[] = [
                 label: "Phụ tùng xe",
                 icon: Erase
             },
+            {
+                href: `/${pathAdmin}/warranty`,
+                label: "Bảo hành",
+                icon: Shield,
+            },
         ],
     },
     {
@@ -74,16 +79,6 @@ export const adminMenuItems: AdminMenuItem[] = [
             STAFF: `/${pathAdmin}/shift`,
         }
     },
-    // {
-    //     href: `/${pathAdmin}/my-maintenance`,
-    //     label: "Công việc bảo dưỡng",
-    //     icon: Tools,
-    // },
-    // {
-    //     href: `/${pathAdmin}/warranty`,
-    //     label: "Bảo hành",
-    //     icon: Codepen,
-    // },
     {
         label: "Tin nhắn",
         icon: Group,

@@ -79,8 +79,28 @@ public class AppointmentConstants {
     public static final String LOG_INFO_UPDATING_APPOINTMENT_BY_CUSTOMER = "Đang cập nhật thông tin khách hàng trong cuộc hẹn, id cuộc hẹn: {}";
     public static final String LOG_INFO_SENT_IN_PROGRESS_EMAIL = "Sent in-progress email to customer: {}";
     public static final String LOG_ERR_FAILED_SEND_IN_PROGRESS_EMAIL = "Failed to send in-progress email: {}";
+    public static final String LOG_INFO_SENT_CONFIRMED_EMAIL = "Sent confirmed email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_CONFIRMED_EMAIL = "Failed to send confirmed email: {}";
+    public static final String LOG_INFO_SENT_COMPLETED_EMAIL = "Sent completed email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_COMPLETED_EMAIL = "Failed to send completed email: {}";
+    public static final String LOG_INFO_SENT_CANCELLED_EMAIL = "Sent cancelled email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_CANCELLED_EMAIL = "Failed to send cancelled email: {}";
+    public static final String LOG_INFO_SENT_PENDING_PAYMENT_EMAIL = "Sent pending payment email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_PENDING_PAYMENT_EMAIL = "Failed to send pending payment email: {}";
+    public static final String LOG_INFO_SENT_PENDING_EMAIL = "Sent pending email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_PENDING_EMAIL = "Failed to send pending email: {}";
     
-    // Email Content
+    // Email Content - PENDING (khi tạo appointment)
+    public static final String EMAIL_SUBJECT_PENDING = "Xác nhận đặt lịch hẹn bảo dưỡng xe điện";
+    public static final String EMAIL_BODY_PENDING_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_PENDING_CONTENT = "Cảm ơn bạn đã đặt lịch hẹn bảo dưỡng xe điện với chúng tôi. Lịch hẹn của bạn đã được tạo và đang chờ xác nhận.\n\n";
+    public static final String EMAIL_BODY_PENDING_APPOINTMENT_INFO = "Thông tin cuộc hẹn:\n";
+    public static final String EMAIL_BODY_PENDING_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_PENDING_VEHICLE = "- Biển số xe: %s\n";
+    public static final String EMAIL_BODY_PENDING_TIME = "- Thời gian hẹn: %s\n\n";
+    public static final String EMAIL_BODY_PENDING_FOOTER = "Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận lịch hẹn.\n\nTrân trọng,\nEV Care Team";
+    
+    // Email Content - IN_PROGRESS
     public static final String EMAIL_SUBJECT_IN_PROGRESS = "Thông báo bắt đầu dịch vụ bảo dưỡng xe điện";
     public static final String EMAIL_BODY_IN_PROGRESS_GREETING = "Xin chào %s,\n\n";
     public static final String EMAIL_BODY_IN_PROGRESS_CONTENT = "Chúng tôi xin thông báo rằng dịch vụ bảo dưỡng xe điện của bạn đã bắt đầu được thực hiện.\n\n";
@@ -89,6 +109,48 @@ public class AppointmentConstants {
     public static final String EMAIL_BODY_IN_PROGRESS_VEHICLE = "- Biển số xe: %s\n";
     public static final String EMAIL_BODY_IN_PROGRESS_TIME = "- Thời gian dự kiến: %s\n\n";
     public static final String EMAIL_BODY_IN_PROGRESS_FOOTER = "Chúng tôi sẽ cập nhật tiến độ dịch vụ cho bạn.\n\nTrân trọng,\nEV Care Team";
+    
+    // Email Content - CONFIRMED
+    public static final String EMAIL_SUBJECT_CONFIRMED = "Xác nhận cuộc hẹn bảo dưỡng xe điện";
+    public static final String EMAIL_BODY_CONFIRMED_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_CONFIRMED_CONTENT = "Cuộc hẹn bảo dưỡng xe điện của bạn đã được xác nhận.\n\n";
+    public static final String EMAIL_BODY_CONFIRMED_APPOINTMENT_INFO = "Thông tin cuộc hẹn:\n";
+    public static final String EMAIL_BODY_CONFIRMED_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_CONFIRMED_VEHICLE = "- Biển số xe: %s\n";
+    public static final String EMAIL_BODY_CONFIRMED_TIME = "- Thời gian hẹn: %s\n";
+    public static final String EMAIL_BODY_CONFIRMED_ASSIGNEE = "- Kỹ thuật viên: %s\n\n";
+    public static final String EMAIL_BODY_CONFIRMED_FOOTER = "Vui lòng đến đúng giờ hẹn để được phục vụ tốt nhất.\n\nTrân trọng,\nEV Care Team";
+    
+    // Email Content - COMPLETED
+    public static final String EMAIL_SUBJECT_COMPLETED = "Hoàn thành dịch vụ bảo dưỡng xe điện";
+    public static final String EMAIL_BODY_COMPLETED_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_COMPLETED_CONTENT = "Cuộc hẹn bảo dưỡng xe điện của bạn đã được hoàn thành thành công.\n\n";
+    public static final String EMAIL_BODY_COMPLETED_APPOINTMENT_INFO = "Thông tin cuộc hẹn:\n";
+    public static final String EMAIL_BODY_COMPLETED_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_COMPLETED_VEHICLE = "- Biển số xe: %s\n\n";
+    public static final String EMAIL_BODY_COMPLETED_FOOTER = "Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!\n\nTrân trọng,\nEV Care Team";
+    
+    // Email Content - CANCELLED
+    public static final String EMAIL_SUBJECT_CANCELLED = "Thông báo hủy cuộc hẹn bảo dưỡng xe điện";
+    public static final String EMAIL_BODY_CANCELLED_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_CANCELLED_CONTENT = "Cuộc hẹn bảo dưỡng xe điện của bạn đã bị hủy.\n\n";
+    public static final String EMAIL_BODY_CANCELLED_APPOINTMENT_INFO = "Thông tin cuộc hẹn đã hủy:\n";
+    public static final String EMAIL_BODY_CANCELLED_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_CANCELLED_VEHICLE = "- Biển số xe: %s\n";
+    public static final String EMAIL_BODY_CANCELLED_TIME = "- Thời gian đã hẹn: %s\n\n";
+    public static final String EMAIL_BODY_CANCELLED_FOOTER = "Nếu bạn muốn đặt lại cuộc hẹn, vui lòng liên hệ với chúng tôi.\n\nTrân trọng,\nEV Care Team";
+    
+    // Email Content - PENDING_PAYMENT
+    public static final String EMAIL_SUBJECT_PENDING_PAYMENT = "Thông báo chờ thanh toán dịch vụ bảo dưỡng";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_CONTENT = "Dịch vụ bảo dưỡng xe điện của bạn đã hoàn thành. Vui lòng thanh toán để hoàn tất.\n\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_APPOINTMENT_INFO = "Thông tin cuộc hẹn:\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_APPOINTMENT_ID = "- Mã cuộc hẹn: %s\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_VEHICLE = "- Biển số xe: %s\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_INVOICE_INFO = "\nThông tin hóa đơn:\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_INVOICE_ID = "- Mã hóa đơn: %s\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_TOTAL_AMOUNT = "- Tổng tiền: %s VNĐ\n\n";
+    public static final String EMAIL_BODY_PENDING_PAYMENT_FOOTER = "Vui lòng thanh toán theo hóa đơn đính kèm để hoàn tất dịch vụ.\n\nTrân trọng,\nEV Care Team";
 
 
     // Success Logs

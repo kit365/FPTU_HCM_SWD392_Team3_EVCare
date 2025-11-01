@@ -88,9 +88,9 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Tạo mới loại xe", description = "👑 **Roles:** ADMIN only")
+    @Operation(summary = "Tạo mới loại xe", description = "👨‍💼 **Roles:** ADMIN, STAFF")
     @PostMapping(VehicleTypeConstants.VEHICLE_TYPE_CREATION)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> createVehicleType(@Valid @RequestBody CreationVehicleTypeRequest request) {
 
         boolean result = vehicleTypeService.addVehicleType(request);
@@ -102,9 +102,9 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Cập nhật loại xe", description = "👑 **Roles:** ADMIN only")
+    @Operation(summary = "Cập nhật loại xe", description = "👨‍💼 **Roles:** ADMIN, STAFF")
     @PatchMapping(VehicleTypeConstants.VEHICLE_TYPE_UPDATE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> updateVehicleType(@PathVariable UUID id, @Valid @RequestBody UpdationVehicleTypeRequest request) {
 
         boolean result = vehicleTypeService.updateVehicleType(id, request);
@@ -116,9 +116,9 @@ public class VehicleTypeController {
         );
     }
 
-    @Operation(summary = "Xóa loại xe", description = "👑 **Roles:** ADMIN only")
+    @Operation(summary = "Xóa loại xe", description = "👨‍💼 **Roles:** ADMIN, STAFF")
     @DeleteMapping(VehicleTypeConstants.VEHICLE_TYPE_DELETE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<ApiResponse<String>> deleteVehicleType(@PathVariable UUID id) {
         boolean result = vehicleTypeService.deleteVehicleType(id);
 

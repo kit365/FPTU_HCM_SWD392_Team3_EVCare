@@ -8,9 +8,8 @@ import { SelectAdmin } from "../../../components/admin/ui/form/Select";
 import { useVehicleType } from "../../../hooks/useVehicleType";
 import { pathAdmin } from "../../../constants/paths.constant";
 import { manufacturers } from "../../../constants/manufacturer.constant";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { vehicleTypeSchema } from "../../../validations/vehicleType.validation";
-import { useState } from "react";
 
 type FormData = {
     vehicleTypeName: string;
@@ -20,19 +19,16 @@ type FormData = {
     maintenanceIntervalKm: number;
     maintenanceIntervalMonths: number;
     description: string;
-    image: string;
 };
 
 export const VehicleCreate = () => {
     const { loading, createVehicleType } = useVehicleType();
-    const [previewImage, setPreviewImage] = useState<string | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const navigate = useNavigate();
 
     const {
         register,
         handleSubmit,
         formState: { errors },
-        reset,
     } = useForm<FormData>({
         resolver: yupResolver(vehicleTypeSchema),
         defaultValues: {
@@ -43,46 +39,24 @@ export const VehicleCreate = () => {
             maintenanceIntervalKm: 0,
             maintenanceIntervalMonths: 0,
             description: "",
-            image: undefined as any,
         },
     });
 
-    const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        // Hiển thị preview local
-        const previewUrl = URL.createObjectURL(file);
-        setPreviewImage(previewUrl);
-
-        setSelectedFile(file);
-    };
     const onSubmit = async (data: FormData) => {
         try {
-            let imageUrl = "";
-
-            if (selectedFile) {
-                const formData = new FormData();
-                formData.append("file", selectedFile);
-                formData.append("upload_preset", "maika_xinh_dep");
-
-                const res = await fetch("https://api.cloudinary.com/v1_1/dxyuuul0q/image/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                const uploaded = await res.json();
-                imageUrl = uploaded.secure_url;
-            }
-
-            const payload = { ...data, image: imageUrl };
-
-            console.log(payload);
+            const payload = {
+                vehicleTypeName: data.vehicleTypeName,
+                manufacturer: data.manufacturer,
+                modelYear: data.modelYear,
+                batteryCapacity: data.batteryCapacity,
+                maintenanceIntervalKm: data.maintenanceIntervalKm,
+                maintenanceIntervalMonths: data.maintenanceIntervalMonths,
+                description: data.description || "",
+            };
 
             if (await createVehicleType(payload)) {
-                reset();
-                setPreviewImage(null);
-                setSelectedFile(null);
+                // Redirect về trang danh sách sau khi tạo thành công
+                navigate(`/${pathAdmin}/vehicle`);
             }
         } catch (error) {
             console.error(error);
@@ -162,74 +136,6 @@ export const VehicleCreate = () => {
                             {...register("maintenanceIntervalMonths")}
                             error={errors.maintenanceIntervalMonths?.message}
                         />
-                    </div>
-
-                    <div className="col-span-2">
-                        <LabelAdmin htmlFor="image" content="Hình ảnh mẫu xe" />
-
-                        {/* Upload box */}
-                        <div
-                            className="relative flex flex-col items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-200 ease-in-out p-6"
-                        >
-                            {/* Input chỉ hiển thị khi chưa chọn ảnh */}
-                            {!previewImage && (
-                                <input
-                                    type="file"
-                                    id="image"
-                                    accept="image/*"
-                                    {...register("image")}
-                                    onChange={handleImageChange}
-                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                />
-                            )}
-
-                            {/* Khi chưa chọn ảnh */}
-                            {!previewImage && (
-                                <div className="flex flex-col items-center text-gray-500 z-0">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="w-12 h-12 mb-2 text-gray-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6h.1a5 5 0 010 10H7z"
-                                        />
-                                    </svg>
-                                    <p className="text-[14px] font-medium">Nhấn để chọn hình ảnh</p>
-                                    <p className="text-[12px] text-gray-400 mt-1">PNG, JPG, JPEG (tối đa 5MB)</p>
-                                </div>
-                            )}
-
-                            {/* Khi đã có ảnh */}
-                            {previewImage && (
-                                <div className="flex flex-col items-center">
-                                    <img
-                                        src={previewImage}
-                                        alt="Preview"
-                                        className="w-[220px] h-[160px] object-cover rounded-lg shadow-sm border"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setPreviewImage(null);
-                                            setSelectedFile(null);
-                                        }}
-                                        className="mt-3 text-[13px] text-red-500 hover:underline cursor-pointer"
-                                    >
-                                        Xóa hình
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        {/* Error message */}
-                        {errors.image && (
-                            <p className="text-red-500 text-[13px] mt-[6px]">{errors.image.message}</p>
-                        )}
                     </div>
 
                     <div className="col-span-2">

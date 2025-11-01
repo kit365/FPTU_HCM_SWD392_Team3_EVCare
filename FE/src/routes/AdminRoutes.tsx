@@ -39,7 +39,10 @@ import ShiftDetail from "../pages/admin/shift/ShiftDetail";
 import MyShifts from "../pages/admin/shift/MyShifts";
 import MaintenanceManagementDetail from "../pages/admin/maintenance/MaintenanceManagementDetail";
 import MyMaintenanceManagement from "../pages/admin/maintenance/MyMaintenanceManagement";
-import Warranty from "../pages/admin/warranty_and_shift/Warranty";
+import { WarrantyPackageList } from "../pages/admin/warranty/WarrantyPackageList";
+import { WarrantyPackageCreate } from "../pages/admin/warranty/WarrantyPackageCreate";
+import { WarrantyPackageEdit } from "../pages/admin/warranty/WarrantyPackageEdit";
+import { WarrantyPackageDetail } from "../pages/admin/warranty/WarrantyPackageDetail";
 import { AdminCustomerManagement } from "../pages/admin/user/AdminCustomerManagement";
 import { AdminMessagePage } from "../pages/admin/message/AdminMessagePage";
 import { MessageAssignmentManagement } from "../pages/admin/message/MessageAssignmentManagement";
@@ -93,7 +96,10 @@ export const AdminRoutes: RouteObject[] = [
     { path: "shift/create", element: <ShiftCreate/> },
     { path: "shift/edit/:id", element: <ShiftEdit/> },
     { path: "shift/view/:id", element: <ShiftDetail/> },
-    { path: "warranty", element: <Warranty/> },
+    { path: "warranty", element: <WarrantyPackageList /> },
+    { path: "warranty/create", element: <WarrantyPackageCreate /> },
+    { path: "warranty/edit/:id", element: <WarrantyPackageEdit /> },
+    { path: "warranty/view/:id", element: <WarrantyPackageDetail /> },
     { path: "message", element: <AdminMessagePage /> },
     { path: "message-assignments", element: <MessageAssignmentManagement /> },
     { path: "users/customers", element: <AdminCustomerManagement /> },

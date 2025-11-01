@@ -54,8 +54,10 @@ public class InvoiceConstants {
     public static final String LOG_SUCCESS_RESTORING_INVOICE = "Khôi phục hóa đơn thành công với id: {}";
     public static final String LOG_SUCCESS_SHOWING_CUSTOMER_INVOICES = "Lấy danh sách hóa đơn của khách hàng thành công với id: {}";
     public static final String LOG_ERR_FAILED_SEND_PAYMENT_CONFIRMATION_EMAIL = "Failed to send payment confirmation email: {}";
+    public static final String LOG_INFO_SENT_PAYMENT_FAILED_EMAIL = "Sent payment failed email to customer: {}";
+    public static final String LOG_ERR_FAILED_SEND_PAYMENT_FAILED_EMAIL = "Failed to send payment failed email: {}";
     
-    // Email Content
+    // Email Content - Payment Confirmation
     public static final String EMAIL_SUBJECT_PAYMENT_CONFIRMATION = "Xác nhận thanh toán hóa đơn thành công";
     public static final String EMAIL_BODY_PAYMENT_CONFIRMATION_GREETING = "Xin chào %s,\n\n";
     public static final String EMAIL_BODY_PAYMENT_CONFIRMATION_CONTENT = "Chúng tôi xin thông báo rằng thanh toán của bạn đã được xác nhận thành công.\n\n";
@@ -64,4 +66,14 @@ public class InvoiceConstants {
     public static final String EMAIL_BODY_PAYMENT_CONFIRMATION_AMOUNT = "- Số tiền: %s VNĐ\n";
     public static final String EMAIL_BODY_PAYMENT_CONFIRMATION_DATE = "- Ngày thanh toán: %s\n\n";
     public static final String EMAIL_BODY_PAYMENT_CONFIRMATION_FOOTER = "Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!\n\nTrân trọng,\nEV Care Team";
+    
+    // Email Content - Payment Failed
+    public static final String EMAIL_SUBJECT_PAYMENT_FAILED = "Thông báo thanh toán hóa đơn thất bại";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_GREETING = "Xin chào %s,\n\n";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_CONTENT = "Chúng tôi rất tiếc phải thông báo rằng thanh toán của bạn không thể được xử lý.\n\n";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_INVOICE_INFO = "Thông tin hóa đơn:\n";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_INVOICE_ID = "- Mã hóa đơn: %s\n";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_AMOUNT = "- Tổng tiền: %s VNĐ\n";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_REASON = "- Lý do: %s\n\n";
+    public static final String EMAIL_BODY_PAYMENT_FAILED_FOOTER = "Vui lòng kiểm tra lại thông tin và thử thanh toán lại. Nếu cần hỗ trợ, vui lòng liên hệ với chúng tôi.\n\nTrân trọng,\nEV Care Team";
 }

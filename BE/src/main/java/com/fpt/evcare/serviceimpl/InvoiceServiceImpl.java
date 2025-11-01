@@ -3,8 +3,6 @@ package com.fpt.evcare.serviceimpl;
 import com.fpt.evcare.constants.InvoiceConstants;
 import com.fpt.evcare.dto.request.EmailRequestDTO;
 import com.fpt.evcare.dto.request.PaymentRequest;
-import com.fpt.evcare.dto.request.invoice.CreationInvoiceRequest;
-import com.fpt.evcare.dto.request.invoice.UpdationInvoiceRequest;
 import com.fpt.evcare.dto.response.*;
 import com.fpt.evcare.entity.*;
 import com.fpt.evcare.enums.AppointmentStatusEnum;
@@ -17,14 +15,15 @@ import com.fpt.evcare.repository.AppointmentRepository;
 import com.fpt.evcare.repository.InvoiceRepository;
 import com.fpt.evcare.repository.MaintenanceManagementRepository;
 import com.fpt.evcare.repository.PaymentMethodRepository;
+import com.fpt.evcare.repository.VehicleRepository;
+import com.fpt.evcare.repository.WarrantyPackagePartRepository;
 import com.fpt.evcare.service.EmailService;
 import com.fpt.evcare.service.InvoiceService;
+import com.fpt.evcare.service.WarrantyPackageService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +43,9 @@ public class InvoiceServiceImpl implements InvoiceService {
     PaymentMethodRepository paymentMethodRepository;
     MaintenanceManagementRepository maintenanceManagementRepository;
     EmailService emailService;
+    WarrantyPackageService warrantyPackageService;
+    VehicleRepository vehicleRepository;
+    WarrantyPackagePartRepository warrantyPackagePartRepository;
 //
 //    @Override
 //    @Transactional
@@ -104,17 +106,73 @@ public class InvoiceServiceImpl implements InvoiceService {
         java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> maintenanceList = 
             maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointmentId);
         
+        // Lấy vehicleId từ appointment
+        UUID vehicleId = null;
+        if (appointment.getVehicleNumberPlate() != null) {
+            try {
+                com.fpt.evcare.entity.VehicleEntity vehicle = vehicleRepository.findByPlateNumberAndIsDeletedFalse(appointment.getVehicleNumberPlate());
+                if (vehicle != null) {
+                    vehicleId = vehicle.getVehicleId();
+                }
+            } catch (Exception e) {
+                log.debug("Vehicle not found by plate number: {}", appointment.getVehicleNumberPlate());
+            }
+        }
+        final UUID finalVehicleId = vehicleId;
+        
         java.util.List<InvoiceResponse.MaintenanceManagementSummary> maintenanceDetails = maintenanceList.stream()
             .map(mm -> {
                 java.util.List<InvoiceResponse.PartUsed> partsUsed = mm.getMaintenanceRecords().stream()
-                    .filter(record -> !record.getIsDeleted())
-                    .map(record -> InvoiceResponse.PartUsed.builder()
-                        .partName(record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartName() : "N/A")
-                        .quantity(record.getQuantityUsed())
-                        .unitPrice(record.getVehiclePart() != null ? record.getVehiclePart().getUnitPrice() : BigDecimal.ZERO)
-                        .totalPrice(BigDecimal.valueOf(record.getQuantityUsed())
-                            .multiply(record.getVehiclePart() != null ? record.getVehiclePart().getUnitPrice() : BigDecimal.ZERO))
-                        .build())
+                    .filter(record -> !record.getIsDeleted() && Boolean.TRUE.equals(record.getApprovedByUser()))
+                    .map(record -> {
+                        UUID partId = record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartId() : null;
+                        BigDecimal unitPrice = record.getVehiclePart() != null ? record.getVehiclePart().getUnitPrice() : BigDecimal.ZERO;
+                        BigDecimal originalPrice = unitPrice.multiply(BigDecimal.valueOf(record.getQuantityUsed()));
+                        
+                        // Kiểm tra xem phụ tùng có bảo hành không
+                        boolean isUnderWarranty = false;
+                        String warrantyPackageName = null;
+                        BigDecimal finalPrice = originalPrice;
+                        
+                        if (partId != null) {
+                            try {
+                                isUnderWarranty = warrantyPackageService.isVehiclePartUnderWarranty(finalVehicleId, partId);
+                                
+                                if (isUnderWarranty) {
+                                    // Nếu có bảo hành, giá sẽ là 0
+                                    finalPrice = BigDecimal.ZERO;
+                                    
+                                    // Lấy tên gói bảo hành
+                                    java.time.LocalDateTime checkDate = java.time.LocalDateTime.now();
+                                    java.util.List<com.fpt.evcare.entity.WarrantyPackagePartEntity> warranties = 
+                                        warrantyPackagePartRepository.findValidWarrantiesForVehiclePart(finalVehicleId, partId, checkDate);
+                                    
+                                    if (!warranties.isEmpty()) {
+                                        com.fpt.evcare.entity.WarrantyPackagePartEntity firstWarranty = warranties.get(0);
+                                        if (firstWarranty.getWarrantyPackage() != null) {
+                                            warrantyPackageName = firstWarranty.getWarrantyPackage().getWarrantyPackageName();
+                                        } else {
+                                            warrantyPackageName = "Bảo hành";
+                                        }
+                                    } else {
+                                        warrantyPackageName = "Bảo hành";
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.debug("Error checking warranty for part {}: {}", partId, e.getMessage());
+                            }
+                        }
+                        
+                        return InvoiceResponse.PartUsed.builder()
+                            .partName(record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartName() : "N/A")
+                            .quantity(record.getQuantityUsed())
+                            .unitPrice(unitPrice)
+                            .totalPrice(finalPrice)
+                            .originalPrice(originalPrice)
+                            .isUnderWarranty(isUnderWarranty)
+                            .warrantyPackageName(warrantyPackageName)
+                            .build();
+                    })
                     .toList();
 
                 return InvoiceResponse.MaintenanceManagementSummary.builder()
@@ -336,12 +394,16 @@ public class InvoiceServiceImpl implements InvoiceService {
         // Kiểm tra invoice phải ở trạng thái PENDING
         if (invoice.getStatus() != InvoiceStatusEnum.PENDING) {
             log.warn("Invoice {} is not in PENDING status", invoiceId);
+            // Gửi email thông báo thanh toán thất bại
+            sendPaymentFailedEmail(invoice, "Hóa đơn đã được thanh toán hoặc đã hủy");
             throw new IllegalStateException("Hóa đơn đã được thanh toán hoặc đã hủy");
         }
 
         AppointmentEntity appointment = invoice.getAppointment();
         if (appointment == null || appointment.getStatus() != AppointmentStatusEnum.PENDING_PAYMENT) {
             log.warn("Appointment is not in PENDING_PAYMENT status");
+            // Gửi email thông báo thanh toán thất bại
+            sendPaymentFailedEmail(invoice, "Appointment không ở trạng thái chờ thanh toán");
             throw new IllegalStateException("Appointment không ở trạng thái chờ thanh toán");
         }
 
@@ -351,11 +413,13 @@ public class InvoiceServiceImpl implements InvoiceService {
         
         if (paidAmount == null || paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
             log.warn("Invalid paid amount: {}", paidAmount);
+            sendPaymentFailedEmail(invoice, "Số tiền thanh toán không hợp lệ");
             throw new EntityValidationException("Số tiền thanh toán không hợp lệ");
         }
         
         if (paidAmount.compareTo(invoice.getTotalAmount()) < 0) {
             log.warn("Paid amount {} is less than total amount {}", paidAmount, invoice.getTotalAmount());
+            sendPaymentFailedEmail(invoice, "Số tiền thanh toán phải bằng tổng tiền hóa đơn");
             throw new EntityValidationException("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
         }
 
@@ -388,7 +452,174 @@ public class InvoiceServiceImpl implements InvoiceService {
         appointmentRepository.save(appointment);
         log.info("Appointment {} marked as COMPLETED", appointment.getAppointmentId());
 
+        // Gửi email xác nhận thanh toán thành công
+        sendPaymentConfirmationEmail(invoice);
+
         return true;
+    }
+
+    /**
+     * Gửi email xác nhận thanh toán thành công với thông tin về warranty
+     */
+    private void sendPaymentConfirmationEmail(InvoiceEntity invoice) {
+        if (invoice.getAppointment() == null || invoice.getAppointment().getCustomerEmail() == null ||
+            invoice.getAppointment().getCustomerEmail().isEmpty()) {
+            log.warn(InvoiceConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            // Lấy thông tin maintenance management để kiểm tra warranty
+            AppointmentEntity appointment = invoice.getAppointment();
+            java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> maintenanceList = 
+                maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointment.getAppointmentId());
+            
+            // Lấy vehicleId từ appointment
+            UUID vehicleId = null;
+            if (appointment.getVehicleNumberPlate() != null) {
+                try {
+                    com.fpt.evcare.entity.VehicleEntity vehicle = vehicleRepository.findByPlateNumberAndIsDeletedFalse(appointment.getVehicleNumberPlate());
+                    if (vehicle != null) {
+                        vehicleId = vehicle.getVehicleId();
+                    }
+                } catch (Exception e) {
+                    log.debug("Vehicle not found by plate number: {}", appointment.getVehicleNumberPlate());
+                }
+            }
+            final UUID finalVehicleId = vehicleId;
+            
+            // Format thông tin về phụ tùng đã được gán warranty package
+            StringBuilder warrantyInfo = new StringBuilder();
+            int warrantyPartsCount = 0;
+            int totalPartsCount = 0;
+            
+            if (!maintenanceList.isEmpty()) {
+                warrantyInfo.append("\nThông tin bảo hành phụ tùng:\n");
+                for (com.fpt.evcare.entity.MaintenanceManagementEntity mm : maintenanceList) {
+                    if (mm.getMaintenanceRecords() != null && !mm.getMaintenanceRecords().isEmpty()) {
+                        for (com.fpt.evcare.entity.MaintenanceRecordEntity record : mm.getMaintenanceRecords()) {
+                            if (record.getIsDeleted() || !Boolean.TRUE.equals(record.getApprovedByUser())) {
+                                continue;
+                            }
+                            
+                            String partName = record.getVehiclePart() != null ? 
+                                record.getVehiclePart().getVehiclePartName() : "N/A";
+                            UUID partId = record.getVehiclePart() != null ? 
+                                record.getVehiclePart().getVehiclePartId() : null;
+                            
+                            totalPartsCount++;
+                            
+                            // Kiểm tra warranty
+                            boolean isUnderWarranty = false;
+                            String warrantyPackageName = null;
+                            if (partId != null) {
+                                try {
+                                    isUnderWarranty = warrantyPackageService.isVehiclePartUnderWarranty(finalVehicleId, partId);
+                                    if (isUnderWarranty) {
+                                        warrantyPartsCount++;
+                                        // Lấy tên gói bảo hành
+                                        java.time.LocalDateTime checkDate = java.time.LocalDateTime.now();
+                                        java.util.List<com.fpt.evcare.entity.WarrantyPackagePartEntity> warranties = 
+                                            warrantyPackagePartRepository.findValidWarrantiesForVehiclePart(finalVehicleId, partId, checkDate);
+                                        
+                                        if (!warranties.isEmpty()) {
+                                            com.fpt.evcare.entity.WarrantyPackagePartEntity firstWarranty = warranties.get(0);
+                                            if (firstWarranty.getWarrantyPackage() != null) {
+                                                warrantyPackageName = firstWarranty.getWarrantyPackage().getWarrantyPackageName();
+                                            }
+                                        }
+                                        
+                                        warrantyInfo.append(String.format("- %s: Đã được bảo hành (%s)\n", 
+                                            partName,
+                                            warrantyPackageName != null ? warrantyPackageName : "Miễn phí"));
+                                    } else {
+                                        warrantyInfo.append(String.format("- %s: Chưa được gán bảo hành\n", partName));
+                                    }
+                                } catch (Exception e) {
+                                    log.debug("Error checking warranty for part {}: {}", partId, e.getMessage());
+                                    warrantyInfo.append(String.format("- %s: Chưa được gán bảo hành\n", partName));
+                                }
+                            } else {
+                                warrantyInfo.append(String.format("- %s: Chưa được gán bảo hành\n", partName));
+                            }
+                        }
+                    }
+                }
+                if (totalPartsCount > 0) {
+                    warrantyInfo.append(String.format("\nTổng kết: %d/%d phụ tùng đã được gán bảo hành.\n", warrantyPartsCount, totalPartsCount));
+                }
+            }
+
+            String emailSubject = InvoiceConstants.EMAIL_SUBJECT_PAYMENT_CONFIRMATION;
+            String emailBody = String.format(
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_GREETING +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_CONTENT +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_INVOICE_INFO +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_INVOICE_ID +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_AMOUNT +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_DATE +
+                warrantyInfo.toString() +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_FOOTER,
+                invoice.getAppointment().getCustomerFullName(),
+                invoice.getInvoiceId(),
+                invoice.getTotalAmount().toString(),
+                LocalDateTime.now().toString()
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(invoice.getAppointment().getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(invoice.getAppointment().getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(InvoiceConstants.LOG_INFO_SENT_PAYMENT_CONFIRMATION_EMAIL, invoice.getAppointment().getCustomerEmail());
+        } catch (Exception e) {
+            log.error(InvoiceConstants.LOG_ERR_FAILED_SEND_PAYMENT_CONFIRMATION_EMAIL, e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi email thông báo thanh toán thất bại
+     */
+    private void sendPaymentFailedEmail(InvoiceEntity invoice, String reason) {
+        if (invoice.getAppointment() == null || invoice.getAppointment().getCustomerEmail() == null ||
+            invoice.getAppointment().getCustomerEmail().isEmpty()) {
+            log.warn(InvoiceConstants.LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY);
+            return;
+        }
+
+        try {
+            String emailSubject = InvoiceConstants.EMAIL_SUBJECT_PAYMENT_FAILED;
+            String emailBody = String.format(
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_GREETING +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_CONTENT +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_INVOICE_INFO +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_INVOICE_ID +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_AMOUNT +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_REASON +
+                InvoiceConstants.EMAIL_BODY_PAYMENT_FAILED_FOOTER,
+                invoice.getAppointment().getCustomerFullName(),
+                invoice.getInvoiceId(),
+                invoice.getTotalAmount().toString(),
+                reason
+            );
+
+            EmailRequestDTO emailRequest = EmailRequestDTO.builder()
+                    .to(invoice.getAppointment().getCustomerEmail())
+                    .subject(emailSubject)
+                    .text(emailBody)
+                    .fullName(invoice.getAppointment().getCustomerFullName())
+                    .code(null)
+                    .build();
+
+            emailService.sendEmailTemplate(emailRequest);
+            log.info(InvoiceConstants.LOG_INFO_SENT_PAYMENT_FAILED_EMAIL, invoice.getAppointment().getCustomerEmail());
+        } catch (Exception e) {
+            log.error(InvoiceConstants.LOG_ERR_FAILED_SEND_PAYMENT_FAILED_EMAIL, e.getMessage());
+        }
     }
 
 //    @Override

@@ -125,4 +125,34 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
         """, nativeQuery = true)
     Long countUniqueVehicles();
 
+    // Kiểm tra appointment IN_PROGRESS sử dụng vehicleTypeId
+    @Query(value = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM appointments a
+            WHERE a.vehicle_type_id = :vehicleTypeId
+              AND a.status = 'IN_PROGRESS'
+              AND a.is_deleted = FALSE
+              AND a.is_active = TRUE
+        )
+        """, nativeQuery = true)
+    boolean existsInProgressAppointmentByVehicleTypeId(@Param("vehicleTypeId") UUID vehicleTypeId);
+
+    // Kiểm tra appointment IN_PROGRESS sử dụng serviceType của vehicleType
+    @Query(value = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM appointments a
+            JOIN appointment_service_types ast ON a.id = ast.appointment_id
+            JOIN service_types st ON ast.service_type_id = st.id
+            WHERE st.vehicle_type_id = :vehicleTypeId
+              AND a.status = 'IN_PROGRESS'
+              AND a.is_deleted = FALSE
+              AND a.is_active = TRUE
+              AND st.is_deleted = FALSE
+              AND st.is_active = TRUE
+        )
+        """, nativeQuery = true)
+    boolean existsInProgressAppointmentByServiceTypeOfVehicleType(@Param("vehicleTypeId") UUID vehicleTypeId);
+
 }

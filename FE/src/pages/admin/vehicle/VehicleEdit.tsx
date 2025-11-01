@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Card } from "@mui/material";
@@ -15,6 +15,7 @@ import { vehicleTypeSchema } from "../../../validations/vehicleType.validation";
 
 export const VehicleEdit = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
 
     const { loading, getVehicleType, updateVehicleType } = useVehicleType();
 
@@ -34,18 +35,28 @@ export const VehicleEdit = () => {
             }
         };
         fetchVehicle();
-    }, [id]);
+    }, [id, getVehicleType, reset]);
 
     const onSubmit = async (data: any) => {
         if (!id) return;
 
-        if (await updateVehicleType(id, data)) {
-            const updatedData = await getVehicleType(id);
-            if (updatedData) {
-                reset({
-                    ...updatedData,
-                });
-            }
+        // Chỉ gửi các field cần thiết, loại bỏ các field không cần như vehicleTypeId, createdAt, updatedAt, etc.
+        const payload = {
+            vehicleTypeName: data.vehicleTypeName,
+            manufacturer: data.manufacturer,
+            modelYear: Number(data.modelYear),
+            batteryCapacity: Number(data.batteryCapacity),
+            maintenanceIntervalKm: Number(data.maintenanceIntervalKm),
+            maintenanceIntervalMonths: Number(data.maintenanceIntervalMonths),
+            description: data.description || "",
+            isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+        };
+
+        const result = await updateVehicleType(id, payload);
+
+        if (result) {
+            // Redirect về trang danh sách sau khi cập nhật thành công
+            navigate(`/${pathAdmin}/vehicle`);
         }
     };
 

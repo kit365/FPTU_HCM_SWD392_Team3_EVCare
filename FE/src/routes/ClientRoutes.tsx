@@ -6,6 +6,8 @@ import ProtectedRoute from "../components/client/ProtectedRoute";
 import { ClientMessagePage } from "../pages/client/message/ClientMessagePage";
 import ClientProfile from "../pages/client/account/ClientProfile";
 import LookupAppointmentsPage from "../pages/client/LookupAppointments";
+import ClientAppointmentHistory from "../pages/client/ClientAppointmentHistory";
+import { ClientInvoiceView } from "../pages/client/payment/ClientInvoiceView";
 export const ClientRoutes: RouteObject[] = [
     { path: "", element: <HomePage /> }, 
     { path: "service-booking", element: <ServiceBookingPage /> }, // /client/service-booking
@@ -13,4 +15,6 @@ export const ClientRoutes: RouteObject[] = [
     { path: "lookup", element: <LookupAppointmentsPage /> }, // /client/lookup
     { path: "profile", element: <ProtectedRoute><ClientProfile/></ProtectedRoute> }, // /client/profile
     { path: "message", element: <ProtectedRoute><ClientMessagePage /></ProtectedRoute> }, // /client/message
+    { path: "appointment-history", element: <ProtectedRoute><ClientAppointmentHistory /></ProtectedRoute> }, // /client/appointment-history
+    { path: "invoice/:appointmentId", element: <ProtectedRoute><ClientInvoiceView /></ProtectedRoute> }, // /client/invoice/:appointmentId
 ];
