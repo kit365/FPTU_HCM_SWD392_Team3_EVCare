@@ -17,6 +17,7 @@ export default function CustomerEdit() {
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState<UserResponse | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [backgroundUrl, setBackgroundUrl] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function CustomerEdit() {
       const response = await userService.getById(id!);
       setData(response);
       setAvatarUrl(response.avatarUrl || '');
+      setBackgroundUrl(response.backgroundUrl || '');
       setIsActive(response.isActive ?? true);
     } catch (error: any) {
       notify.error(error.response?.data?.message || 'Không thể tải thông tin khách hàng');
@@ -60,6 +62,7 @@ export default function CustomerEdit() {
         email: user.email,  // Required by backend validation
         isActive: isActive,
         avatarUrl: avatarUrl || undefined,
+        backgroundUrl: backgroundUrl || undefined,
       };
 
       const success = await userService.update(id, updateData);
@@ -225,6 +228,15 @@ export default function CustomerEdit() {
                 value={avatarUrl}
                 onChange={(url) => setAvatarUrl(url)}
                 label="Ảnh đại diện"
+              />
+            </div>
+
+            {/* Background Image Upload - EDITABLE */}
+            <div className="mt-6">
+              <ImageUpload
+                value={backgroundUrl}
+                onChange={(url) => setBackgroundUrl(url)}
+                label="Ảnh nền"
               />
             </div>
 

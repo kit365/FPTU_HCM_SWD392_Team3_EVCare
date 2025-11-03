@@ -25,16 +25,16 @@ const ClientRegister = () => {
       <section className='py-[130px] bg-login'>
         <div className='w-[1410px] mx-auto'>
           <h2 className='text-white mb-[20px] text-[4rem] font-[700] text-center'>Tạo tài khoản</h2>
-          <div className='text-white text-center'><Link to={"/"}>Trang chủ</Link><span className='mx-[5px]'>-</span> <span className='text-[#41cb5a]'>Tạo tài khoản</span></div>
+          <div className='text-white text-center'><Link to={"/"}>Trang chủ</Link><span className='mx-[5px]'>-</span> <span className='text-[#94d433]'>Tạo tài khoản</span></div>
         </div>
       </section>
       <section className='py-[130px]'>
-        <div className='w-[1410px] mx-auto p-[65px] bg-[#41cb5a] rounded-[10px] mt-[24px] flex'>
+        <div className='w-[1410px] mx-auto p-[65px] bg-[#94d433] rounded-[10px] mt-[24px] flex'>
           <div className='w-[67%] px-[12px] relative'>
             <img src="https://sf-static.upanhlaylink.com/img/image_202511017c2279b759f2fd71edb9c4812ff3db9f.jpg" alt="" className='w-full h-auto object-cover rounded-[10px]' />
             <div className='absolute top-[50%] right-[-50px] translate-y-[-50%] rotate-[-90deg]'>
-              <Link to="/client/login" className='bg-transparent hover:bg-[#41cb5a] border border-[#fff] hover:border-[#41cb5a] text-white px-[20px] py-[10px] transition-colors duration-[400ms] ease-in-out'>Đăng nhập</Link>
-              <Link to="/client/register" className='bg-[#41cb5a] border border-[#41cb5a] text-white px-[20px] py-[10px]'>Đăng ký</Link>
+              <Link to="/client/login" className='bg-transparent hover:bg-[#94d433] border border-[#fff] hover:border-[#94d433] text-white px-[20px] py-[10px] transition-colors duration-[400ms] ease-in-out'>Đăng nhập</Link>
+              <Link to="/client/register" className='bg-[#94d433] border border-[#94d433] text-white px-[20px] py-[10px]'>Đăng ký</Link>
             </div>
           </div>
           <div className='flex-1 px-[12px]'>
@@ -120,13 +120,13 @@ const ClientRegister = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className='mb-[30px] border-2 border-white w-full px-[26px] py-[12px] cursor-pointer font-[600] text-white transition-colors duration-[400ms] ease-in-out hover:bg-white hover:text-[#41cb5a] disabled:opacity-50 disabled:cursor-not-allowed'
+                className='mb-[30px] border-2 border-white w-full px-[26px] py-[12px] cursor-pointer font-[600] text-white transition-colors duration-[400ms] ease-in-out hover:bg-white hover:text-[#94d433] disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
               </button>
             </form>
             <div className='flex items-center mb-[30px]'>
-              <span className='w-[20px] h-[20px] border border-[#41cb5a] rounded-full bg-white cursor-pointer relative after:absolute after:top-[6px] after:left-[6px] after:bg-[#41cb5a] after:content-[""] after:w-[6px] after:h-[6px] after:rounded-full'></span>
+              <span className='w-[20px] h-[20px] border border-[#94d433] rounded-full bg-white cursor-pointer relative after:absolute after:top-[6px] after:left-[6px] after:bg-[#94d433] after:content-[""] after:w-[6px] after:h-[6px] after:rounded-full'></span>
               <span className='ml-[10px] mt-[4px] text-white text-[1.4rem]'>Đồng ý các điều khoản & điều kiện của bạn</span>
             </div>
             <div className='text-white text-center font-[500] mb-[30px]'>Hoặc</div>

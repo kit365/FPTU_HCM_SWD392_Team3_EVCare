@@ -148,8 +148,8 @@ export const LoginPage = () => {
                     }}>
                         <Box
                             sx={{
-                                width: 64,
-                                height: 64,
+                                width: 120,
+                                height: 120,
                                 borderRadius: "16px",
                                 background: "white",
                                 display: "flex",

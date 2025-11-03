@@ -2,7 +2,6 @@ package com.fpt.evcare.repository;
 
 import com.fpt.evcare.entity.AppointmentEntity;
 import com.fpt.evcare.entity.InvoiceEntity;
-import com.fpt.evcare.entity.UserEntity;
 import com.fpt.evcare.enums.InvoiceStatusEnum;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,4 +42,14 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID> {
             @Param("userId") UUID userId,
             @Param("keyword") String keyword,
             Pageable pageable);
+
+    // Count unpaid invoices by customer
+    @Query("""
+        SELECT COUNT(i) FROM InvoiceEntity i 
+        JOIN i.appointment a 
+        WHERE a.customer.userId = :customerId 
+          AND i.status = 'PENDING'
+          AND i.isDeleted = false
+        """)
+    Long countUnpaidInvoicesByCustomerId(@Param("customerId") UUID customerId);
 }

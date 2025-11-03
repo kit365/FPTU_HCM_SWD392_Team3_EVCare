@@ -12,9 +12,12 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface EmployeeProfileMapper {
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "certifications", ignore = true)
     EmployeeProfileEntity toEmployeeProfile(CreationEmployeeProfileRequest e);
 
+    @Mapping(target = "certifications", ignore = true)
     EmployeeProfileResponse toEmployeeProfileResponse(EmployeeProfileEntity e);
 
+    @Mapping(target = "certifications", ignore = true)
     void updateEmployeeProfileFromDto(UpdationEmployeeProfileRequest request, @MappingTarget EmployeeProfileEntity entity);
 }

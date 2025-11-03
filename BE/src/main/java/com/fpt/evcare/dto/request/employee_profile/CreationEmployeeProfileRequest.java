@@ -1,8 +1,9 @@
 package com.fpt.evcare.dto.request.employee_profile;
 
+import com.fpt.evcare.dto.response.CertificationResponse;
 import com.fpt.evcare.enums.SkillLevelEnum;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,25 +21,24 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreationEmployeeProfileRequest implements Serializable {
 
-    @NotBlank(message = "Người dùng không được để trống")
+    @NotNull(message = "Người dùng không được để trống")
     UUID userId;
 
-    @NotBlank(message = "Trình độ kỹ năng ban đầu không được trống")
+    @NotNull(message = "Trình độ kỹ năng ban đầu không được trống")
     SkillLevelEnum skillLevel;
 
-    String certifications;
+    List<CertificationResponse> certifications;
 
     @Min(value = 0, message = "Điểm hiệu xuất làm việc không được nhỏ hơn không")
     Float performanceScore;
 
-    @Min(value = 0, message = "Tổng thời gian làm việc không được nhỏ hơn 0h")
-    Float totalHoursWorked;
-    
     LocalDateTime hireDate;
 
     Float salaryBase;
 
     String emergencyContact;
+
+    String position;
 
     String notes;
 

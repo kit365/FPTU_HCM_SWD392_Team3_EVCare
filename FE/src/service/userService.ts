@@ -28,10 +28,12 @@ export const userService = {
   },
 
   // Get by ID
-  getById: async (userId: string): Promise<UserResponse> => {
-    const response = await apiClient.get<ApiResponse<UserResponse>>(
-      `/user/${userId}`
-    );
+  getById: async (userId: string, forceRefresh?: boolean): Promise<UserResponse> => {
+    // Add timestamp to bypass cache if forceRefresh is true
+    const url = forceRefresh 
+      ? `/user/${userId}?_t=${Date.now()}`
+      : `/user/${userId}`;
+    const response = await apiClient.get<ApiResponse<UserResponse>>(url);
     return response.data.data;
   },
 
@@ -155,6 +157,7 @@ export const userService = {
     numberPhone?: string;
     address?: string;
     avatarUrl?: string;
+    backgroundUrl?: string;
   }): Promise<UserResponse> => {
     const response = await apiClient.patch<ApiResponse<UserResponse>>(
       `/user/profile/${userId}`,
@@ -168,6 +171,78 @@ export const userService = {
     }
     
     return response.data.data;
+  },
+
+  // Delete own account
+  deleteMyAccount: async (userId: string): Promise<boolean> => {
+    const response = await apiClient.delete<ApiResponse<string>>(
+      `/user/profile/${userId}`
+    );
+    
+    if (!response.data?.success) {
+      const error = new Error(response.data?.message || 'Xóa tài khoản thất bại');
+      (error as any).response = { data: response.data };
+      throw error;
+    }
+    
+    return true;
+  },
+
+  // Find deleted user by email, username, or phone
+  // NOTE: This requires backend to support finding deleted users
+  // Backend should add endpoints like:
+  // - GET /user/deleted/by-email?email=...
+  // - GET /user/deleted/by-username?username=...
+  // - GET /user/deleted/by-phone?phone=...
+  findDeletedUser: async (identifier: { email?: string; username?: string; phone?: string }): Promise<UserResponse | null> => {
+    try {
+      // Try by email first
+      if (identifier.email) {
+        try {
+          const response = await apiClient.get<ApiResponse<UserResponse>>(
+            `/user/deleted/by-email?email=${encodeURIComponent(identifier.email)}`
+          );
+          if (response.data?.success && response.data.data) {
+            return response.data.data;
+          }
+        } catch (error) {
+          // Continue to try other methods
+        }
+      }
+      
+      // Try by username
+      if (identifier.username) {
+        try {
+          const response = await apiClient.get<ApiResponse<UserResponse>>(
+            `/user/deleted/by-username?username=${encodeURIComponent(identifier.username)}`
+          );
+          if (response.data?.success && response.data.data) {
+            return response.data.data;
+          }
+        } catch (error) {
+          // Continue to try phone
+        }
+      }
+      
+      // Try by phone
+      if (identifier.phone) {
+        try {
+          const response = await apiClient.get<ApiResponse<UserResponse>>(
+            `/user/deleted/by-phone?phone=${encodeURIComponent(identifier.phone)}`
+          );
+          if (response.data?.success && response.data.data) {
+            return response.data.data;
+          }
+        } catch (error) {
+          // All methods failed
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      // API doesn't exist yet, return null
+      return null;
+    }
   }
 };
 

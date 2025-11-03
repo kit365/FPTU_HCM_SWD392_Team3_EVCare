@@ -141,6 +141,7 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/api/v1/appointment/service-mode/") ||
                 path.equals("/api/v1/appointment/guest-search") ||
                 path.equals("/api/v1/appointment/guest-search/") ||
+                path.startsWith("/api/v1/appointment/search/guest") ||
                 (path.equals("/api/v1/appointment/") && "POST".equals(method))) {
             return true;
         }
@@ -153,6 +154,17 @@ public class NimbusJwtAuthenticationFilter extends OncePerRequestFilter {
         
         // Invoice endpoints (public - guest cần xem invoice để thanh toán)
         if (path.startsWith("/api/v1/invoice/appointment/")) {
+            return true;
+        }
+        
+        // Invoice pay-cash endpoint (public - guest có thể thanh toán CASH)
+        if (path.contains("/invoice/") && path.contains("/pay-cash") && "PATCH".equals(method)) {
+            return true;
+        }
+        
+        // Guest OTP endpoints (public - guest cần xác thực OTP để xem appointment)
+        if (path.startsWith("/api/v1/appointment/guest/") && 
+            (path.contains("/send-otp") || path.contains("/verify-otp") || "PATCH".equals(method))) {
             return true;
         }
         

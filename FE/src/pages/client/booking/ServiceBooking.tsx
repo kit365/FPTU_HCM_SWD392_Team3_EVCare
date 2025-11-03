@@ -7,9 +7,12 @@ import {
     Select,
     TreeSelect,
     message,
+    Modal,
 } from "antd";
 import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
+import dayjs from "dayjs";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { bookingService } from "../../../service/bookingService";
 import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
@@ -20,6 +23,8 @@ const { SHOW_PARENT } = TreeSelect;
 
 export const ServiceBookingPage: React.FC = () => {
     const [form] = Form.useForm();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [serviceType, setServiceType] = useState<string>("");
     const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
     const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string>("");
@@ -29,12 +34,52 @@ export const ServiceBookingPage: React.FC = () => {
     const [loadingServices, setLoadingServices] = useState<boolean>(false);
     const [loadingServiceModes, setLoadingServiceModes] = useState<boolean>(false);
     const [isUseOldData, setIsUseOldData] = useState(false);
+    
+    // Edit mode states
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [isGuestMode, setIsGuestMode] = useState(false);
+    const [appointmentId, setAppointmentId] = useState<string | null>(null);
+    const [loadingAppointment, setLoadingAppointment] = useState(false);
+    const [guestOtpInfo, setGuestOtpInfo] = useState<{ email: string; otp: string } | null>(null);
+
+    // Confirmation modal states
+    const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+    const [pendingAppointmentData, setPendingAppointmentData] = useState<any>(null);
 
     // Watch form value để hiển thị đúng input khi serviceType thay đổi
     const formServiceType = Form.useWatch('serviceType', form);
 
     // Lấy thông tin user từ AuthContext
     const { user } = useAuthContext();
+
+    // Check URL params for edit mode
+    useEffect(() => {
+        const appointmentIdParam = searchParams.get("appointmentId");
+        const mode = searchParams.get("mode");
+        const guest = searchParams.get("guest") === "true";
+        
+        if (appointmentIdParam && mode === "edit") {
+            setIsEditMode(true);
+            setAppointmentId(appointmentIdParam);
+            setIsGuestMode(guest);
+            
+            // Load guest OTP info from sessionStorage if guest mode
+            if (guest) {
+                try {
+                    const guestEditInfo = sessionStorage.getItem("guestAppointmentEdit");
+                    if (guestEditInfo) {
+                        const parsed = JSON.parse(guestEditInfo);
+                        setGuestOtpInfo({ email: parsed.email, otp: parsed.otp });
+                    }
+                } catch (e) {
+                    console.error("Error parsing guest appointment edit info:", e);
+                }
+            }
+            
+            // Load appointment data
+            loadAppointmentForEdit(appointmentIdParam);
+        }
+    }, [searchParams]);
 
     // Fetch vehicle types and service modes on mount
     useEffect(() => {
@@ -58,6 +103,14 @@ export const ServiceBookingPage: React.FC = () => {
 
     const handleCancelModal = () => {
         setIsUseOldData(false);
+    };
+
+    const handleCancelEdit = () => {
+        if (isEditMode && appointmentId) {
+            navigate(`/client/appointment/${appointmentId}`);
+        } else {
+            navigate(-1);
+        }
     };
 
 
@@ -161,6 +214,57 @@ export const ServiceBookingPage: React.FC = () => {
         }
     };
 
+    // Load appointment data for edit mode
+    const loadAppointmentForEdit = async (id: string) => {
+        setLoadingAppointment(true);
+        try {
+            let appointmentData;
+            if (isGuestMode && guestOtpInfo) {
+                // For guest, use verify OTP API to get appointment details
+                appointmentData = await bookingService.verifyOtpForGuestAppointment(id, guestOtpInfo.email, guestOtpInfo.otp);
+            } else {
+                // For authenticated users, use regular getById API
+                const response = await bookingService.getAppointmentById(id);
+                appointmentData = response.data.data;
+            }
+            
+            if (appointmentData) {
+                // Fill form with appointment data
+                form.setFieldsValue({
+                    customerName: appointmentData.customerFullName,
+                    phone: appointmentData.customerPhoneNumber,
+                    email: appointmentData.customerEmail,
+                    vehicleType: appointmentData.vehicleTypeResponse?.vehicleTypeId,
+                    licensePlate: appointmentData.vehicleNumberPlate,
+                    mileage: appointmentData.vehicleKmDistances,
+                    userAddress: appointmentData.userAddress || "",
+                    location: appointmentData.userAddress || "",
+                    serviceType: appointmentData.serviceMode,
+                    dateTime: appointmentData.scheduledAt ? dayjs(appointmentData.scheduledAt) : null,
+                    notes: appointmentData.notes || "",
+                    services: appointmentData.serviceTypeResponses?.map((s: any) => s.serviceTypeId) || [],
+                });
+                
+                // Set vehicle type to load services
+                if (appointmentData.vehicleTypeResponse?.vehicleTypeId) {
+                    setSelectedVehicleTypeId(appointmentData.vehicleTypeResponse.vehicleTypeId);
+                    await fetchServiceTypes(appointmentData.vehicleTypeResponse.vehicleTypeId);
+                }
+                
+                if (appointmentData.serviceMode) {
+                    setServiceType(appointmentData.serviceMode);
+                }
+            }
+        } catch (error: any) {
+            console.error("Error loading appointment for edit:", error);
+            message.error(error?.response?.data?.message || "Không thể tải thông tin cuộc hẹn. Vui lòng thử lại.");
+            // Redirect back if failed
+            navigate("/client/lookup-appointments");
+        } finally {
+            setLoadingAppointment(false);
+        }
+    };
+
     const fetchServiceModes = async () => {
         setLoadingServiceModes(true);
         try {
@@ -252,78 +356,193 @@ export const ServiceBookingPage: React.FC = () => {
         return null;
     };
 
+    // Hàm tính giá tạm tính (quote price) dựa trên danh sách service IDs
+    const calculateQuotePrice = (serviceIds: string[]): number => {
+        if (!serviceIds || serviceIds.length === 0) return 0;
+        
+        // Helper function để tìm service trong tree
+        const findServiceInTree = (services: any[], id: string): any | null => {
+            for (const service of services) {
+                if (service.serviceTypeId === id) {
+                    return service;
+                }
+                if (service.children && service.children.length > 0) {
+                    const found = findServiceInTree(service.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        
+        let totalPrice = 0;
+        serviceIds.forEach(serviceId => {
+            const service = findServiceInTree(serviceTypes, serviceId);
+            if (service && service.serviceTypeVehiclePartResponses) {
+                service.serviceTypeVehiclePartResponses.forEach((stvp: any) => {
+                    if (stvp.vehiclePart && stvp.vehiclePart.unitPrice) {
+                        // Calculate price based on required quantity (default to 1 if not specified)
+                        const quantity = stvp.requiredQuantity || 1;
+                        const price = stvp.vehiclePart.unitPrice * quantity;
+                        totalPrice += price;
+                    }
+                });
+            }
+        });
+        
+        return totalPrice;
+    };
 
+    // Prepare appointment data for confirmation modal
+    const onFinish: FormProps["onFinish"] = (values) => {
+        const dateValue = values["dateTime"];
+        const formattedDate = isDayjs(dateValue)
+            ? (dateValue as Dayjs).format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
+            : new Date().toISOString();
 
-    const onFinish: FormProps["onFinish"] = async (values) => {
+        // Xử lý service selection theo logic mới
+        const processedServiceIds = processServiceSelection(values.services || [], serviceTreeData);
+
+        // Tính giá tạm tính (quote price)
+        const quotePrice = calculateQuotePrice(processedServiceIds);
+
+        // Map form values to API request
+        // Determine if we should include customerId
+        // Only include if user is logged in and it's not edit mode OR it's edit mode but not guest mode
+        // Do NOT include customerId if user is STAFF (staff creating appointment for customer)
+        const isStaff = user?.roleName?.includes('STAFF');
+        const shouldIncludeCustomerId = user?.userId && (!isEditMode || !isGuestMode) && !isStaff;
+        
+        const appointmentData = {
+            ...(shouldIncludeCustomerId && { customerId: user.userId }), // Chỉ thêm customerId nếu user tồn tại, không phải guest và không phải STAFF
+            customerFullName: values.customerName,
+            customerPhoneNumber: values.phone || "",
+            customerEmail: values.email,
+            vehicleTypeId: values.vehicleType,
+            vehicleNumberPlate: values.licensePlate,
+            vehicleKmDistances: values.mileage || "",
+            userAddress: values.userAddress || values.location || "",
+            serviceMode: values.serviceType,
+            scheduledAt: formattedDate,
+            notes: values.notes || "",
+            serviceTypeIds: processedServiceIds,
+            // Store form values for display in modal
+            _formValues: values,
+            _formattedDate: formattedDate,
+            _processedServiceIds: processedServiceIds,
+            _quotePrice: quotePrice,
+        };
+
+        console.log("📝 Appointment data prepared:", appointmentData);
+        console.log("👤 User info:", { userId: user?.userId, isEditMode, isGuestMode, isStaff, shouldIncludeCustomerId, roleName: user?.roleName });
+
+        // Store the data and show confirmation modal
+        setPendingAppointmentData(appointmentData);
+        setConfirmModalVisible(true);
+    };
+
+    // Actually create or update the appointment
+    const handleConfirmAppointment = async () => {
+        if (!pendingAppointmentData) return;
+
         try {
-            const dateValue = values["dateTime"];
-            const formattedDate = isDayjs(dateValue)
-                ? (dateValue as Dayjs).format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
-                : new Date().toISOString();
-
-            // Xử lý service selection theo logic mới
-            const processedServiceIds = processServiceSelection(values.services || [], serviceTreeData);
-
-            // Map form values to API request
-            const appointmentData = {
-                ...(user?.userId && { customerId: user.userId }), // Chỉ thêm customerId nếu user tồn tại và có userId
-                customerFullName: values.customerName,
-                customerPhoneNumber: values.phone || "",
-                customerEmail: values.email,
-                vehicleTypeId: values.vehicleType,
-                vehicleNumberPlate: values.licensePlate,
-                vehicleKmDistances: values.mileage || "",
-                userAddress: values.userAddress || values.location || "",
-                serviceMode: values.serviceType,
-                scheduledAt: formattedDate,
-                notes: values.notes || "",
-                serviceTypeIds: processedServiceIds,
-            };
-
-            const response = await bookingService.createAppointment(appointmentData);
-
-            if (response.data.success) {
-                console.log("APPOINTMENT CREATED SUCCESSFULLY:", {
-                    appointmentData: appointmentData,
-                    response: response.data,
-                    appointmentId: response.data.data,
-                    message: response.data.message
-                });
-                message.success(response.data.message || "Đặt lịch hẹn thành công!");
-                form.resetFields();
-                setSelectedVehicleTypeId("");
-                setServiceType("");
+            setLoadingAppointment(true);
+            
+            // Clean up the data before sending to API (remove display-only fields)
+            const { _formValues, _formattedDate, _processedServiceIds, _quotePrice, ...cleanAppointmentData } = pendingAppointmentData;
+            
+            let response;
+            
+            // Edit mode: Update appointment
+            if (isEditMode && appointmentId) {
+                if (isGuestMode && guestOtpInfo) {
+                    // Guest update with OTP
+                    response = await bookingService.updateGuestAppointment(
+                        appointmentId,
+                        guestOtpInfo.email,
+                        guestOtpInfo.otp,
+                        cleanAppointmentData
+                    );
+                } else {
+                    // Authenticated user update
+                    response = await bookingService.updateAppointmentForCustomer(appointmentId, cleanAppointmentData);
+                }
+                
+                if (response.data.success) {
+                    message.success(response.data.message || "Cập nhật cuộc hẹn thành công!");
+                    // Clear sessionStorage if guest mode
+                    if (isGuestMode) {
+                        sessionStorage.removeItem("guestAppointmentEdit");
+                    }
+                    setConfirmModalVisible(false);
+                    // Navigate back to appointment detail page if authenticated user, otherwise to lookup page
+                    if (appointmentId && !isGuestMode) {
+                        navigate(`/client/appointment/${appointmentId}`);
+                    } else {
+                        navigate("/client/lookup-appointments");
+                    }
+                } else {
+                    message.error(response.data.message || "Cập nhật cuộc hẹn thất bại!");
+                }
             } else {
-                console.log("APPOINTMENT CREATION FAILED:", {
-                    appointmentData: appointmentData,
-                    response: response.data,
-                    errorMessage: response.data.message
-                });
-                message.error(response.data.message || "Đặt lịch hẹn thất bại!");
+                // Create new appointment
+                console.log("📤 Sending appointment data:", cleanAppointmentData);
+                response = await bookingService.createAppointment(cleanAppointmentData);
+
+                if (response.data.success) {
+                    console.log("APPOINTMENT CREATED SUCCESSFULLY:", {
+                        appointmentData: cleanAppointmentData,
+                        response: response.data,
+                        appointmentId: response.data.data,
+                        message: response.data.message
+                    });
+                    message.success(response.data.message || "Đặt lịch hẹn thành công!");
+                    setConfirmModalVisible(false);
+                    form.resetFields();
+                    setSelectedVehicleTypeId("");
+                    setServiceType("");
+                } else {
+                    console.log("APPOINTMENT CREATION FAILED:", {
+                        appointmentData: cleanAppointmentData,
+                        response: response.data,
+                        errorMessage: response.data.message
+                    });
+                    message.error(response.data.message || "Đặt lịch hẹn thất bại!");
+                }
             }
         } catch (error: any) {
-            console.error("Error creating appointment:", {
+            console.error(`Error ${isEditMode ? "updating" : "creating"} appointment:`, {
                 error: error,
                 errorMessage: error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!"
             });
             const errorMessage = error?.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại!";
             message.error(errorMessage);
+        } finally {
+            setLoadingAppointment(false);
         }
     };
 
     return (
         <>
-            <div className="w-full h-[560px]">
-                <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761944376322!5m2!1sen!2s"
-                    loading="lazy"
-                    className="w-full h-[560px] border-0"
-                    style={{ width: '100%', height: '560px' }}
-                ></iframe>
-            </div >
+            {!isEditMode && (
+                <div className="w-full h-[560px]">
+                    <iframe
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761944376322!5m2!1sen!2s"
+                        loading="lazy"
+                        className="w-full h-[560px] border-0"
+                        style={{ width: '100%', height: '560px' }}
+                    ></iframe>
+                </div>
+            )}
             <div className="w-[1170px] mx-auto mt-[50px] mb-[100px]">
-                <h2 className="text-[#333] text-[3rem] uppercase font-[300] text-center relative booking-title">Đặt lịch dịch vụ</h2>
-                <p className="mt-[34px] mb-[50px] text-[1.8rem] font-[300] text-center text-[#777777]">Chúng tôi là một trong những cửa hàng sửa chữa ô tô hàng đầu phục vụ khách hàng. Tất cả các dịch vụ sửa chữa đều được thực hiện bởi đội ngũ thợ máy có trình độ cao.</p>
+                <h2 className="text-[#333] text-[3rem] uppercase font-[300] text-center relative booking-title">
+                    {isEditMode ? "Chỉnh sửa lịch hẹn" : "Đặt lịch dịch vụ"}
+                </h2>
+                <p className="mt-[34px] mb-[50px] text-[1.8rem] font-[300] text-center text-[#777777]">
+                    {isEditMode 
+                        ? "Vui lòng cập nhật thông tin lịch hẹn của bạn. Thay đổi sẽ được gửi đến hệ thống để xử lý."
+                        : "Chúng tôi là một trong những cửa hàng sửa chữa ô tô hàng đầu phục vụ khách hàng. Tất cả các dịch vụ sửa chữa đều được thực hiện bởi đội ngũ thợ máy có trình độ cao."
+                    }
+                </p>
 
                 <Form
                     form={form}
@@ -620,19 +839,32 @@ export const ServiceBookingPage: React.FC = () => {
                             <Button
                                 type="default"
                                 htmlType="submit"
+                                loading={loadingAppointment}
                                 size="large"
                                 className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
                             >
-                                Đặt lịch hẹn
+                                {isEditMode ? "Cập nhật cuộc hẹn" : "Đặt lịch hẹn"}
                             </Button>
-                            <Button
-                                type="default"
-                                onClick={handleOldData}
-                                size="large"
-                                className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
-                            >
-                                Sử dụng hồ sơ xe
-                            </Button>
+                            {isEditMode && (
+                                <Button
+                                    type="default"
+                                    onClick={handleCancelEdit}
+                                    size="large"
+                                    className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
+                                >
+                                    Hủy
+                                </Button>
+                            )}
+                            {!isEditMode && (
+                                <Button
+                                    type="default"
+                                    onClick={handleOldData}
+                                    size="large"
+                                    className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
+                                >
+                                    Sử dụng hồ sơ xe
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </Form>
@@ -643,6 +875,251 @@ export const ServiceBookingPage: React.FC = () => {
                     onCancel={handleCancelModal}
                     onSelectVehicle={handleSelectVehicle}
                 />
+
+                {/* Confirmation Modal */}
+                <Modal
+                    title={isEditMode ? "Xác nhận cập nhật cuộc hẹn" : "Xác nhận đặt lịch hẹn"}
+                    open={confirmModalVisible}
+                    onCancel={() => setConfirmModalVisible(false)}
+                    onOk={handleConfirmAppointment}
+                    confirmLoading={loadingAppointment}
+                    okText={isEditMode ? "Xác nhận cập nhật" : "Xác nhận đặt lịch"}
+                    cancelText="Hủy"
+                    width={900}
+                    okButtonProps={{
+                        className: "bg-blue-600 hover:bg-blue-700"
+                    }}
+                >
+                    {pendingAppointmentData && (
+                        <div className="space-y-4 mt-4">
+                            {/* Thông tin khách hàng */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <h4 className="font-semibold text-lg mb-3 text-blue-700">Thông tin khách hàng</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <span className="text-gray-600">Họ và tên:</span>
+                                        <p className="font-medium">{pendingAppointmentData.customerFullName}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-600">Số điện thoại:</span>
+                                        <p className="font-medium">{pendingAppointmentData.customerPhoneNumber}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-600">Email:</span>
+                                        <p className="font-medium">{pendingAppointmentData.customerEmail}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Thông tin xe */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <h4 className="font-semibold text-lg mb-3 text-blue-700">Thông tin xe</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <span className="text-gray-600">Mẫu xe:</span>
+                                        <p className="font-medium">
+                                            {vehicleTypes.find(vt => vt.vehicleTypeId === pendingAppointmentData.vehicleTypeId)?.vehicleTypeName || 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-600">Biển số xe:</span>
+                                        <p className="font-medium">{pendingAppointmentData.vehicleNumberPlate}</p>
+                                    </div>
+                                    {pendingAppointmentData.vehicleKmDistances && (
+                                        <div>
+                                            <span className="text-gray-600">Số Km:</span>
+                                            <p className="font-medium">{pendingAppointmentData.vehicleKmDistances}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Dịch vụ đã chọn */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <h4 className="font-semibold text-lg mb-3 text-blue-700">Dịch vụ đã chọn</h4>
+                                <div className="space-y-2">
+                                    {(() => {
+                                        // Helper function để tìm service trong tree
+                                        const findServiceInTree = (services: any[], id: string): any | null => {
+                                            for (const service of services) {
+                                                if (service.serviceTypeId === id) {
+                                                    return service;
+                                                }
+                                                if (service.children && service.children.length > 0) {
+                                                    const found = findServiceInTree(service.children, id);
+                                                    if (found) return found;
+                                                }
+                                            }
+                                            return null;
+                                        };
+
+                                        // Group services theo parent
+                                        const selectedServices = pendingAppointmentData._processedServiceIds || [];
+                                        if (selectedServices.length === 0) {
+                                            return <p className="text-gray-500 italic">Chưa có dịch vụ nào được chọn</p>;
+                                        }
+
+                                        // Tìm các parent services có children được chọn
+                                        const parentServices = new Map();
+                                        const orphanServices: any[] = [];
+
+                                        selectedServices.forEach((serviceId: string) => {
+                                            const service = findServiceInTree(serviceTypes, serviceId);
+                                            if (!service) return;
+
+                                            // Nếu service này là child (có parentId), tìm parent
+                                            if (service.parentId) {
+                                                const parent = findServiceInTree(serviceTypes, service.parentId);
+                                                if (parent) {
+                                                    if (!parentServices.has(parent.serviceTypeId)) {
+                                                        parentServices.set(parent.serviceTypeId, {
+                                                            parent: parent,
+                                                            children: []
+                                                        });
+                                                    }
+                                                    parentServices.get(parent.serviceTypeId).children.push(service);
+                                                } else {
+                                                    orphanServices.push(service);
+                                                }
+                                            } else {
+                                                // Nếu là parent, kiểm tra xem có children nào được chọn không
+                                                const selectedChildren = selectedServices
+                                                    .map((id: string) => findServiceInTree(serviceTypes, id))
+                                                    .filter((s: any) => s && s.parentId === service.serviceTypeId);
+
+                                                if (selectedChildren.length > 0) {
+                                                    parentServices.set(service.serviceTypeId, {
+                                                        parent: service,
+                                                        children: selectedChildren
+                                                    });
+                                                } else {
+                                                    orphanServices.push(service);
+                                                }
+                                            }
+                                        });
+
+                                        let index = 0;
+
+                                        return (
+                                            <>
+                                                {/* Render parent services với children của chúng */}
+                                                {Array.from(parentServices.values()).map((group: any) => {
+                                                    const parentIndex = index++;
+                                                    return (
+                                                        <div key={group.parent.serviceTypeId} className="space-y-2">
+                                                            {/* Parent Service */}
+                                                            <div className="flex items-start gap-2 bg-blue-50 p-3 rounded border-l-4 border-blue-600">
+                                                                <span className="font-bold text-blue-700">{parentIndex + 1}.</span>
+                                                                <div className="flex-1">
+                                                                    <p className="font-bold text-blue-800">{group.parent.serviceName}</p>
+                                                                    {group.parent.estimatedDurationMinutes && (
+                                                                        <p className="text-xs text-blue-600 mt-1">
+                                                                            Thời gian ước tính: {group.parent.estimatedDurationMinutes} phút
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Children Services */}
+                                                            {group.children.map((childService: any, childIndex: number) => (
+                                                                <div key={childService.serviceTypeId} className="flex items-start gap-2 bg-white p-3 rounded border-l-4 border-green-400 ml-6">
+                                                                    <span className="font-semibold text-green-600">{parentIndex + 1}.{childIndex + 1}</span>
+                                                                    <div>
+                                                                        <p className="font-medium">{childService.serviceName}</p>
+                                                                        {childService.estimatedDurationMinutes && (
+                                                                            <p className="text-sm text-gray-600">
+                                                                                Thời gian ước tính: {childService.estimatedDurationMinutes} phút
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                {/* Render orphan services (không có parent hoặc children) */}
+                                                {orphanServices.map((service: any) => {
+                                                    const currentIndex = index++;
+                                                    return (
+                                                        <div key={service.serviceTypeId} className="flex items-start gap-2 bg-white p-3 rounded border-l-4 border-blue-500">
+                                                            <span className="font-semibold text-blue-600">{currentIndex + 1}.</span>
+                                                            <div>
+                                                                <p className="font-medium">{service.serviceName}</p>
+                                                                {service.estimatedDurationMinutes && (
+                                                                    <p className="text-sm text-gray-600">
+                                                                        Thời gian ước tính: {service.estimatedDurationMinutes} phút
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Thông tin cuộc hẹn */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <h4 className="font-semibold text-lg mb-3 text-blue-700">Thông tin cuộc hẹn</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <span className="text-gray-600">Thời gian hẹn:</span>
+                                        <p className="font-medium">
+                                            {pendingAppointmentData._formValues.dateTime ? (
+                                                isDayjs(pendingAppointmentData._formValues.dateTime)
+                                                    ? (pendingAppointmentData._formValues.dateTime as Dayjs).format("DD/MM/YYYY HH:mm")
+                                                    : dayjs(pendingAppointmentData._formattedDate).format("DD/MM/YYYY HH:mm")
+                                            ) : 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-600">Loại hình dịch vụ:</span>
+                                        <p className="font-medium">
+                                            {pendingAppointmentData.serviceMode === 'STATIONARY' ? 'Tại cửa hàng' : 'Dịch vụ lưu động'}
+                                        </p>
+                                    </div>
+                                    {pendingAppointmentData.userAddress && (
+                                        <div className="col-span-2">
+                                            <span className="text-gray-600">Địa chỉ:</span>
+                                            <p className="font-medium">{pendingAppointmentData.userAddress}</p>
+                                        </div>
+                                    )}
+                                    {pendingAppointmentData.notes && (
+                                        <div className="col-span-2">
+                                            <span className="text-gray-600">Ghi chú:</span>
+                                            <p className="font-medium">{pendingAppointmentData.notes}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Giá tạm tính */}
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300 rounded-lg p-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-semibold text-lg mb-1 text-blue-800">Giá tạm tính</h4>
+                                        <p className="text-sm text-gray-600">Tổng giá trị phụ tùng ước tính</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-3xl font-bold text-blue-700">
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(pendingAppointmentData._quotePrice || 0)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Thông báo */}
+                            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                                <p className="text-yellow-900">
+                                    <strong>Lưu ý:</strong> Giá cuối cùng có thể thay đổi sau khi kỹ thuật viên kiểm tra xe thực tế.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </Modal>
             </div>
         </>
     );

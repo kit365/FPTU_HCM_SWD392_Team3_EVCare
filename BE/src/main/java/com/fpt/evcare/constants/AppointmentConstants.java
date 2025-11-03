@@ -188,8 +188,30 @@ public class AppointmentConstants {
     public static final String APPOINTMENT_UPDATE_CUSTOMER = "/customer/{id}";
     public static final String APPOINTMENT_UPDATE_ADMIN = "/ADMIN{id}";
     public static final String APPOINTMENT_UPDATE_STATUS = "/status/{id}";
+    public static final String APPOINTMENT_CANCEL_CUSTOMER = "/cancel/customer/{id}";
     public static final String SERVICE_MODE = "/service-mode/";
     public static final String CANCEL_STATUS = "/cancel-status/";
     public static final String IN_PROGRESS_STATUS = "/in-progress-status/";
     public static final String APPOINTMENT_CREATION = "/";
+    
+    // Messages for customer cancel appointment
+    public static final String MESSAGE_SUCCESS_CANCELLING_APPOINTMENT_CUSTOMER = "Hủy cuộc hẹn thành công";
+    public static final String LOG_SUCCESS_CANCELLING_APPOINTMENT_CUSTOMER = "Customer cancelled appointment: {}";
+    public static final String MESSAGE_ERR_CANNOT_CANCEL_NON_PENDING_APPOINTMENT = "Chỉ có thể hủy cuộc hẹn khi đang ở trạng thái PENDING (Chờ xác nhận)";
+    public static final String LOG_ERR_CANNOT_CANCEL_NON_PENDING_APPOINTMENT = "Cannot cancel appointment that is not in PENDING status: {}";
+    
+    // OTP for guest appointment endpoints
+    public static final String APPOINTMENT_GUEST_SEND_OTP = "/guest/{id}/send-otp";
+    public static final String APPOINTMENT_GUEST_VERIFY_OTP = "/guest/{id}/verify-otp";
+    public static final String APPOINTMENT_GUEST_GET = "/guest/{id}";
+    public static final String APPOINTMENT_GUEST_UPDATE = "/guest/{id}";
+    
+    // OTP messages
+    public static final String MESSAGE_SUCCESS_SEND_OTP_FOR_GUEST = "Đã gửi mã OTP đến email của bạn";
+    public static final String MESSAGE_SUCCESS_VERIFY_OTP_FOR_GUEST = "Xác thực OTP thành công";
+    public static final String MESSAGE_ERR_OTP_INVALID = "Mã OTP không hợp lệ hoặc đã hết hạn";
+    public static final String MESSAGE_ERR_APPOINTMENT_EMAIL_NOT_MATCH = "Email không khớp với cuộc hẹn này";
+    public static final String LOG_SUCCESS_SEND_OTP_FOR_GUEST = "Sent OTP for guest appointment: {}";
+    public static final String LOG_SUCCESS_VERIFY_OTP_FOR_GUEST = "Verified OTP for guest appointment: {}";
+    public static final String LOG_ERR_OTP_INVALID = "Invalid OTP for appointment: {}";
 }

@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/vnpay/payment-return").permitAll()
                         // Invoice endpoints (public - guest cần xem invoice để thanh toán)
                         .requestMatchers("/api/v1/invoice/appointment/**").permitAll()
+                        .requestMatchers("/api/v1/invoice/*/pay-cash").permitAll() // Cho phép guest thanh toán CASH (invoiceId là một segment)
                         // Public auth endpoints (không cần đăng nhập)
                         .requestMatchers(
                                 "/api/v1/auth/**",
@@ -75,8 +76,11 @@ public class SecurityConfig {
                                 "/api/v1/service-type/**",  // Xem dịch vụ
                                 "/api/v1/appointment/service-mode",  // Service mode enum
                                 "/api/v1/appointment/service-mode/",  // Service mode enum (with trailing slash)
-                                "/api/v1/appointment/guest-search",   // Guest search appointment
-                                "/api/v1/appointment/guest-search/"   // Guest search appointment (with trailing slash)
+                                "/api/v1/appointment/search/guest",   // Guest search appointment
+                                "/api/v1/appointment/search/guest/**",   // Guest search appointment (with trailing slash and params)
+                                "/api/v1/appointment/guest/*/send-otp",  // Guest send OTP (appointmentId is single segment)
+                                "/api/v1/appointment/guest/*/verify-otp",  // Guest verify OTP (appointmentId is single segment)
+                                "/api/v1/appointment/guest/*"  // Guest update appointment (appointmentId is single segment, PATCH method)
                         ).permitAll()
                         // POST appointment creation - cho phép cả guest và authenticated
                         .requestMatchers(HttpMethod.POST, "/api/v1/appointment/").permitAll()

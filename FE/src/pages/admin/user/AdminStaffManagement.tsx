@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Pagination, Stack, Tabs, Tab, Box } from "@mui/material";
+import { Avatar } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { FormSearch } from "../../../components/admin/ui/FormSearch";
 import { FormEmpty } from "../../../components/admin/ui/FormEmpty";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Modal, Button } from "@mui/material";
 import { userService } from '../../../service/userService';
 import { useNavigate } from 'react-router-dom';
-import { UserDetailModal } from '../../../components/admin/user/UserDetailModal';
+import { StaffDetailModal } from '../../../components/admin/user/StaffDetailModal';
 import { notify } from '../../../components/admin/common/Toast';
 import type { UserResponse } from '../../../types/user.types';
 import HasRole from '../../../components/common/HasRole';
@@ -42,13 +46,14 @@ interface TableColumn {
 }
 
 const columns: TableColumn[] = [
-  { title: "STT", width: 5 },
-  { title: "Họ và tên", width: 20 },
-  { title: "Email", width: 25 },
-  { title: "Số điện thoại", width: 15 },
-  { title: "Nhà cung cấp", width: 10 },
-  { title: "Trạng thái", width: 10 },
-  { title: "Chi tiết", width: 15 },
+  { title: "STT", width: 4 },
+  { title: "Ảnh đại diện", width: 8 },
+  { title: "Họ và tên", width: 16 },
+  { title: "Email", width: 20 },
+  { title: "Số điện thoại", width: 12 },
+  { title: "Nhà cung cấp", width: 8 },
+  { title: "Trạng thái", width: 8 },
+  { title: "Thao tác", width: 24 },
 ];
 
 export const AdminStaffManagement = () => {
@@ -65,6 +70,9 @@ export const AdminStaffManagement = () => {
   const [currentPageTech, setCurrentPageTech] = useState<number>(1);
   const [keywordStaff, setKeywordStaff] = useState<string>("");
   const [keywordTech, setKeywordTech] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const pageSize = 10;
 
   const fetchAllData = useCallback(async () => {
@@ -130,6 +138,35 @@ export const AdminStaffManagement = () => {
     navigate(`/admin/users/edit/${userId}`);
   };
 
+  const handleDeleteClick = (user: UserResponse) => {
+    setUserToDelete(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    try {
+      await userService.remove(userToDelete.userId);
+      notify.success('Xóa nhân viên/kỹ thuật viên thành công!');
+      setDeleteModalOpen(false);
+      setUserToDelete(null);
+      // Refresh data
+      await fetchAllData();
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Không thể xóa nhân viên/kỹ thuật viên này';
+      notify.error(errorMessage);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setUserToDelete(null);
+  };
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -184,6 +221,16 @@ export const AdminStaffManagement = () => {
                   {(currentPage - 1) * pageSize + index + 1}
                 </td>
                 <td className="p-[1.2rem]">
+                  <div className="flex justify-center">
+                    <Avatar 
+                      src={user.avatarUrl || undefined} 
+                      icon={<UserOutlined className="text-lg" />} 
+                      size={40}
+                      className="bg-gradient-to-br from-blue-600 to-cyan-600"
+                    />
+                  </div>
+                </td>
+                <td className="p-[1.2rem]">
                   {user.fullName || (
                     <span className="text-gray-400">Chưa có tên</span>
                   )}
@@ -214,23 +261,34 @@ export const AdminStaffManagement = () => {
                     {user.isActive ? 'Hoạt động' : 'Không hoạt động'}
                   </span>
                 </td>
-                <td className="p-[1.2rem] text-center flex justify-center gap-2">
-                  <button
-                    onClick={() => handleViewDetail(user.userId)}
-                    className="text-green-500 w-[2rem] h-[2rem] inline-block hover:opacity-80"
-                    title="Xem chi tiết"
-                  >
-                    <RemoveRedEyeIcon className="!w-full !h-full" />
-                  </button>
-                  <HasRole allow={RoleEnum.ADMIN}>
+                <td className="p-[1.2rem] text-center">
+                  <div className="flex justify-center gap-2 items-center">
                     <button
-                      onClick={() => handleEdit(user.userId)}
-                      className="text-blue-500 w-[2rem] h-[2rem] inline-block hover:opacity-80"
-                      title="Chỉnh sửa"
+                      onClick={() => handleViewDetail(user.userId)}
+                      className="text-green-500 w-[2rem] h-[2rem] inline-flex items-center justify-center hover:opacity-80"
+                      title="Xem chi tiết"
                     >
-                      <EditIcon className="!w-full !h-full" />
+                      <RemoveRedEyeIcon className="!w-full !h-full" />
                     </button>
-                  </HasRole>
+                    <HasRole allow={RoleEnum.ADMIN}>
+                      <>
+                        <button
+                          onClick={() => handleEdit(user.userId)}
+                          className="text-blue-500 w-[2rem] h-[2rem] inline-flex items-center justify-center hover:opacity-80"
+                          title="Chỉnh sửa"
+                        >
+                          <EditIcon className="!w-full !h-full" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          className="text-red-500 w-[2rem] h-[2rem] inline-flex items-center justify-center hover:opacity-80"
+                          title="Xóa"
+                        >
+                          <DeleteIcon className="!w-full !h-full" />
+                        </button>
+                      </>
+                    </HasRole>
+                  </div>
                 </td>
               </tr>
             ))
@@ -378,7 +436,7 @@ export const AdminStaffManagement = () => {
       </Card>
 
       {/* Detail Modal */}
-      <UserDetailModal
+      <StaffDetailModal
         userId={selectedUserId}
         open={modalOpen}
         onClose={() => {
@@ -386,6 +444,75 @@ export const AdminStaffManagement = () => {
           setSelectedUserId(null);
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-modal-title"
+        aria-describedby="delete-modal-description"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 500,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
+          <h2
+            id="delete-modal-title"
+            className="text-[2rem] font-bold mb-4 text-[#2b2d3b]"
+          >
+            Xác nhận xóa
+          </h2>
+          <p id="delete-modal-description" className="text-[1.4rem] text-[#666] mb-6">
+            Bạn có chắc chắn muốn xóa{' '}
+            <strong className="text-[#2b2d3b]">
+              {userToDelete?.fullName || userToDelete?.email || 'người dùng này'}
+            </strong>
+            ?<br />
+            <span className="text-[1.2rem] text-[#999] mt-2 block">
+              Lưu ý: Chỉ có thể xóa khi người dùng không được phân công ở bất kỳ appointment nào, 
+              hoặc các appointment được phân công phải ở trạng thái PENDING hoặc COMPLETED.
+            </span>
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button
+              onClick={handleDeleteCancel}
+              variant="outlined"
+              disabled={deleting}
+              sx={{
+                textTransform: 'none',
+                fontSize: '1.3rem',
+                px: 3,
+                py: 1,
+              }}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              variant="contained"
+              color="error"
+              disabled={deleting}
+              sx={{
+                textTransform: 'none',
+                fontSize: '1.3rem',
+                px: 3,
+                py: 1,
+              }}
+            >
+              {deleting ? 'Đang xóa...' : 'Xóa'}
+            </Button>
+          </div>
+        </Box>
+      </Modal>
     </div>
   );
 };

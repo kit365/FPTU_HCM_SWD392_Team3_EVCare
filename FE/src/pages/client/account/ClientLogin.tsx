@@ -93,16 +93,16 @@ const ClientLogin = () => {
             <section className='py-[130px] bg-login'>
                 <div className='w-[1410px] mx-auto'>
                     <h2 className='text-white mb-[20px] text-[4rem] font-[700] text-center'>Đăng Nhập</h2>
-                    <div className='text-white text-center'><Link to={"/"}>Trang chủ</Link><span className='mx-[5px]'>-</span> <span className='text-[#41cb5a]'>Đăng nhập</span></div>
+                    <div className='text-white text-center'><Link to={"/"}>Trang chủ</Link><span className='mx-[5px]'>-</span> <span className='text-[#94d433]'>Đăng nhập</span></div>
                 </div>
             </section>
             <section className='py-[130px]'>
-                <div className='w-[1410px] mx-auto p-[65px] bg-[#41cb5a] rounded-[10px] mt-[24px] flex'>
+                <div className='w-[1410px] mx-auto p-[65px] bg-[#94d433] rounded-[10px] mt-[24px] flex'>
                     <div className='w-[67%] px-[12px] relative'>
                         <img src="https://sf-static.upanhlaylink.com/img/image_202510319912dc6709537d30c6ef1376776aa83c.jpg" alt="" className='w-full h-auto object-cover rounded-[10px]' />
                         <div className='absolute top-[50%] right-[-50px] translate-y-[-50%] rotate-[-90deg]'>
-                            <Link to="/client/login" className='bg-[#41cb5a] border border-[#41cb5a] text-white px-[20px] py-[10px]'>Đăng nhập</Link>
-                            <Link to="/client/register" className='bg-transparent hover:bg-[#41cb5a] border border-[#fff] hover:border-[#41cb5a] text-white px-[20px] py-[10px] transition-colors duration-[400ms] ease-in-out'>Đăng ký</Link>
+                            <Link to="/client/login" className='bg-[#94d433] border border-[#94d433] text-white px-[20px] py-[10px]'>Đăng nhập</Link>
+                            <Link to="/client/register" className='bg-transparent hover:bg-[#94d433] border border-[#fff] hover:border-[#94d433] text-white px-[20px] py-[10px] transition-colors duration-[400ms] ease-in-out'>Đăng ký</Link>
                         </div>
                     </div>
                     <div className='flex-1 px-[12px]'>

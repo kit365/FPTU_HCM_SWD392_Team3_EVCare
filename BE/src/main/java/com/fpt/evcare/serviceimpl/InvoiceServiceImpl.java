@@ -46,6 +46,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     WarrantyPackageService warrantyPackageService;
     VehicleRepository vehicleRepository;
     WarrantyPackagePartRepository warrantyPackagePartRepository;
+    com.fpt.evcare.repository.ShiftRepository shiftRepository;
 //
 //    @Override
 //    @Transactional
@@ -452,6 +453,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         appointmentRepository.save(appointment);
         log.info("Appointment {} marked as COMPLETED", appointment.getAppointmentId());
 
+        // ✅ Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
+        // Để kỹ thuật viên thấy ca làm đã hoàn thành
+        updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+
         // Gửi email xác nhận thanh toán thành công
         sendPaymentConfirmationEmail(invoice);
 
@@ -744,4 +749,54 @@ public class InvoiceServiceImpl implements InvoiceService {
 //            log.error(InvoiceConstants.LOG_ERR_FAILED_SEND_PAYMENT_CONFIRMATION_EMAIL, e.getMessage());
 //        }
 //    }
+
+    /**
+     * Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
+     * Để kỹ thuật viên thấy ca làm đã hoàn thành trong danh sách "Ca làm của tôi"
+     */
+    private void updateShiftStatusWhenAppointmentCompleted(UUID appointmentId) {
+        try {
+            // Tìm tất cả shifts liên quan đến appointment này
+            org.springframework.data.domain.Page<com.fpt.evcare.entity.ShiftEntity> shiftPage = 
+                    shiftRepository.findByAppointmentId(appointmentId, 
+                    org.springframework.data.domain.PageRequest.of(0, 100)); // Lấy tối đa 100 shifts
+            
+            java.util.List<com.fpt.evcare.entity.ShiftEntity> shifts = shiftPage.getContent();
+            
+            if (shifts.isEmpty()) {
+                log.debug("No shifts found for appointment {} to update to COMPLETED", appointmentId);
+                return;
+            }
+            
+            // Cập nhật tất cả shifts có status IN_PROGRESS hoặc SCHEDULED sang COMPLETED
+            int updatedCount = 0;
+            for (com.fpt.evcare.entity.ShiftEntity shift : shifts) {
+                if (shift.getStatus() == com.fpt.evcare.enums.ShiftStatusEnum.IN_PROGRESS || 
+                    shift.getStatus() == com.fpt.evcare.enums.ShiftStatusEnum.SCHEDULED) {
+                    shift.setStatus(com.fpt.evcare.enums.ShiftStatusEnum.COMPLETED);
+                    // Cập nhật search field để bao gồm status mới
+                    String search = com.fpt.evcare.utils.UtilFunction.concatenateSearchField(
+                            shift.getAppointment() != null ? shift.getAppointment().getCustomerFullName() : "",
+                            shift.getAppointment() != null ? shift.getAppointment().getVehicleNumberPlate() : "",
+                            "COMPLETED"
+                    );
+                    shift.setSearch(search);
+                    shiftRepository.save(shift);
+                    updatedCount++;
+                    log.info("✅ Auto-updated shift {} status to COMPLETED when appointment {} completed after payment", 
+                            shift.getShiftId(), appointmentId);
+                }
+            }
+            
+            if (updatedCount > 0) {
+                log.info("✅ Updated {} shift(s) to COMPLETED for appointment {}", updatedCount, appointmentId);
+            } else {
+                log.debug("No shifts needed status update for appointment {} (all shifts are already COMPLETED or other status)", appointmentId);
+            }
+        } catch (Exception e) {
+            log.error("⚠️ Failed to update shift status when appointment {} completed after payment: {}", 
+                    appointmentId, e.getMessage());
+            // Không throw exception để không block việc payment
+        }
+    }
 }

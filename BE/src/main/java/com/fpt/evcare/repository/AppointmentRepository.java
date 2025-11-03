@@ -57,6 +57,55 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
 
     Page<AppointmentEntity> findAllBySearchContainingIgnoreCaseAndCustomerIsNotNull(String keyword, Pageable pageable);
 
+    // Query để tìm kiếm theo email hoặc phone cho khách hàng đã đăng nhập (có customer)
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.customer_id IS NOT NULL
+          AND (
+              LOWER(a.customer_email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              OR LOWER(a.customer_phone_number) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              OR LOWER(a.search) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          )
+        ORDER BY a.scheduled_at DESC
+        """, nativeQuery = true)
+    Page<AppointmentEntity> findByEmailOrPhoneForCustomer(
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    // Query để tìm kiếm appointments của một customer cụ thể theo customer_id
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.customer_id = :customerId
+        ORDER BY a.scheduled_at DESC
+        """, nativeQuery = true)
+    Page<AppointmentEntity> findByCustomerId(
+            @Param("customerId") UUID customerId,
+            Pageable pageable);
+
+    // Query để tìm kiếm theo email hoặc phone cho khách vãng lai (không có customer)
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.customer_id IS NULL
+          AND (
+              LOWER(a.customer_email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              OR LOWER(a.customer_phone_number) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              OR LOWER(a.search) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          )
+        ORDER BY a.scheduled_at DESC
+        """, nativeQuery = true)
+    Page<AppointmentEntity> findByEmailOrPhoneForGuest(
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
     @Query(value = """
         SELECT a.* 
         FROM appointments a
@@ -154,5 +203,15 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
         )
         """, nativeQuery = true)
     boolean existsInProgressAppointmentByServiceTypeOfVehicleType(@Param("vehicleTypeId") UUID vehicleTypeId);
+
+    // Count pending appointments by customer
+    @Query("""
+        SELECT COUNT(a) FROM AppointmentEntity a 
+        WHERE a.customer.userId = :customerId 
+          AND a.status = 'PENDING'
+          AND a.isDeleted = false 
+          AND a.isActive = true
+        """)
+    Long countPendingAppointmentsByCustomerId(@Param("customerId") UUID customerId);
 
 }

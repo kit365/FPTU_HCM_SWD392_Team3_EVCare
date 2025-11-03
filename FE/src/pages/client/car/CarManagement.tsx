@@ -24,7 +24,12 @@ const CarManagement: React.FC = () => {
   // Fetch vehicle profiles from API
   const fetchVehicleProfiles = useCallback(async () => {
     if (!user?.userId) return;
-    await getByUserId(user.userId);
+    try {
+      await getByUserId(user.userId);
+    } catch (error) {
+      console.error('Error fetching vehicle profiles:', error);
+      // Error is already handled in useVehicleProfile hook
+    }
   }, [user?.userId, getByUserId]);
 
   // Fetch vehicle profiles on mount and when dependencies change

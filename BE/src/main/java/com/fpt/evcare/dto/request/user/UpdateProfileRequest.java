@@ -30,5 +30,8 @@ public class UpdateProfileRequest {
     
     @Nullable
     private String avatarUrl;
+    
+    @Nullable
+    private String backgroundUrl;
 }
 

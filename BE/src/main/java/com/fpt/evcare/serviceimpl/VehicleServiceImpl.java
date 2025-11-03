@@ -121,7 +121,7 @@ public class VehicleServiceImpl implements VehicleService {
                 request.getVin(),
                 user.getFullName(),
                 user.getEmail(),
-                user.getNumberPhone()
+                request.getPhoneNumber() != null ? request.getPhoneNumber() : user.getNumberPhone()
         );
         VehicleEntity vehicle = new VehicleEntity();
         vehicle.setUser(user);
@@ -133,6 +133,7 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setLastMaintenanceKm(request.getLastMaintenanceKm());
         vehicle.setSearch(search);
         vehicle.setNotes(request.getNotes());
+        vehicle.setPhoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber() : user.getNumberPhone());
 
         return vehicleMapper.toVehicleResponse(vehicleRepository.save(vehicle));
     }
@@ -199,17 +200,21 @@ public class VehicleServiceImpl implements VehicleService {
         if (vehicleRequest.getNotes() != null) {
             vehicleEntity.setNotes(vehicleRequest.getNotes());
         }
+        if (vehicleRequest.getPhoneNumber() != null) {
+            vehicleEntity.setPhoneNumber(vehicleRequest.getPhoneNumber());
+        }
         
         // Rebuild search field if any related field changed
         if(vehicleRequest.getPlateNumber() != null || 
            vehicleRequest.getVin() != null || 
-           vehicleRequest.getUserId() != null){
+           vehicleRequest.getUserId() != null ||
+           vehicleRequest.getPhoneNumber() != null){
             String search = concatenateSearchField(
                     vehicleEntity.getPlateNumber(),
                     vehicleEntity.getVin(),
                     vehicleEntity.getUser().getFullName(),
                     vehicleEntity.getUser().getEmail(),
-                    vehicleEntity.getUser().getNumberPhone()
+                    vehicleEntity.getPhoneNumber() != null ? vehicleEntity.getPhoneNumber() : vehicleEntity.getUser().getNumberPhone()
             );
             vehicleEntity.setSearch(search);
         }

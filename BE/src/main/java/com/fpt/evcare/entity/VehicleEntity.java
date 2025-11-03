@@ -50,6 +50,9 @@ public class VehicleEntity extends BaseEntity {
     @Column(name = "notes")
     String notes;
 
+    @Column(name = "phone_number")
+    String phoneNumber;
+
     @Column(name = "search")
     String search;
 }

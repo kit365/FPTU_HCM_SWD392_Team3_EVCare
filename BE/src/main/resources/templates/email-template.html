@@ -137,7 +137,9 @@
         
         <!-- Nếu có code (OTP) thì hiển thị phần OTP -->
         <div th:if="${code != null}">
-            <p>
+            <!-- Hiển thị nội dung từ body nếu có, nếu không thì dùng text mặc định -->
+            <div th:if="${body != null && !#strings.isEmpty(body)}" style="white-space: pre-line; line-height: 1.8; margin-bottom: 20px;" th:utext="${#strings.replace(body, '\n', '<br/>')}"></div>
+            <p th:unless="${body != null && !#strings.isEmpty(body)}">
                 Chúng tôi đã nhận được yêu cầu thay đổi địa chỉ email cho tài khoản của bạn.
                 Vui lòng sử dụng mã xác nhận bên dưới để xác nhận thay đổi.
             </p>
@@ -151,7 +153,7 @@
                 </div>
                 <div class="otp-expiry">Mã có hiệu lực trong 5 phút.</div>
             </div>
-            <p>Nếu bạn không yêu cầu thay đổi này, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức.</p>
+            <p th:unless="${body != null && !#strings.isEmpty(body)}">Nếu bạn không yêu cầu thay đổi này, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức.</p>
         </div>
         
         <!-- Nếu không có code (như appointment emails) thì hiển thị body -->

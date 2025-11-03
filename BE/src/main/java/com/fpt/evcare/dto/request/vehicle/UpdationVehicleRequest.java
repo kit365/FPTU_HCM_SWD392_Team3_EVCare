@@ -35,4 +35,6 @@ public class UpdationVehicleRequest implements Serializable {
     Float lastMaintenanceKm;
 
     String notes;
+
+    String phoneNumber;
 }

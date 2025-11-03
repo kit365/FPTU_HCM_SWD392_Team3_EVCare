@@ -1,24 +1,66 @@
-import React from 'react';
-import { Modal, Descriptions, Tag } from 'antd';
+import React, { useState } from 'react';
+import { Modal, Descriptions, Tag, Button, Space, Popconfirm, message } from 'antd';
+import { EditOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import type { UserAppointment } from '../../../types/booking.types';
 import dayjs from 'dayjs';
+import { bookingService } from '../../../service/bookingService';
+import { useNavigate } from 'react-router-dom';
 
 interface AppointmentDetailProps {
     dataDetail: UserAppointment | null;
     setDataDetail: React.Dispatch<React.SetStateAction<UserAppointment | null>>;
     isOpenDetail: boolean;
     setIsOpenDetail: React.Dispatch<React.SetStateAction<boolean>>;
+    onSuccess?: () => void; // Callback để reload danh sách sau khi hủy/cập nhật
 }
 
 const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ 
     dataDetail, 
     setDataDetail, 
     isOpenDetail, 
-    setIsOpenDetail 
+    setIsOpenDetail,
+    onSuccess
 }) => {
+    const navigate = useNavigate();
+    const [cancelling, setCancelling] = useState(false);
+
     const handleCancel = () => {
         setIsOpenDetail(false);
         setDataDetail(null);
+    };
+
+    // Hủy appointment
+    const handleCancelAppointment = async () => {
+        if (!dataDetail) return;
+
+        setCancelling(true);
+        try {
+            const response = await bookingService.cancelAppointmentForCustomer(dataDetail.appointmentId);
+            if (response.data.success) {
+                message.success('Hủy cuộc hẹn thành công');
+                handleCancel();
+                // Reload danh sách
+                if (onSuccess) {
+                    onSuccess();
+                }
+            } else {
+                message.error(response.data.message || 'Hủy cuộc hẹn thất bại');
+            }
+        } catch (error: any) {
+            console.error('Error cancelling appointment:', error);
+            message.error(error?.response?.data?.message || 'Hủy cuộc hẹn thất bại');
+        } finally {
+            setCancelling(false);
+        }
+    };
+
+    // Cập nhật appointment - redirect đến ServiceBooking với data pre-filled
+    const handleUpdateAppointment = () => {
+        if (!dataDetail) return;
+        
+        // Chuyển đến trang booking với appointmentId để pre-fill form
+        navigate(`/client/booking?appointmentId=${dataDetail.appointmentId}&mode=edit`);
+        handleCancel();
     };
 
     // Function to get status color
@@ -71,12 +113,42 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({
 
     if (!dataDetail) return null;
 
+    const isPending = dataDetail?.status === 'PENDING';
+
     return (
         <Modal
             title="Chi tiết cuộc hẹn"
             open={isOpenDetail}
             onCancel={handleCancel}
-            footer={null}
+            footer={
+                isPending ? (
+                    <Space>
+                        <Popconfirm
+                            title="Hủy cuộc hẹn"
+                            description="Bạn có chắc chắn muốn hủy cuộc hẹn này?"
+                            onConfirm={handleCancelAppointment}
+                            okText="Đồng ý"
+                            cancelText="Hủy"
+                            okButtonProps={{ danger: true, loading: cancelling }}
+                        >
+                            <Button 
+                                danger 
+                                icon={<CloseCircleOutlined />}
+                                loading={cancelling}
+                            >
+                                Hủy cuộc hẹn
+                            </Button>
+                        </Popconfirm>
+                        <Button 
+                            type="primary"
+                            icon={<EditOutlined />}
+                            onClick={handleUpdateAppointment}
+                        >
+                            Cập nhật
+                        </Button>
+                    </Space>
+                ) : null
+            }
             width={800}
         >
             <div className="space-y-6">

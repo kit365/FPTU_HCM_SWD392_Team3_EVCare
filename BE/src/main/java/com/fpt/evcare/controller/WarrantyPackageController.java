@@ -45,11 +45,16 @@ public class WarrantyPackageController {
                     .build()
             );
         } catch (Throwable t) {
-            log.debug("Error getting warranty package {}: {}", id, t.getMessage());
+            log.error("ERROR getting warranty package {}: {}", id, t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+            }
+            log.error("ERROR stack trace: ", t);
             return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
                     .body(ApiResponse.<WarrantyPackageResponse>builder()
                             .success(false)
-                            .message("Không tìm thấy gói bảo hành")
+                            .message("Không tìm thấy gói bảo hành: " + (t.getMessage() != null ? t.getMessage() : "Lỗi không xác định"))
                             .build()
                     );
         }
@@ -83,8 +88,14 @@ public class WarrantyPackageController {
                         .build();
             }
         } catch (Throwable t) { // Catch cả Error, không chỉ Exception
-            // Log debug thay vì error vì đây là trường hợp được xử lý gracefully
-            log.debug("Error in searchWarrantyPackages controller (returning empty list): {}", t.getMessage());
+            // Log chi tiết để debug lỗi 500
+            log.error("ERROR in searchWarrantyPackages controller: {}", t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+                log.error("ERROR cause class: {}", t.getCause().getClass().getName());
+            }
+            log.error("ERROR stack trace: ", t);
             // Trả về danh sách rỗng thay vì throw exception
             response = PageResponse.<WarrantyPackageResponse>builder()
                     .data(java.util.List.of())
@@ -136,7 +147,12 @@ public class WarrantyPackageController {
                     .build()
             );
         } catch (Throwable t) {
-            log.debug("Error creating warranty package: {}", t.getMessage());
+            log.error("ERROR creating warranty package: {}", t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+            }
+            log.error("ERROR stack trace: ", t);
             return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.<String>builder()
                             .success(false)
@@ -160,7 +176,12 @@ public class WarrantyPackageController {
                     .build()
             );
         } catch (Throwable t) {
-            log.debug("Error updating warranty package {}: {}", id, t.getMessage());
+            log.error("ERROR updating warranty package {}: {}", id, t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+            }
+            log.error("ERROR stack trace: ", t);
             return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.<String>builder()
                             .success(false)
@@ -182,7 +203,12 @@ public class WarrantyPackageController {
                     .build()
             );
         } catch (Throwable t) {
-            log.debug("Error deleting warranty package {}: {}", id, t.getMessage());
+            log.error("ERROR deleting warranty package {}: {}", id, t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+            }
+            log.error("ERROR stack trace: ", t);
             return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.<String>builder()
                             .success(false)

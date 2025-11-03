@@ -53,6 +53,9 @@ public class UserEntity extends BaseEntity {
     @Column(name = "avatar_url")
     String avatarUrl;
 
+    @Column(name = "background_url")
+    String backgroundUrl;
+
     @Column(name = "last_login")
     String lastLogin;
 

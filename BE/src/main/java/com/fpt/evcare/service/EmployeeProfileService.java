@@ -14,6 +14,8 @@ public interface EmployeeProfileService {
 
     EmployeeProfileResponse getEmployeeProfileById(UUID employeeProfileId);
 
+    EmployeeProfileResponse getEmployeeProfileByUserId(UUID userId);
+
     PageResponse<EmployeeProfileResponse> searchEmployeeProfile(String keyword, Pageable page);
 
     void updateEmployeeProfile(UUID id, UpdationEmployeeProfileRequest request);

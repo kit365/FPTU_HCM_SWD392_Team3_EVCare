@@ -36,4 +36,6 @@ public class CreationVehicleRequest implements Serializable {
     Float lastMaintenanceKm;
 
     String notes;
+
+    String phoneNumber;
 }

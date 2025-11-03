@@ -38,6 +38,8 @@ public class VehicleResponse implements Serializable {
 
     String notes;
 
+    String phoneNumber;
+
     String search;
 
     Boolean isDeleted;
