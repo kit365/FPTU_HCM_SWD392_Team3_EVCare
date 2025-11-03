@@ -6,7 +6,7 @@ import java.util.Map;
 
 public interface VnPayService {
     String createPayment(String id, String source, HttpServletRequest ipAddr);
-    String handleIPN(Map<String, String> params);
+    String handleIPN(Map<String, String> params, jakarta.servlet.http.HttpServletRequest request);
     String getIpAddress(HttpServletRequest request);
     String getRandomNumber(int len);
     String hmacSHA512(String key, String data);

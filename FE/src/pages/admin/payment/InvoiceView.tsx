@@ -22,12 +22,13 @@ import {
 import { ArrowBack, Payment } from "@mui/icons-material";
 import QRCode from "react-qr-code";
 import { useInvoice } from "../../../hooks/useInvoice";
+import { invoiceService } from "../../../service/invoiceService";
 import moment from "moment";
 
 export const InvoiceView = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
-  const { invoice, loading, paying, getByAppointmentId, payCash, createVnPayPayment } = useInvoice();
+  const { invoice, loading, paying, getByAppointmentId, payCash, createVnPayPayment, setInvoice } = useInvoice();
   
   const [openPayDialog, setOpenPayDialog] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
@@ -63,13 +64,14 @@ export const InvoiceView = () => {
       
       // Nếu invoice đã được thanh toán và đang mở QR dialog
       if (invoice.status === "PAID" && openQrDialog && !hasNavigatedRef.current) {
-        console.log("✅ Invoice PAID detected, navigating to success page");
+        console.log("✅ Invoice PAID detected in useEffect, navigating to success page");
         
-        // Set flag để tránh navigate lại
+        // Set flag ngay lập tức để polling dừng
         hasNavigatedRef.current = true;
         
         // Dừng polling ngay lập tức (nếu có)
         if (pollingIntervalRef.current) {
+          console.log("🛑 Stopping polling before navigate");
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
         }
@@ -79,7 +81,10 @@ export const InvoiceView = () => {
         setPaymentUrl(null);
         
         // Navigate ngay đến success page (không delay)
-        navigate(`/admin/payment/success?appointmentId=${appointmentId}`, { replace: true });
+        // Dùng setTimeout nhỏ để đảm bảo polling đã dừng
+        setTimeout(() => {
+          navigate(`/admin/payment/success?appointmentId=${appointmentId}`, { replace: true });
+        }, 0);
       }
     }
   }, [invoice, appointmentId, navigate, openQrDialog]);
@@ -115,35 +120,102 @@ export const InvoiceView = () => {
   };
 
   const startPolling = () => {
+    // Dừng polling cũ nếu có
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
     
     // Poll ngay lập tức lần đầu, sau đó mới set interval
     const checkStatus = async () => {
-      // Chỉ check nếu dialog vẫn mở và chưa navigate
-      if (appointmentId && openQrDialog && !hasNavigatedRef.current) {
-        try {
-          console.log("🔄 Polling invoice status...");
-          await getByAppointmentId(appointmentId);
-        } catch (error) {
-          console.error("Error polling invoice status:", error);
-        }
-      } else {
-        // Nếu đã navigate hoặc dialog đóng, dừng polling
+      // Kiểm tra các điều kiện dừng polling trước (check refs để có giá trị mới nhất)
+      if (hasNavigatedRef.current) {
+        console.log("🛑 Already navigated, stopping polling");
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
         }
+        return;
+      }
+      
+      // Check dialog state từ DOM hoặc state mới nhất
+      // Dùng cách khác để check dialog state
+      if (pollingIntervalRef.current === null) {
+        // Polling đã bị dừng rồi
+        return;
+      }
+      
+      // Chỉ check nếu dialog vẫn mở và chưa navigate
+      if (!appointmentId) {
+        console.log("🛑 No appointmentId, stopping polling");
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        return;
+      }
+      
+      try {
+        console.log("🔄 Polling invoice status (silent)...");
+        // Gọi trực tiếp service để không trigger loading state (tránh re-render)
+        const updatedInvoice = await invoiceService.getByAppointmentId(appointmentId);
+        
+        // Update invoice state mà không trigger loading
+        // Sử dụng callback form của setState để update ngay lập tức
+        setInvoice((prevInvoice: typeof updatedInvoice | null) => {
+          if (prevInvoice) {
+            return { ...prevInvoice, ...updatedInvoice };
+          }
+          return updatedInvoice;
+        });
+        
+        // Check lại các điều kiện dừng sau khi fetch (vì state có thể thay đổi)
+        if (hasNavigatedRef.current) {
+          console.log("🛑 Navigated during fetch, stopping polling");
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          return;
+        }
+        
+        // Nếu invoice vừa được update thành PAID, đóng dialog và navigate ngay
+        if (updatedInvoice?.status === "PAID") {
+          console.log("✅ Invoice PAID detected during polling, closing dialog and navigating...");
+          
+          // Dừng polling ngay
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          
+          // Set flag để tránh navigate lại
+          hasNavigatedRef.current = true;
+          
+          // Đóng QR dialog
+          setOpenQrDialog(false);
+          setPaymentUrl(null);
+          
+          // Navigate đến success page
+          setTimeout(() => {
+            navigate(`/admin/payment/success?appointmentId=${appointmentId}`, { replace: true });
+          }, 100); // Delay nhỏ để dialog đóng mượt
+          
+          return;
+        }
+      } catch (error) {
+        console.error("Error polling invoice status:", error);
+        // Không show error message khi polling để không làm gián đoạn user
       }
     };
     
     // Check ngay lập tức
     checkStatus();
     
-    // Sau đó check mỗi 1.5 giây (nhanh hơn để detect sớm hơn)
-    pollingIntervalRef.current = setInterval(checkStatus, 1500);
+    // Sau đó check mỗi 1 giây
+    pollingIntervalRef.current = setInterval(checkStatus, 1000);
   };
+
 
   const handlePayment = async () => {
     if (!invoice || !appointmentId) return;

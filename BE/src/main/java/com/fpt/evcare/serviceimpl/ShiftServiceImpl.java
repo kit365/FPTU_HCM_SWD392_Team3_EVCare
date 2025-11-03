@@ -68,6 +68,7 @@ public class ShiftServiceImpl implements ShiftService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ShiftResponse getShiftById(UUID id) {
         log.info(ShiftConstants.LOG_INFO_SHOWING_SHIFT_BY_ID, id);
         
@@ -77,10 +78,16 @@ public class ShiftServiceImpl implements ShiftService {
             throw new ResourceNotFoundException(ShiftConstants.MESSAGE_ERR_SHIFT_NOT_FOUND);
         }
 
+        // Force initialization of lazy-loaded appointment relationships
+        if (shiftEntity.getAppointment() != null) {
+            initializeAppointmentRelations(shiftEntity.getAppointment());
+        }
+
         return shiftMapper.toResponse(shiftEntity);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ShiftResponse> searchShift(String keyword, Pageable pageable) {
         log.info(ShiftConstants.LOG_INFO_SHOWING_SHIFT_LIST);
         
@@ -90,6 +97,13 @@ public class ShiftServiceImpl implements ShiftService {
         } else {
             shiftPage = shiftRepository.findBySearchContainingIgnoreCaseAndIsDeletedFalse(keyword, pageable);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        shiftPage.getContent().forEach(shift -> {
+            if (shift.getAppointment() != null) {
+                initializeAppointmentRelations(shift.getAppointment());
+            }
+        });
 
         List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
                 .map(shiftMapper::toResponse)
@@ -106,6 +120,7 @@ public class ShiftServiceImpl implements ShiftService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ShiftResponse> searchShiftWithFilters(String keyword, String status, String shiftType,
                                                               String fromDate, String toDate, Pageable pageable) {
         log.info(ShiftConstants.LOG_INFO_SHOWING_SHIFT_LIST);
@@ -113,6 +128,13 @@ public class ShiftServiceImpl implements ShiftService {
         Page<ShiftEntity> shiftPage = shiftRepository.findShiftsWithFilters(
                 keyword, status, shiftType, fromDate, toDate, pageable);
 
+        // Force initialization of lazy-loaded relationships within transaction
+        shiftPage.getContent().forEach(shift -> {
+            if (shift.getAppointment() != null) {
+                initializeAppointmentRelations(shift.getAppointment());
+            }
+        });
+
         List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
                 .map(shiftMapper::toResponse)
                 .toList();
@@ -128,11 +150,19 @@ public class ShiftServiceImpl implements ShiftService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ShiftResponse> getShiftsByAppointmentId(UUID appointmentId, Pageable pageable) {
         log.info(ShiftConstants.LOG_INFO_SHOWING_SHIFT_LIST_BY_APPOINTMENT_ID, appointmentId);
         
         Page<ShiftEntity> shiftPage = shiftRepository.findByAppointmentId(appointmentId, pageable);
 
+        // Force initialization of lazy-loaded relationships within transaction
+        shiftPage.getContent().forEach(shift -> {
+            if (shift.getAppointment() != null) {
+                initializeAppointmentRelations(shift.getAppointment());
+            }
+        });
+
         List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
                 .map(shiftMapper::toResponse)
                 .toList();
@@ -148,6 +178,7 @@ public class ShiftServiceImpl implements ShiftService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<ShiftResponse> searchShiftForTechnician(UUID technicianId, String keyword, Pageable pageable) {
         log.info("Showing shift list for technician: {}", technicianId);
         
@@ -167,6 +198,13 @@ public class ShiftServiceImpl implements ShiftService {
             shiftPage = shiftRepository.findByTechnicianIdAndSearchContainingIgnoreCaseAndIsDeletedFalse(
                     technicianId, keyword, pageable);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        shiftPage.getContent().forEach(shift -> {
+            if (shift.getAppointment() != null) {
+                initializeAppointmentRelations(shift.getAppointment());
+            }
+        });
 
         List<ShiftResponse> shiftResponses = shiftPage.getContent().stream()
                 .map(shiftMapper::toResponse)
@@ -642,6 +680,34 @@ public class ShiftServiceImpl implements ShiftService {
         } catch (IllegalArgumentException e) {
             log.warn("Invalid shift status: {}", statusEnum);
             throw new EntityValidationException("Trạng thái không hợp lệ: " + statusEnum);
+        }
+    }
+    
+    /**
+     * Helper method to force initialization of lazy-loaded appointment relationships
+     * This must be called within an active transaction
+     */
+    private void initializeAppointmentRelations(AppointmentEntity appointment) {
+        if (appointment == null) {
+            return;
+        }
+        
+        // Initialize all lazy-loaded relationships
+        if (appointment.getCustomer() != null) {
+            appointment.getCustomer().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getAssignee() != null) {
+            appointment.getAssignee().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getTechnicianEntities() != null) {
+            appointment.getTechnicianEntities().size(); // Access to trigger loading
+            appointment.getTechnicianEntities().forEach(tech -> tech.getUserId()); // Load each technician
+        }
+        if (appointment.getServiceTypeEntities() != null) {
+            appointment.getServiceTypeEntities().size(); // Access to trigger loading
+        }
+        if (appointment.getVehicleTypeEntity() != null) {
+            appointment.getVehicleTypeEntity().getVehicleTypeId(); // Access to trigger loading
         }
     }
 }

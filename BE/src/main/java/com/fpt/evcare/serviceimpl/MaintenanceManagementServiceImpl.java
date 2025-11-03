@@ -80,6 +80,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MaintenanceManagementResponse getMaintenanceManagementEntityById(String keyword, Pageable pageable, UUID id) {
         MaintenanceManagementEntity maintenanceManagementEntity = getMaintenanceManagementEntity(id);
 
@@ -87,6 +88,10 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
         if(maintenanceManagementEntity.getAppointment() != null){
             //Map data của appointment
             AppointmentEntity appointmentEntity = maintenanceManagementEntity.getAppointment();
+            
+            // Force initialization of lazy-loaded relationships within transaction
+            initializeAppointmentRelations(appointmentEntity);
+            
             AppointmentResponse appointmentResponse = mapAllExistedUserDataInAppointment(appointmentEntity);
             maintenanceManagementResponse.setAppointmentResponse(appointmentResponse);
 
@@ -118,6 +123,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
 
     // Show toàn bộ các maintenance management (ADMIN)
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MaintenanceManagementResponse> searchMaintenanceManagement(String keyword, Pageable pageable) {
         Page<MaintenanceManagementEntity> maintenanceManagementEntityPage;
 
@@ -131,6 +137,13 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             log.info(MaintenanceManagementConstants.LOG_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
             throw new ResourceNotFoundException(MaintenanceManagementConstants.MESSAGE_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        maintenanceManagementEntityPage.getContent().forEach(mm -> {
+            if (mm.getAppointment() != null) {
+                initializeAppointmentRelations(mm.getAppointment());
+            }
+        });
 
         List<MaintenanceManagementResponse> maintenanceManagementResponses = maintenanceManagementEntityPage.map(maintenanceManagement -> {
             MaintenanceManagementResponse maintenanceManagementResponse =  maintenanceManagementMapper.toResponse(maintenanceManagement);
@@ -171,6 +184,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementWithFilters(String keyword, String status, 
                                                                                               String vehicleId, String fromDate, 
                                                                                               String toDate, Pageable pageable) {
@@ -181,6 +195,13 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             log.info(MaintenanceManagementConstants.LOG_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
             throw new ResourceNotFoundException(MaintenanceManagementConstants.MESSAGE_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        maintenanceManagementEntityPage.getContent().forEach(mm -> {
+            if (mm.getAppointment() != null) {
+                initializeAppointmentRelations(mm.getAppointment());
+            }
+        });
 
         List<MaintenanceManagementResponse> maintenanceManagementResponses = maintenanceManagementEntityPage.map(maintenanceManagement -> {
             MaintenanceManagementResponse maintenanceManagementResponse =  maintenanceManagementMapper.toResponse(maintenanceManagement);
@@ -222,6 +243,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
 
     // Show toàn bộ các maintenance management thuộc về kỹ thuật viên (TECHNICIAN) đó với các bộ lọc
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MaintenanceManagementResponse> searchMaintenanceManagementForTechnicians(
             UUID technicianId, String keyword, String date, String status, UUID appointmentId, Pageable pageable) {
         
@@ -256,6 +278,13 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             log.info(MaintenanceManagementConstants.LOG_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
             throw new ResourceNotFoundException(MaintenanceManagementConstants.MESSAGE_ERR_MAINTENANCE_MANAGEMENT_LIST_NOT_FOUND);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        maintenanceManagementEntityPage.getContent().forEach(mm -> {
+            if (mm.getAppointment() != null) {
+                initializeAppointmentRelations(mm.getAppointment());
+            }
+        });
 
         List<MaintenanceManagementResponse> maintenanceManagementResponses = maintenanceManagementEntityPage.map(maintenanceManagement -> {
             MaintenanceManagementResponse maintenanceManagementResponse =  maintenanceManagementMapper.toResponse(maintenanceManagement);
@@ -296,6 +325,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MaintenanceManagementResponse> getMyTasks(String username, String date, String status, Pageable pageable) {
         // 1. Tìm technician bằng username
         UserEntity technician = userRepository.findByUsernameAndIsDeletedFalse(username);
@@ -339,6 +369,13 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             maintenanceManagementPage = maintenanceManagementRepository
                 .findByTechnicianAndDate(technicianId, targetDate, pageable);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        maintenanceManagementPage.getContent().forEach(mm -> {
+            if (mm.getAppointment() != null) {
+                initializeAppointmentRelations(mm.getAppointment());
+            }
+        });
 
         // 5. Map to response
         List<MaintenanceManagementResponse> responses = maintenanceManagementPage.map(mm -> {
@@ -578,6 +615,34 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             throw new ResourceNotFoundException(MaintenanceManagementConstants.MESSAGE_ERR_MAINTENANCE_MANAGEMENT_NOT_FOUND);
         }
         return maintenanceManagement;
+    }
+
+    /**
+     * Helper method to force initialization of lazy-loaded appointment relationships
+     * This must be called within an active transaction
+     */
+    private void initializeAppointmentRelations(AppointmentEntity appointment) {
+        if (appointment == null) {
+            return;
+        }
+        
+        // Initialize all lazy-loaded relationships
+        if (appointment.getCustomer() != null) {
+            appointment.getCustomer().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getAssignee() != null) {
+            appointment.getAssignee().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getTechnicianEntities() != null) {
+            appointment.getTechnicianEntities().size(); // Access to trigger loading
+            appointment.getTechnicianEntities().forEach(tech -> tech.getUserId()); // Load each technician
+        }
+        if (appointment.getServiceTypeEntities() != null) {
+            appointment.getServiceTypeEntities().size(); // Access to trigger loading
+        }
+        if (appointment.getVehicleTypeEntity() != null) {
+            appointment.getVehicleTypeEntity().getVehicleTypeId(); // Access to trigger loading
+        }
     }
 
     private AppointmentResponse mapAllExistedUserDataInAppointment(AppointmentEntity appointmentEntity) {

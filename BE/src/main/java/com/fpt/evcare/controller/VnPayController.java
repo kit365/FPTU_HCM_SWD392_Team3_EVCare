@@ -80,10 +80,10 @@ public class VnPayController {
      */
     @GetMapping("/payment-return")
     @Operation(summary = "VNPay callback URL", description = "URL callback từ VNPay sau khi thanh toán")
-    public ResponseEntity<?> paymentReturn(@RequestParam Map<String, String> params) {
+    public ResponseEntity<?> paymentReturn(@RequestParam Map<String, String> params, HttpServletRequest request) {
         try {
             log.info("Received VNPay callback with params: {}", params.keySet());
-            String transactionReference = vnPayService.handleIPN(params);
+            String transactionReference = vnPayService.handleIPN(params, request);
             
             // Lấy source từ PaymentTransaction để biết redirect về admin hay client
             String source = vnPayService.getSourceFromTransaction(transactionReference);
@@ -91,10 +91,13 @@ public class VnPayController {
             // Kiểm tra mã giao dịch hợp lệ
             String transactionStatus = params.get("vnp_TransactionStatus");
             if ("00".equals(transactionStatus) && transactionReference != null) {
+                // Lấy appointmentId từ transaction để redirect đúng
+                String appointmentIdStr = vnPayService.getAppointmentIdFromTransaction(transactionReference);
+                
                 // Success: 
                 // - Nếu source=admin: Khách quét QR trên điện thoại → redirect về trang thông báo đơn giản
                 // - Máy tính admin sẽ tự detect qua polling và navigate
-                // - Nếu source=client: redirect về client success page
+                // - Nếu source=client: redirect về client success page với appointmentId
                 if ("admin".equals(source)) {
                     // Redirect về trang thông báo đơn giản (không phải admin page)
                     // Vì redirect này xảy ra trên điện thoại khách, không phải máy tính admin
@@ -102,8 +105,13 @@ public class VnPayController {
                             .location(URI.create(frontendUrl + "/payment/success-message"))
                             .build();
                 } else {
+                    // Redirect với appointmentId để frontend có thể fetch invoice
+                    String redirectUrl = frontendUrl + "/client/payment/success";
+                    if (appointmentIdStr != null) {
+                        redirectUrl += "?appointmentId=" + appointmentIdStr;
+                    }
                     return ResponseEntity.status(HttpStatus.FOUND)
-                            .location(URI.create(frontendUrl + "/client/payment/success?transactionRef=" + transactionReference))
+                            .location(URI.create(redirectUrl))
                             .build();
                 }
             } else {

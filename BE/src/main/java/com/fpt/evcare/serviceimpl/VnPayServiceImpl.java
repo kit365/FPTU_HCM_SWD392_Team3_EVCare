@@ -170,7 +170,7 @@ public class VnPayServiceImpl implements VnPayService {
 
     @Override
     @Transactional
-    public String handleIPN(Map<String, String> params) {
+    public String handleIPN(Map<String, String> params, HttpServletRequest request) {
         String transactionReference = params.get("vnp_TxnRef");
         String transactionStatus = params.get("vnp_TransactionStatus");
         String vnp_Amount = params.get("vnp_Amount");
@@ -179,17 +179,39 @@ public class VnPayServiceImpl implements VnPayService {
         
         // Validate secure hash
         String vnp_SecureHash = params.get("vnp_SecureHash");
-        Map<String, String> paramsForHash = new HashMap<>(params);
-        paramsForHash.remove("vnp_SecureHash");
-        paramsForHash.remove("vnp_SecureHashType");
         
-        // Build hash data để verify
-        List<String> sortedKeys = new ArrayList<>(paramsForHash.keySet());
+        // Lấy raw query string từ request để verify hash đúng cách
+        // VNPay tính hash dựa trên query string gốc (đã encode), không phải params đã decode
+        String rawQueryString = request.getQueryString();
+        if (rawQueryString == null) {
+            log.error("❌ Cannot get raw query string from request");
+            throw new RuntimeException("Invalid request from VNPay");
+        }
+        
+        // Extract hash data từ query string (loại bỏ vnp_SecureHash và vnp_SecureHashType)
+        String[] queryParams = rawQueryString.split("&");
+        Map<String, String> paramsMap = new HashMap<>();
+        for (String param : queryParams) {
+            if (param != null && !param.isEmpty()) {
+                int equalIndex = param.indexOf("=");
+                if (equalIndex > 0) {
+                    String key = param.substring(0, equalIndex);
+                    String value = equalIndex < param.length() - 1 ? param.substring(equalIndex + 1) : "";
+                    // Bỏ qua vnp_SecureHash và vnp_SecureHashType
+                    if (!key.equals("vnp_SecureHash") && !key.equals("vnp_SecureHashType")) {
+                        paramsMap.put(key, value);
+                    }
+                }
+            }
+        }
+        
+        // Sort theo key và build hash data (giữ nguyên giá trị đã encode từ URL)
+        List<String> sortedKeys = new ArrayList<>(paramsMap.keySet());
         Collections.sort(sortedKeys);
         StringBuilder hashData = new StringBuilder();
         for (String key : sortedKeys) {
-            String value = paramsForHash.get(key);
-            if (value != null && !value.isEmpty()) {
+            String value = paramsMap.get(key);
+            if (value != null) { // Không filter empty value, vì VNPay có thể có params với empty value
                 if (!hashData.isEmpty()) {
                     hashData.append("&");
                 }
@@ -197,9 +219,20 @@ public class VnPayServiceImpl implements VnPayService {
             }
         }
         
-        String calculatedHash = hmacSHA512(vnPayConfig.getHashSecret(), hashData.toString());
-        if (!calculatedHash.equals(vnp_SecureHash)) {
+        String hashDataString = hashData.toString();
+        
+        // Log để debug (có thể comment sau khi fix xong)
+        log.debug("Raw query string: {}", rawQueryString);
+        log.debug("Hash data for verification: {}", hashDataString);
+        log.debug("Received vnp_SecureHash: {}", vnp_SecureHash);
+        
+        String calculatedHash = hmacSHA512(vnPayConfig.getHashSecret(), hashDataString);
+        log.debug("Calculated hash: {}", calculatedHash);
+        
+        if (!calculatedHash.equalsIgnoreCase(vnp_SecureHash)) {
             log.error("❌ Invalid secure hash from VNPay for transactionReference: {}", transactionReference);
+            log.error("Expected: {}, Got: {}", calculatedHash, vnp_SecureHash);
+            log.error("Hash data: {}", hashDataString);
             throw new RuntimeException("Invalid secure hash from VNPay");
         }
         
