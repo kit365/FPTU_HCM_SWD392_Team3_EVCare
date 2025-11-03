@@ -12,6 +12,8 @@ public interface EmployeeProfileRepository extends JpaRepository<EmployeeProfile
     EmployeeProfileEntity findByEmployeeProfileIdAndIsDeletedTrue(UUID vehicleId);
     Page<EmployeeProfileEntity> findAllByIsDeletedFalse(Pageable pageable);
     Page<EmployeeProfileEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
+    
+    EmployeeProfileEntity findByUserUserIdAndIsDeletedFalse(UUID userId);
 
     boolean existsByEmployeeProfileIdAndIsDeletedFalse(UUID isDeleted);
 

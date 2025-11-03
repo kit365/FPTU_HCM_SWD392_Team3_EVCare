@@ -35,9 +35,6 @@ public class EmployeeProfileEntity extends BaseEntity {
     @Column(name = "performance_score")
     Float performanceScore;
 
-    @Column(name = "total_hours_worked")
-    Float totalHoursWorked;
-
     @Column(name = "hire_date")
     LocalDateTime hireDate;
 
@@ -46,6 +43,9 @@ public class EmployeeProfileEntity extends BaseEntity {
 
     @Column(name = "emergency_contact")
     String emergencyContact;
+
+    @Column(name = "position")
+    String position;
 
     @Column(name = "notes", length = 500)
     String notes;

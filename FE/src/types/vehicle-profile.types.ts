@@ -12,6 +12,7 @@ export interface VehicleProfileResponse {
   lastMaintenanceDate: string;
   lastMaintenanceKm: number;
   notes: string;
+  phoneNumber: string;
   search: string;
   isDeleted: boolean;
   createdAt: string;
@@ -30,6 +31,7 @@ export interface CreationVehicleProfileRequest {
   lastMaintenanceDate?: string;
   lastMaintenanceKm?: number;
   notes?: string;
+  phoneNumber?: string;
 }
 
 // Updation Vehicle Profile Request - dùng khi cập nhật hồ sơ xe
@@ -42,6 +44,7 @@ export interface UpdationVehicleProfileRequest {
   lastMaintenanceDate?: string;
   lastMaintenanceKm?: number;
   notes?: string;
+  phoneNumber?: string;
 }
 
 // Search params cho Vehicle Profile

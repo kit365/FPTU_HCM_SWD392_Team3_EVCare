@@ -83,7 +83,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/edit/:id", element: <ServiceTypeEdit /> },
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
-    { path: "appointment-manage", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><AppointmentManage/></RoleProtectedRoute> },
+    { path: "appointment-manage", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF, RoleEnum.TECHNICIAN]}><AppointmentManage/></RoleProtectedRoute> },
     { path: "appointment/view/:id", element: <AppointmentView/> },
     { path: "invoice/:appointmentId", element: <InvoiceView/> },
     { path: "payment/success", element: <PaymentSuccess/> },

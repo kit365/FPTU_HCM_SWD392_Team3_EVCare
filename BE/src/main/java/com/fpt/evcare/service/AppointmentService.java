@@ -15,8 +15,9 @@ import java.util.UUID;
 
 public interface AppointmentService {
     AppointmentResponse getAppointmentById(UUID id);
+    AppointmentResponse getAppointmentById(UUID id, UUID currentUserId);
     AppointmentEntity getAppointmentEntityById(UUID id);
-    PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForCustomer(String keyword, Pageable pageable);
+    PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForCustomer(String keyword, UUID currentUserId, Pageable pageable);
 
     PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForGuest(String keyword, Pageable pageable);
     List<String> getAllServiceMode();
@@ -31,4 +32,9 @@ public interface AppointmentService {
     boolean updateAppointmentForCustomer(UUID id, UpdationCustomerAppointmentRequest updationCustomerAppointmentRequest);
     boolean updateAppointmentForStaff(UUID id, UpdationAppointmentRequest updationAppointmentRequest);
     void updateAppointmentStatus(UUID id, String status);
+    void cancelAppointmentForCustomer(UUID id);
+    
+    // Guest appointment OTP methods
+    void sendOtpForGuestAppointment(UUID appointmentId, String email);
+    AppointmentResponse verifyOtpForGuestAppointment(UUID appointmentId, String email, String otp);
 }

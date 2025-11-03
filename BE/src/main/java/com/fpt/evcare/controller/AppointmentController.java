@@ -20,6 +20,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.UUID;
 public class AppointmentController {
 
     AppointmentService appointmentService;
+    com.fpt.evcare.service.RedisService<String> redisService;
 
     @GetMapping(AppointmentConstants.SERVICE_MODE)
     @Operation(summary = "Lấy danh sách Service Mode", description = "🔓 **Public** - Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
@@ -89,8 +92,30 @@ public class AppointmentController {
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
             @Nullable @RequestParam(name = "keyword") String keyword) {
 
+        // Validate pageSize to ensure it's at least 1
+        if (pageSize < 1) {
+            pageSize = 10; // Default to 10 if invalid
+        }
+        // Validate page to ensure it's not negative
+        if (page < 0) {
+            page = 0;
+        }
+
+        // Lấy userId từ SecurityContext nếu user đã authenticated
+        UUID currentUserId = null;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
+                String userIdStr = authentication.getName();
+                currentUserId = UUID.fromString(userIdStr);
+                log.info("👤 Current authenticated user ID: {}", currentUserId);
+            }
+        } catch (Exception e) {
+            log.warn("Could not parse userId from SecurityContext: {}", e.getMessage());
+        }
+
         Pageable pageable = PageRequest.of(page, pageSize);
-        PageResponse<AppointmentResponse> response = appointmentService.getAllAppointmentsByEmailOrPhoneForCustomer(keyword, pageable);
+        PageResponse<AppointmentResponse> response = appointmentService.getAllAppointmentsByEmailOrPhoneForCustomer(keyword, currentUserId, pageable);
 
         log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_SEARCH_APPOINTMENT_FOR_CUSTOMER);
         return ResponseEntity
@@ -109,6 +134,15 @@ public class AppointmentController {
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
             @Nullable @RequestParam(name = "keyword") String keyword) {
 
+        // Validate pageSize to ensure it's at least 1
+        if (pageSize < 1) {
+            pageSize = 10; // Default to 10 if invalid
+        }
+        // Validate page to ensure it's not negative
+        if (page < 0) {
+            page = 0;
+        }
+
         Pageable pageable = PageRequest.of(page, pageSize);
         PageResponse<AppointmentResponse> response = appointmentService.getAllAppointmentsByEmailOrPhoneForGuest(keyword, pageable);
 
@@ -123,10 +157,23 @@ public class AppointmentController {
     }
 
     @GetMapping(AppointmentConstants.APPOINTMENT)
-    @Operation(summary = "Lấy thông tin cụ thể 1 cuộc hẹn ", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Từ id của cuộc hẹn, show toàn bộ thông tin của cuộc hẹn đó")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
+    @Operation(summary = "Lấy thông tin cụ thể 1 cuộc hẹn ", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN, CUSTOMER - Từ id của cuộc hẹn, show toàn bộ thông tin của cuộc hẹn đó. CUSTOMER chỉ xem được cuộc hẹn của mình.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<AppointmentResponse>> getAppointmentById(@PathVariable UUID id) {
-        AppointmentResponse response = appointmentService.getAppointmentById(id);
+        // Kiểm tra xem user có phải customer không, nếu có thì chỉ cho xem cuộc hẹn của mình
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UUID currentUserId = null;
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
+            try {
+                String userIdStr = authentication.getName();
+                currentUserId = UUID.fromString(userIdStr);
+                log.info("👤 Current authenticated user ID: {}", currentUserId);
+            } catch (Exception e) {
+                log.warn("Could not parse userId from SecurityContext: {}", e.getMessage());
+            }
+        }
+        
+        AppointmentResponse response = appointmentService.getAppointmentById(id, currentUserId);
 
         log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT);
         return ResponseEntity
@@ -219,6 +266,8 @@ public class AppointmentController {
     @PostMapping(AppointmentConstants.APPOINTMENT_CREATION)
     @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔓 **Public** - Tạo cuộc hẹn (không cần đăng nhập)")
     public ResponseEntity<ApiResponse<String>> createAppointment(@Valid @RequestBody CreationAppointmentRequest creationAppointmentRequest) {
+        log.info("🎬 Controller received request with customerId: {}", creationAppointmentRequest.getCustomerId());
+        log.info("📧 Customer email from request: {}", creationAppointmentRequest.getCustomerEmail());
         boolean response = appointmentService.addAppointment(creationAppointmentRequest);
 
         log.info(AppointmentConstants.LOG_SUCCESS_CREATING_APPOINTMENT);
@@ -278,5 +327,131 @@ public class AppointmentController {
                         .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT_STATUS)
                         .build()
                 );
+    }
+
+    // Hủy appointment cho customer (chỉ cho phép hủy khi status là PENDING)
+    @PatchMapping(AppointmentConstants.APPOINTMENT_CANCEL_CUSTOMER)
+    @Operation(summary = "Hủy cuộc hẹn (dành cho khách hàng)", description = "🔐 **Roles:** Authenticated (All roles) - Hủy cuộc hẹn, chỉ cho phép khi appointment đang ở trạng thái PENDING")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> cancelAppointmentForCustomer(@PathVariable(name = "id") UUID id) {
+        appointmentService.cancelAppointmentForCustomer(id);
+
+        log.info(AppointmentConstants.LOG_SUCCESS_CANCELLING_APPOINTMENT_CUSTOMER);
+        return ResponseEntity
+                .ok(ApiResponse.<String>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_CANCELLING_APPOINTMENT_CUSTOMER)
+                        .build()
+                );
+    }
+
+    // Gửi OTP cho guest appointment
+    @PostMapping(AppointmentConstants.APPOINTMENT_GUEST_SEND_OTP)
+    @Operation(summary = "Gửi mã OTP cho khách vãng lai để xác thực", description = "🔓 **Public** - Gửi mã OTP đến email để xác thực xem chi tiết appointment")
+    public ResponseEntity<ApiResponse<String>> sendOtpForGuestAppointment(
+            @PathVariable(name = "id") UUID appointmentId,
+            @RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.trim().isEmpty()) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Email không được để trống");
+        }
+        appointmentService.sendOtpForGuestAppointment(appointmentId, email.trim());
+        
+        log.info(AppointmentConstants.LOG_SUCCESS_SEND_OTP_FOR_GUEST, appointmentId);
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_SEND_OTP_FOR_GUEST)
+                        .build()
+        );
+    }
+
+    // Verify OTP và lấy appointment details cho guest
+    @PostMapping(AppointmentConstants.APPOINTMENT_GUEST_VERIFY_OTP)
+    @Operation(summary = "Xác thực OTP và lấy chi tiết appointment cho khách vãng lai", description = "🔓 **Public** - Xác thực OTP và trả về chi tiết appointment")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> verifyOtpForGuestAppointment(
+            @PathVariable(name = "id") UUID appointmentId,
+            @RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+        if (email == null || email.trim().isEmpty()) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Email không được để trống");
+        }
+        if (otp == null || otp.trim().isEmpty()) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Mã OTP không được để trống");
+        }
+        
+        AppointmentResponse response = appointmentService.verifyOtpForGuestAppointment(appointmentId, email.trim(), otp.trim());
+        
+        log.info(AppointmentConstants.LOG_SUCCESS_VERIFY_OTP_FOR_GUEST, appointmentId);
+        return ResponseEntity.ok(
+                ApiResponse.<AppointmentResponse>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_VERIFY_OTP_FOR_GUEST)
+                        .data(response)
+                        .build()
+        );
+    }
+
+    // Cập nhật appointment cho guest (với OTP verification)
+    @PatchMapping(AppointmentConstants.APPOINTMENT_GUEST_UPDATE)
+    @Operation(summary = "Cập nhật appointment cho khách vãng lai (với OTP verification)", description = "🔓 **Public** - Cập nhật appointment sau khi xác thực OTP, chỉ cho phép khi status là PENDING")
+    public ResponseEntity<ApiResponse<String>> updateGuestAppointment(
+            @PathVariable(name = "id") UUID appointmentId,
+            @RequestBody java.util.Map<String, Object> request) {
+        String email = (String) request.get("email");
+        String otp = (String) request.get("otp");
+        UpdationCustomerAppointmentRequest updateRequest = null;
+        
+        try {
+            // Convert request body to UpdationCustomerAppointmentRequest
+            // Remove email and otp from request map first
+            java.util.Map<String, Object> requestData = new java.util.HashMap<>(request);
+            requestData.remove("email");
+            requestData.remove("otp");
+            
+            // Convert to DTO using ObjectMapper or manually
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            updateRequest = mapper.convertValue(requestData, UpdationCustomerAppointmentRequest.class);
+        } catch (Exception e) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Dữ liệu cập nhật không hợp lệ: " + e.getMessage());
+        }
+        
+        if (email == null || email.trim().isEmpty()) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Email không được để trống");
+        }
+        if (otp == null || otp.trim().isEmpty()) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Mã OTP không được để trống");
+        }
+        
+        // Verify OTP trước khi update (không xóa OTP ngay)
+        appointmentService.verifyOtpForGuestAppointment(appointmentId, email.trim(), otp.trim());
+        
+        // Kiểm tra appointment status phải là PENDING trước khi cho phép update
+        AppointmentResponse appointmentResponse = appointmentService.getAppointmentById(appointmentId);
+        if (appointmentResponse.getStatus() != com.fpt.evcare.enums.AppointmentStatusEnum.PENDING) {
+            throw new com.fpt.evcare.exception.EntityValidationException("Chỉ có thể chỉnh sửa cuộc hẹn khi đang ở trạng thái PENDING");
+        }
+        
+        // Verify OTP lại trước khi update (để đảm bảo OTP vẫn còn hiệu lực và chưa bị xóa)
+        String otpKey = "guest_appointment_otp:" + appointmentId + ":" + email.trim().toLowerCase();
+        String storedOtp = redisService.getValue(otpKey);
+        if (storedOtp == null || !storedOtp.equals(otp.trim())) {
+            throw new com.fpt.evcare.exception.EntityValidationException(AppointmentConstants.MESSAGE_ERR_OTP_INVALID);
+        }
+        
+        // Sau khi verify OTP thành công và kiểm tra status, sử dụng hàm updateAppointmentForCustomer
+        boolean response = appointmentService.updateAppointmentForCustomer(appointmentId, updateRequest);
+        
+        // Xóa OTP sau khi update thành công
+        redisService.delete(otpKey);
+        
+        log.info(AppointmentConstants.LOG_SUCCESS_UPDATING_APPOINTMENT_CUSTOMER, appointmentId);
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .success(response)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT_CUSTOMER)
+                        .build()
+        );
     }
 }

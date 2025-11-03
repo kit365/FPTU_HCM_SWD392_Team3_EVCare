@@ -188,4 +188,18 @@ public class UserController {
                         .build()
                 );
     }
+
+    @DeleteMapping("/profile/{id}")
+    @Operation(summary = "Xóa tài khoản cá nhân", description = "🔐 **Roles:** Authenticated (All roles) - Customer chỉ có thể xóa tài khoản của mình khi không có appointment PENDING hoặc invoice chưa thanh toán")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> deleteMyAccount(@PathVariable UUID id) {
+        boolean result = userService.deleteUser(id);
+
+        return ResponseEntity
+                .ok(ApiResponse.<String>builder()
+                        .success(result)
+                        .message("Xóa tài khoản thành công")
+                        .build()
+                );
+    }
 }

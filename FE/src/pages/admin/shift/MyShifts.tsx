@@ -86,6 +86,24 @@ const MyShifts = () => {
     load();
   }, [load]);
 
+  // Auto-refresh shifts mỗi 5 giây để cập nhật status khi payment completed
+  useEffect(() => {
+    if (!user?.userId) return;
+
+    const intervalId = setInterval(() => {
+      // Chỉ refresh nếu đang không loading và có data
+      if (!loading && list.length > 0) {
+        searchByTechnician(user.userId, {
+          page: currentPage - 1,
+          pageSize: viewMode === "calendar" ? 100 : pageSize,
+          keyword
+        });
+      }
+    }, 5000); // Refresh mỗi 5 giây
+
+    return () => clearInterval(intervalId);
+  }, [user?.userId, loading, list.length, currentPage, pageSize, keyword, viewMode, searchByTechnician]);
+
   // Reload khi chuyển view mode
   useEffect(() => {
     if (user?.userId) {

@@ -46,6 +46,9 @@ public class UpdationUserRequest {
     String avatarUrl;
 
     @Nullable
+    String backgroundUrl;
+
+    @Nullable
     LocalDateTime lastLogin;
 
     @Nullable

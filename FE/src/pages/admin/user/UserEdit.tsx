@@ -14,6 +14,7 @@ export const UserEdit = () => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<UserResponse | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [backgroundUrl, setBackgroundUrl] = useState<string>('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -40,6 +41,7 @@ export const UserEdit = () => {
       const data = await userService.getById(id);
       setUser(data);
       setAvatarUrl(data.avatarUrl || '');
+      setBackgroundUrl(data.backgroundUrl || '');
       setFormData({
         fullName: data.fullName || '',
         email: data.email || '',
@@ -100,6 +102,7 @@ export const UserEdit = () => {
       await userService.update(id, {
         ...formData,
         avatarUrl: avatarUrl || undefined,
+        backgroundUrl: backgroundUrl || undefined,
       });
       notify.success('Cập nhật thông tin thành công!');
       // Navigate back to staff management page
@@ -271,6 +274,15 @@ export const UserEdit = () => {
                 value={avatarUrl}
                 onChange={(url) => setAvatarUrl(url)}
                 label="Ảnh đại diện"
+              />
+            </div>
+
+            {/* Background Image Upload */}
+            <div className="mt-6">
+              <ImageUpload
+                value={backgroundUrl}
+                onChange={(url) => setBackgroundUrl(url)}
+                label="Ảnh nền"
               />
             </div>
 

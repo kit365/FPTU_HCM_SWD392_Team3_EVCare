@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { adminMenuItems } from "../../../constants/adminMenu.constant";
 import { useAuthContext } from "../../../context/useAuthContext";
+import logoImage from "../../../assets/logo.jpg";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -176,7 +177,39 @@ export const SidebarAdmin = ({ isOpen }: SidebarProps) => {
                 transition-[width,margin] duration-300
                 ${expanded ? "w-sidebar" : "w-[70px]"}`}
         >
-            <div className="h-topbar p-[4px] flex items-center justify-center">Logo</div>
+            <div className="h-topbar p-[4px] flex items-center justify-center">
+                {expanded ? (
+                    <img 
+                        src={logoImage} 
+                        alt="EVCare Logo" 
+                        className="h-full w-auto max-w-full object-contain"
+                        onError={(e) => {
+                            // Fallback if image not found
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.fallback-logo')) {
+                                parent.innerHTML = '<span class="fallback-logo text-[2rem] font-bold text-gray-700">EVCare</span>';
+                            }
+                        }}
+                    />
+                ) : (
+                    <img 
+                        src={logoImage} 
+                        alt="EVCare Logo" 
+                        className="h-12 w-12 object-contain rounded-lg"
+                        onError={(e) => {
+                            // Fallback if image not found
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector('.fallback-icon')) {
+                                parent.innerHTML = '<span class="fallback-icon text-[1.5rem] font-bold text-gray-700">EV</span>';
+                            }
+                        }}
+                    />
+                )}
+            </div>
             <nav className="flex-1 px-[16px] pb-[16px]">
                 <ul>
                     {adminMenuItems.map((item) => renderMenuItem(item))}

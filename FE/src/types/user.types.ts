@@ -8,6 +8,7 @@ export interface UserResponse {
   fullName?: string;
   numberPhone?: string;
   avatarUrl?: string;
+  backgroundUrl?: string;
   provider?: string;
   technicianSkills?: string;
   isActive?: boolean;
@@ -29,6 +30,7 @@ export interface CreationUserRequest {
   address?: string;
   fullName?: string;
   roleIds?: string[];
+  isActive?: boolean;
 }
 
 // Updation User Request
@@ -40,6 +42,7 @@ export interface UpdationUserRequest {
   address?: string;
   fullName?: string;
   avatarUrl?: string;
+  backgroundUrl?: string;
   technicianSkills?: string;
   isActive?: boolean;
   roleIds?: string[];

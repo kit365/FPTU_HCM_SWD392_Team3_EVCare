@@ -129,8 +129,14 @@ public class WarrantyPackageServiceImpl implements WarrantyPackageService {
             try {
                 allEntities = warrantyPackageRepository.findAll();
             } catch (Throwable t) { // Catch cả Error, không chỉ Exception
-                // Log debug thay vì error vì đây là trường hợp hợp lệ (có thể chưa có data)
-                log.debug("No warranty packages found or error calling findAll: {}", t.getMessage());
+                // Log chi tiết để debug
+                log.error("ERROR calling findAll on WarrantyPackageRepository: {}", t.getClass().getName());
+                log.error("ERROR message: {}", t.getMessage());
+                if (t.getCause() != null) {
+                    log.error("ERROR cause: {}", t.getCause().getMessage());
+                    log.error("ERROR cause class: {}", t.getCause().getClass().getName());
+                }
+                log.error("ERROR stack trace: ", t);
                 return emptyResponse;
             }
             
@@ -279,8 +285,14 @@ public class WarrantyPackageServiceImpl implements WarrantyPackageService {
                 return emptyResponse;
             }
         } catch (Throwable t) { // Catch cả Error, không chỉ Exception
-            // Log debug thay vì error vì đây là trường hợp được xử lý gracefully
-            log.debug("Unexpected error in searchWarrantyPackages (returning empty list): {}", t.getMessage());
+            // Log chi tiết để debug lỗi 500
+            log.error("ERROR in searchWarrantyPackages (unexpected): {}", t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+                log.error("ERROR cause class: {}", t.getCause().getClass().getName());
+            }
+            log.error("ERROR stack trace: ", t);
             // Luôn trả về danh sách rỗng, KHÔNG BAO GIỜ throw
             return emptyResponse;
         }
@@ -321,7 +333,12 @@ public class WarrantyPackageServiceImpl implements WarrantyPackageService {
             // Re-throw validation exceptions để controller có thể xử lý
             throw e;
         } catch (Throwable t) {
-            log.debug("Error creating warranty package: {}", t.getMessage());
+            log.error("ERROR creating warranty package: {}", t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+            }
+            log.error("ERROR stack trace: ", t);
             throw new EntityValidationException("Không thể tạo gói bảo hành: " + (t.getMessage() != null ? t.getMessage() : "Lỗi không xác định"));
         }
     }
@@ -366,7 +383,12 @@ public class WarrantyPackageServiceImpl implements WarrantyPackageService {
             // Re-throw validation exceptions để controller có thể xử lý
             throw e;
         } catch (Throwable t) {
-            log.debug("Error updating warranty package {}: {}", id, t.getMessage());
+            log.error("ERROR updating warranty package {}: {}", id, t.getClass().getName());
+            log.error("ERROR message: {}", t.getMessage());
+            if (t.getCause() != null) {
+                log.error("ERROR cause: {}", t.getCause().getMessage());
+            }
+            log.error("ERROR stack trace: ", t);
             throw new EntityValidationException("Không thể cập nhật gói bảo hành: " + (t.getMessage() != null ? t.getMessage() : "Lỗi không xác định"));
         }
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET } from "../../../constants/apiConstants";
 
 interface ImageUploadProps {
   value?: string;
@@ -7,6 +8,8 @@ interface ImageUploadProps {
   label?: string;
   error?: string;
   required?: boolean;
+  publicId?: string; // For overwrite/delete functionality
+  onPublicIdChange?: (publicId: string) => void; // To track public_id for management
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -16,9 +19,31 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   label = "Hình ảnh",
   error,
   required = false,
+  publicId,
+  onPublicIdChange,
 }) => {
   const [previewImage, setPreviewImage] = useState<string | null>(value || null);
   const [uploading, setUploading] = useState(false);
+
+  // Helper function to extract public_id from Cloudinary URL
+  const extractPublicIdFromUrl = (url: string): string | null => {
+    if (!url || !url.includes('cloudinary.com')) return null;
+    try {
+      // Cloudinary URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
+      const parts = url.split('/upload/');
+      if (parts.length > 1) {
+        const afterUpload = parts[1];
+        // Remove version prefix if exists
+        const withoutVersion = afterUpload.split('/').slice(1).join('/');
+        // Remove file extension
+        const publicId = withoutVersion.split('.')[0];
+        return publicId;
+      }
+    } catch (error) {
+      console.error('Error extracting public_id:', error);
+    }
+    return null;
+  };
 
   // ✅ Notify parent when uploading state changes
   useEffect(() => {
@@ -32,8 +57,20 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     if (value) {
       console.log("📷 Loading existing image:", value);
       setPreviewImage(value);
+      // Extract and track public_id if URL is from Cloudinary
+      if (onPublicIdChange && value.includes('cloudinary.com')) {
+        const extractedPublicId = extractPublicIdFromUrl(value);
+        if (extractedPublicId) {
+          onPublicIdChange(extractedPublicId);
+        }
+      }
+    } else {
+      setPreviewImage(null);
+      if (onPublicIdChange) {
+        onPublicIdChange('');
+      }
     }
-  }, [value]);
+  }, [value, onPublicIdChange]);
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -60,10 +97,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       setUploading(true);
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", "maika_xinh_dep");
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
       console.log("🔄 Uploading to Cloudinary...");
-      const res = await fetch("https://api.cloudinary.com/v1_1/dxyuuul0q/image/upload", {
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: "POST",
         body: formData,
       });
@@ -83,6 +120,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       // Update parent component with Cloudinary URL
       onChange(imageUrl);
       setPreviewImage(imageUrl);
+      
+      // Track public_id for potential delete operations
+      if (onPublicIdChange && uploaded.public_id) {
+        console.log("📝 Tracking public_id:", uploaded.public_id);
+        onPublicIdChange(uploaded.public_id);
+      }
     } catch (error: any) {
       console.error("❌ Error uploading image:", error);
       alert(`Upload hình ảnh thất bại: ${error.message || 'Vui lòng thử lại.'}`);
@@ -152,7 +195,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               alt="Preview"
               className="w-[220px] h-[160px] object-cover rounded-lg shadow-sm border"
             />
-            <div className="mt-3">
+            <div className="mt-3 flex items-center gap-4">
               {/* Change image button */}
               <label className="text-[13px] text-blue-500 hover:underline cursor-pointer">
                 Thay đổi hình ảnh
@@ -164,6 +207,23 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                   className="hidden"
                 />
               </label>
+              {/* Delete button */}
+              {value && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange('');
+                    setPreviewImage(null);
+                    if (onPublicIdChange) {
+                      onPublicIdChange('');
+                    }
+                  }}
+                  className="text-[13px] text-red-500 hover:underline cursor-pointer"
+                >
+                  Xóa hình ảnh
+                </button>
+              )}
             </div>
           </div>
         )}

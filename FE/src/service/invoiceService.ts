@@ -12,7 +12,10 @@ export const invoiceService = {
    */
   getByAppointmentId: async (appointmentId: string): Promise<InvoiceResponse> => {
     const response = await apiClient.get<ApiResponse<InvoiceResponse>>(
-      `${BASE_URL}/appointment/${appointmentId}`
+      `${BASE_URL}/appointment/${appointmentId}`,
+      {
+        timeout: 20000, // 20 giây cho invoice API
+      }
     );
     return response.data.data;
   },
@@ -44,6 +47,7 @@ export const invoiceService = {
       url,
       {
         params: { appointmentId, source },
+        timeout: 30000, // 30 giây cho VNPay API
       }
     );
     return response.data.data;

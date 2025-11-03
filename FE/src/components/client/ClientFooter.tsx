@@ -8,7 +8,7 @@ export const ClientFooter: React.FC = () => {
       <div className="pt-[80px] pb-[20px] flex flex-col items-center">
         <img src="https://i.imgur.com/XAy1f1e.jpeg" alt="EVCare" className="w-[80px] h-[80px] object-cover mb-[40px]" />
         <p className="w-[800px] text-[#FFFFFFD9] text-center text-[1.4rem]">Chúng tôi mang đến dịch vụ bảo dưỡng xe điện toàn diện, giúp chiếc xe của bạn luôn hoạt động êm ái, tiết kiệm và bền bỉ theo thời gian.</p>
-        <p className="text-center text-white mt-[120px]">© Maika - 2015</p>
+        <p className="text-center text-white mt-[120px]">© Group 3 - Dev Mạnh Nhất Thế Giới - 2025</p>
       </div>
     </footer>
   )

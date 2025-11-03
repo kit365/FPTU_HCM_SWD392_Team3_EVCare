@@ -60,6 +60,7 @@ export const useInvoice = () => {
     getByAppointmentId,
     payCash,
     createVnPayPayment,
+    setInvoice, // Expose setInvoice để có thể update invoice mà không trigger loading
   };
 };
 

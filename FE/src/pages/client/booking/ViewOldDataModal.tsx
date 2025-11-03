@@ -62,7 +62,7 @@ const ViewOldDataModal: React.FC<ViewOldDataModalProps> = ({
           vehicleName: vehicle.vehicleType?.vehicleTypeName || '',
           licensePlate: vehicle.plateNumber || '',
           customerName: vehicle.user?.fullName || vehicle.user?.username || '',
-          phone: vehicle.user?.numberPhone || '',
+          phone: vehicle.phoneNumber || vehicle.user?.numberPhone || '',
           email: vehicle.user?.email || '',
           mileage: vehicle.currentKm ? vehicle.currentKm.toString() : '0',
           lastServiceDate: vehicle.lastMaintenanceDate || vehicle.createdAt || new Date().toISOString(),

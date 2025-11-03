@@ -193,7 +193,7 @@ export interface UserAppointment {
   customerEmail: string;
   assignee: UserResponse;
   serviceMode: "STATIONARY" | "MOBILE";
-  status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "PENDING_PAYMENT" | "COMPLETED" | "CANCELLED";
   vehicleTypeResponse: VehicleType;
   vehicleNumberPlate: string;
   vehicleKmDistances: string;

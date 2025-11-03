@@ -14,6 +14,8 @@ import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.exception.UserValidationException;
 import com.fpt.evcare.mapper.UserMapper;
+import com.fpt.evcare.repository.AppointmentRepository;
+import com.fpt.evcare.repository.InvoiceRepository;
 import com.fpt.evcare.repository.RoleRepository;
 import com.fpt.evcare.repository.UserRepository;
 import com.fpt.evcare.service.UserService;
@@ -43,6 +45,8 @@ public class UserServiceImpl implements UserService {
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
     UserMapper  userMapper;
+    AppointmentRepository appointmentRepository;
+    InvoiceRepository invoiceRepository;
 
     @Override
     public UserResponse getUserById(UUID id) {
@@ -265,6 +269,24 @@ public class UserServiceImpl implements UserService {
             log.warn(UserConstants.LOG_ERR_USER_NOT_FOUND, "User id: " + id);
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
+
+        // Check if user is a customer with pending appointments or unpaid invoices
+        if(user.getRole() != null && user.getRole().getRoleName() == RoleEnum.CUSTOMER) {
+            // Check pending appointments
+            Long pendingAppointmentsCount = appointmentRepository.countPendingAppointmentsByCustomerId(id);
+            if(pendingAppointmentsCount != null && pendingAppointmentsCount > 0) {
+                log.warn("Cannot delete customer with pending appointments. Customer: {}", user.getUsername());
+                throw new UserValidationException("Không thể xóa tài khoản vì bạn vẫn còn " + pendingAppointmentsCount + " cuộc hẹn đang chờ xử lý. Vui lòng hoàn tất hoặc hủy các cuộc hẹn trước khi xóa tài khoản.");
+            }
+
+            // Check unpaid invoices
+            Long unpaidInvoicesCount = invoiceRepository.countUnpaidInvoicesByCustomerId(id);
+            if(unpaidInvoicesCount != null && unpaidInvoicesCount > 0) {
+                log.warn("Cannot delete customer with unpaid invoices. Customer: {}", user.getUsername());
+                throw new UserValidationException("Không thể xóa tài khoản vì bạn vẫn còn " + unpaidInvoicesCount + " hóa đơn chưa thanh toán. Vui lòng thanh toán các hóa đơn trước khi xóa tài khoản.");
+            }
+        }
+
         user.setIsDeleted(true);
 
         log.info(UserConstants.LOG_SUCCESS_DELETING_USER, "Username: " + user.getUsername());
@@ -390,8 +412,9 @@ public class UserServiceImpl implements UserService {
         if (updateProfileRequest.getAvatarUrl() != null) {
             user.setAvatarUrl(updateProfileRequest.getAvatarUrl());
         }
-
-
+        if (updateProfileRequest.getBackgroundUrl() != null) {
+            user.setBackgroundUrl(updateProfileRequest.getBackgroundUrl());
+        }
 
         // Save and return
         UserEntity updatedUser = userRepository.save(user);

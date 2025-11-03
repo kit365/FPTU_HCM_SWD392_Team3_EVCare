@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Pagination, Stack } from "@mui/material";
+import { Avatar } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { CardHeaderAdmin } from "../../../components/admin/ui/CardHeader";
 import { FormSearch } from "../../../components/admin/ui/FormSearch";
 import { FormEmpty } from "../../../components/admin/ui/FormEmpty";
@@ -20,13 +22,14 @@ interface TableColumn {
 }
 
 const columns: TableColumn[] = [
-  { title: "STT", width: 5 },
-  { title: "Họ và tên", width: 20 },
-  { title: "Email", width: 25 },
-  { title: "Số điện thoại", width: 15 },
-  { title: "Nhà cung cấp", width: 10 },
-  { title: "Trạng thái", width: 10 },
-  { title: "Chi tiết", width: 15 },
+  { title: "STT", width: 4 },
+  { title: "Ảnh đại diện", width: 8 },
+  { title: "Họ và tên", width: 18 },
+  { title: "Email", width: 22 },
+  { title: "Số điện thoại", width: 13 },
+  { title: "Nhà cung cấp", width: 9 },
+  { title: "Trạng thái", width: 9 },
+  { title: "Chi tiết", width: 17 },
 ];
 
 export const AdminCustomerManagement = () => {
@@ -181,6 +184,16 @@ export const AdminCustomerManagement = () => {
                       >
                         <td className="p-[1.2rem]">
                           {(currentPage - 1) * pageSize + index + 1}
+                        </td>
+                        <td className="p-[1.2rem]">
+                          <div className="flex justify-center">
+                            <Avatar 
+                              src={customer.avatarUrl || undefined} 
+                              icon={<UserOutlined className="text-lg" />} 
+                              size={40}
+                              className="bg-gradient-to-br from-blue-600 to-cyan-600"
+                            />
+                          </div>
                         </td>
                         <td className="p-[1.2rem]">
                           {customer.fullName || (

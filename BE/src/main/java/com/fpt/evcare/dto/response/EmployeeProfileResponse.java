@@ -1,6 +1,7 @@
 package com.fpt.evcare.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fpt.evcare.dto.response.CertificationResponse;
 import com.fpt.evcare.enums.SkillLevelEnum;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -9,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -24,17 +26,17 @@ public class EmployeeProfileResponse implements Serializable {
 
     SkillLevelEnum skillLevel;
 
-    String certifications;
+    List<CertificationResponse> certifications;
 
     Float performanceScore;
-
-    Float totalHoursWorked;
 
     LocalDateTime hireDate;
 
     Float salaryBase;
 
     String emergencyContact;
+
+    String position;
 
     String notes;
 
