@@ -138,12 +138,16 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             log.info(MessageConstants.LOG_SUCCESS_ASSIGN, request.getCustomerId(), request.getStaffId());
         }
         
+        // Force initialization of lazy-loaded relationships
+        initializeAssignmentRelations(savedAssignment);
+        
         MessageAssignmentResponse response = assignmentMapper.toResponse(savedAssignment);
         enrichAssignmentResponse(response);
         return response;
     }
     
     @Override
+    @Transactional(readOnly = true)
     public MessageAssignmentResponse getAssignmentByCustomerId(UUID customerId) {
         Optional<MessageAssignmentEntity> assignment = 
             assignmentRepository.findActiveByCustomerId(customerId);
@@ -153,16 +157,23 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_CUSTOMER_NOT_ASSIGNED);
         }
         
+        // Force initialization of lazy-loaded relationships
+        initializeAssignmentRelations(assignment.get());
+        
         MessageAssignmentResponse response = assignmentMapper.toResponse(assignment.get());
         enrichAssignmentResponse(response);
         return response;
     }
     
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MessageAssignmentResponse> getAssignmentsByStaffId(UUID staffId, Pageable pageable) {
         Page<MessageAssignmentEntity> assignmentPage = 
             assignmentRepository.findAllByStaffId(staffId, pageable);
         
+        // Force initialization of lazy-loaded relationships before mapping
+        assignmentPage.getContent().forEach(this::initializeAssignmentRelations);
+        
         List<MessageAssignmentResponse> responses = assignmentPage.getContent().stream()
                 .map(entity -> {
                     MessageAssignmentResponse response = assignmentMapper.toResponse(entity);
@@ -181,9 +192,13 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MessageAssignmentResponse> getAllAssignments(Pageable pageable) {
         Page<MessageAssignmentEntity> assignmentPage = assignmentRepository.findAllActive(pageable);
         
+        // Force initialization of lazy-loaded relationships before mapping
+        assignmentPage.getContent().forEach(this::initializeAssignmentRelations);
+        
         List<MessageAssignmentResponse> responses = assignmentPage.getContent().stream()
                 .map(entity -> {
                     MessageAssignmentResponse response = assignmentMapper.toResponse(entity);
@@ -202,8 +217,16 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<UserResponse> getUnassignedCustomers(Pageable pageable) {
         Page<UserEntity> customerPage = assignmentRepository.findUnassignedCustomers(pageable);
+        
+        // Force initialization of lazy-loaded relationships (role) before mapping
+        customerPage.getContent().forEach(user -> {
+            if (user.getRole() != null) {
+                user.getRole().getRoleName(); // Access to trigger loading
+            }
+        });
         
         List<UserResponse> responses = customerPage.getContent().stream()
                 .map(userMapper::toResponse)
@@ -402,6 +425,9 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             log.debug("⏭️ Skipping welcome message (same staff or not needed)");
         }
         
+        // Force initialization of lazy-loaded relationships
+        initializeAssignmentRelations(savedAssignment);
+        
         MessageAssignmentResponse response = assignmentMapper.toResponse(savedAssignment);
         enrichAssignmentResponse(response);
         return response;
@@ -469,6 +495,40 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
         }
         
         return selectedStaff;
+    }
+    
+    /**
+     * Helper method to force initialization of lazy-loaded assignment relationships
+     * This must be called within an active transaction
+     */
+    private void initializeAssignmentRelations(MessageAssignmentEntity assignment) {
+        if (assignment == null) {
+            return;
+        }
+        
+        // Initialize customer (UserEntity)
+        if (assignment.getCustomer() != null) {
+            assignment.getCustomer().getUserId(); // Access to trigger loading
+            if (assignment.getCustomer().getRole() != null) {
+                assignment.getCustomer().getRole().getRoleName(); // Load role if needed
+            }
+        }
+        
+        // Initialize assignedStaff (UserEntity)
+        if (assignment.getAssignedStaff() != null) {
+            assignment.getAssignedStaff().getUserId(); // Access to trigger loading
+            if (assignment.getAssignedStaff().getRole() != null) {
+                assignment.getAssignedStaff().getRole().getRoleName(); // Load role if needed
+            }
+        }
+        
+        // Initialize assignedBy (UserEntity) - may be null
+        if (assignment.getAssignedBy() != null) {
+            assignment.getAssignedBy().getUserId(); // Access to trigger loading
+            if (assignment.getAssignedBy().getRole() != null) {
+                assignment.getAssignedBy().getRole().getRoleName(); // Load role if needed
+            }
+        }
     }
     
     /**
