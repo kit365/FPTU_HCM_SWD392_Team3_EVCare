@@ -89,7 +89,7 @@ public class VnPayServiceImpl implements VnPayService {
             String transactionReference = getRandomNumber(8);
             String clientIpAddress = getIpAddress(ipAddr);
             String tmnCode = vnPayConfig.getTmnCode();
-            String returnUrl = vnPayConfig.getReturnUrl();
+            String returnUrl = vnPayConfig.getReturnUrl(ipAddr);
 
             Map<String, String> params = new HashMap<>();
             params.put("vnp_Version", version);
