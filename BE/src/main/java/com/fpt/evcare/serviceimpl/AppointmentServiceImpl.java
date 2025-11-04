@@ -95,12 +95,16 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AppointmentResponse getAppointmentById(UUID id, UUID currentUserId) {
         AppointmentEntity appointmentEntity = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(id);
         if(appointmentEntity == null) {
             log.warn(AppointmentConstants.LOG_ERR_APPOINTMENT_NOT_FOUND);
             throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_NOT_FOUND);
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        initializeAppointmentRelations(appointmentEntity);
 
         // Nếu user là customer (có currentUserId), kiểm tra xem appointment có phải của họ không
         if(currentUserId != null && appointmentEntity.getCustomer() != null) {
@@ -169,6 +173,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<AppointmentResponse> getAppointmentsByUserId(UUID userId, String keyword, Pageable pageable){
         UserEntity userEntity =  userRepository.findByUserIdAndIsDeletedFalse(userId);
         if(userEntity == null) {
@@ -190,6 +195,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                     .last(true)
                     .build();
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
 
         List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
             AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
@@ -248,6 +256,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     // Hàm dành cho admin
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<AppointmentResponse> searchAppointment(String keyword, Pageable pageable) {
         Page<AppointmentEntity> appointmentEntityPage;
 
@@ -269,6 +278,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                     .last(true)
                     .build();
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
 
         List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
             AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
@@ -327,12 +339,16 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<AppointmentResponse> searchAppointmentWithFilters(String keyword, String status, String serviceMode,
                                                                            String fromDate, String toDate, Pageable pageable) {
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT_LIST);
 
         Page<AppointmentEntity> appointmentEntityPage = appointmentRepository.findAppointmentsWithFilters(
                 keyword, status, serviceMode, fromDate, toDate, pageable);
+
+        // Force initialization of lazy-loaded relationships within transaction
+        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
 
         List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
             AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
@@ -391,6 +407,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     // Hàm để tra cứu appointment cho khách hàng đã đăng nhập theo email và phone
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForCustomer(String keyword, UUID currentUserId, Pageable pageable){
         Page<AppointmentEntity> appointmentEntityPage;
         
@@ -418,6 +435,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                     .totalPages(0)
                     .build();
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
 
         List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
                     AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
@@ -473,6 +493,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     // Hàm để tra cứu appointment cho khách hàng chưa đăng nhập theo email và phone
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForGuest(String keyword, Pageable pageable){
         Page<AppointmentEntity> appointmentEntityPage;
         
@@ -494,6 +515,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                     .totalPages(0)
                     .build();
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
 
         List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
                     AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
@@ -1832,6 +1856,34 @@ public class AppointmentServiceImpl implements AppointmentService {
         return response;
     }
 
+
+    /**
+     * Helper method to force initialization of lazy-loaded appointment relationships
+     * This must be called within an active transaction
+     */
+    private void initializeAppointmentRelations(AppointmentEntity appointment) {
+        if (appointment == null) {
+            return;
+        }
+        
+        // Initialize all lazy-loaded relationships
+        if (appointment.getCustomer() != null) {
+            appointment.getCustomer().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getAssignee() != null) {
+            appointment.getAssignee().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getTechnicianEntities() != null) {
+            appointment.getTechnicianEntities().size(); // Access to trigger loading
+            appointment.getTechnicianEntities().forEach(tech -> tech.getUserId()); // Load each technician
+        }
+        if (appointment.getServiceTypeEntities() != null) {
+            appointment.getServiceTypeEntities().size(); // Access to trigger loading
+        }
+        if (appointment.getVehicleTypeEntity() != null) {
+            appointment.getVehicleTypeEntity().getVehicleTypeId(); // Access to trigger loading
+        }
+    }
 
     private String generateOtp() {
         StringBuilder sb = new StringBuilder();

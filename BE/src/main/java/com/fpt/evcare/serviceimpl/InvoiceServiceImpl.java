@@ -65,6 +65,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 //    }
 //
     @Override
+    @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceByAppointmentId(UUID appointmentId) {
         log.info("Getting invoice for appointment: {}", appointmentId);
 
@@ -73,6 +74,9 @@ public class InvoiceServiceImpl implements InvoiceService {
             log.warn("Appointment not found: {}", appointmentId);
             throw new ResourceNotFoundException("Không tìm thấy appointment");
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        initializeAppointmentRelations(appointment);
 
         // Kiểm tra appointment phải ở trạng thái PENDING_PAYMENT hoặc COMPLETED
         if (appointment.getStatus() != AppointmentStatusEnum.PENDING_PAYMENT &&
@@ -749,6 +753,34 @@ public class InvoiceServiceImpl implements InvoiceService {
 //            log.error(InvoiceConstants.LOG_ERR_FAILED_SEND_PAYMENT_CONFIRMATION_EMAIL, e.getMessage());
 //        }
 //    }
+
+    /**
+     * Helper method to force initialization of lazy-loaded appointment relationships
+     * This must be called within an active transaction
+     */
+    private void initializeAppointmentRelations(AppointmentEntity appointment) {
+        if (appointment == null) {
+            return;
+        }
+        
+        // Initialize all lazy-loaded relationships
+        if (appointment.getCustomer() != null) {
+            appointment.getCustomer().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getAssignee() != null) {
+            appointment.getAssignee().getUserId(); // Access to trigger loading
+        }
+        if (appointment.getTechnicianEntities() != null) {
+            appointment.getTechnicianEntities().size(); // Access to trigger loading
+            appointment.getTechnicianEntities().forEach(tech -> tech.getUserId()); // Load each technician
+        }
+        if (appointment.getServiceTypeEntities() != null) {
+            appointment.getServiceTypeEntities().size(); // Access to trigger loading
+        }
+        if (appointment.getVehicleTypeEntity() != null) {
+            appointment.getVehicleTypeEntity().getVehicleTypeId(); // Access to trigger loading
+        }
+    }
 
     /**
      * Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
