@@ -18,6 +18,14 @@ public class AuthConstants {
     public static final String MESSAGE_ERR_INVALID_PASSWORD = "Mật khẩu không đúng.";
     public static final String MESSAGE_ERR_TOKEN_DISABLED = "Token không tồn tại.";
 
+    // Additional log messages
+    public static final String LOG_INFO_LOGIN_USER = "Login - User: {}, Role: {}, isAdmin: {}";
+    public static final String LOG_INFO_STAFF_LOGGED_OUT = "⚠️ Staff {} logged out, set to OFFLINE";
+    public static final String LOG_INFO_CUSTOMER_LOGGED_OUT = "⚠️ Customer {} logged out, set to OFFLINE";
+    public static final String LOG_ERR_ERROR_UPDATING_OFFLINE_STATUS = "❌ Error updating offline status during logout: {}";
+    public static final String LOG_INFO_USER_LOGGED_OUT_SUCCESSFULLY = "User with ID {} logged out successfully";
+    public static final String LOG_ERR_FAILED_GET_USER_FROM_TOKEN = "Failed to get user from token: {}";
+    public static final String LOG_INFO_SAVED_USER_FROM_GOOGLE_LOGIN = "Saved user from Google login: {}";
 
     public static final String BASE_URL = EndpointConstants.V1.API + "/auth";
     public static final String LOGIN = "/login";

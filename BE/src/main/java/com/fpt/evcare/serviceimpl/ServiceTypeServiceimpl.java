@@ -163,7 +163,7 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
     public PageResponse<ServiceTypeResponse> searchServiceType(String search, UUID vehicleTypeId, Boolean isActive, Pageable pageable) {
         // Bước 1: Lấy tất cả bản ghi từ DB với filter isActive
         Page<ServiceTypeEntity> entities;
-        log.info("Filtering services - vehicleTypeId: {}, isActive: {}", vehicleTypeId, isActive);
+        log.info(ServiceTypeConstants.LOG_INFO_FILTERING_SERVICES, vehicleTypeId, isActive);
 
         if (search.isEmpty()) {
             entities = serviceTypeRepository.findByVehicleTypeIdAndIsActive(vehicleTypeId, isActive, pageable);
@@ -173,7 +173,7 @@ public class ServiceTypeServiceimpl implements ServiceTypeService {
 
         // Nếu không có kết quả sau khi filter, trả về empty list (không throw exception)
         if (entities.isEmpty()) {
-            log.info("No services found for vehicleTypeId: {} with isActive: {}", vehicleTypeId, isActive);
+            log.info(ServiceTypeConstants.LOG_INFO_NO_SERVICES_FOUND, vehicleTypeId, isActive);
             return PageResponse.<ServiceTypeResponse>builder()
                     .data(List.of())
                     .page(entities.getNumber())

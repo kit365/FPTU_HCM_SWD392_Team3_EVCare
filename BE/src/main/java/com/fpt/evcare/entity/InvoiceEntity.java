@@ -32,11 +32,11 @@ public class InvoiceEntity extends BaseEntity {
     @JoinColumn(name = "payment_method_id", nullable = true) // Cho phép null vì khách hàng sẽ chọn phương thức thanh toán sau
     PaymentMethodEntity paymentMethod;
 
-    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     @Builder.Default
     BigDecimal totalAmount = BigDecimal.ZERO;
 
-    @Column(name = "paid_amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "paid_amount", nullable = false, precision = 15, scale = 2)
     @Builder.Default
     BigDecimal paidAmount = BigDecimal.ZERO;
 

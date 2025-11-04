@@ -58,6 +58,10 @@ public class ServiceTypeConstants {
     public static final String LOG_INFO_RESTORING_SERVICE_TYPE = "Đang khôi phục loại dịch vụ với từ khóa: {}";
     public static final String LOG_INFO_RESTORING_CHILD_SERVICE_TYPE = "Đang khôi phục dịch vụ con: {}";
     public static final String LOG_INFO_RESTORING_PARENT_SERVICE_TYPE = "Đang khôi phục dịch vụ cha: {}";
+    
+    // Additional log messages
+    public static final String LOG_INFO_FILTERING_SERVICES = "Filtering services - vehicleTypeId: {}, isActive: {}";
+    public static final String LOG_INFO_NO_SERVICES_FOUND = "No services found for vehicleTypeId: {} with isActive: {}";
 
     //Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/service-type";

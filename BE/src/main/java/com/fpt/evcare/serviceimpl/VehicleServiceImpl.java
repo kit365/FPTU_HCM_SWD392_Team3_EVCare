@@ -84,7 +84,7 @@ public class VehicleServiceImpl implements VehicleService {
 
         List<VehicleResponse> vehicleResponseList = vehicleEntityPage.map(vehicleMapper::toVehicleResponse).getContent();
 
-        log.info("Searching vehicles with keyword: {}, vehicleTypeId: {}", keyword, vehicleTypeId);
+        log.info(VehicleConstants.LOG_INFO_SEARCHING_VEHICLES, keyword, vehicleTypeId);
         return PageResponse.<VehicleResponse>builder()
                 .data(vehicleResponseList)
                 .page(vehicleEntityPage.getNumber())
@@ -255,11 +255,11 @@ public class VehicleServiceImpl implements VehicleService {
         List<VehicleEntity> vehicleEntityList = vehicleRepository.findAllByUser_UserIdAndIsDeletedFalse(userId);
 
         if (vehicleEntityList.isEmpty()) {
-            log.warn("No vehicles found for user id: {}", userId);
+            log.warn(VehicleConstants.LOG_WARN_NO_VEHICLES_FOUND_FOR_USER, userId);
             return List.of();
         }
 
-        log.info("Found {} vehicles for user id: {}", vehicleEntityList.size(), userId);
+        log.info(VehicleConstants.LOG_INFO_FOUND_VEHICLES_FOR_USER, vehicleEntityList.size(), userId);
         return vehicleEntityList.stream()
                 .map(vehicleMapper::toVehicleResponse)
                 .toList();

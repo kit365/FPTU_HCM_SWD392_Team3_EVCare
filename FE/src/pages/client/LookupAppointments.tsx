@@ -44,9 +44,11 @@ import {
   Info,
   CheckCircle,
   Schedule,
+  Construction,
 } from "@mui/icons-material";
 import QRCode from "react-qr-code";
 import { useInvoice } from "../../hooks/useInvoice";
+import type { UserAppointment } from "../../types/booking.types";
 
 const { Title } = Typography;
 
@@ -93,19 +95,28 @@ const LookupAppointmentsPage: React.FC = () => {
   const [otpCode, setOtpCode] = useState<string>("");
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [guestAppointmentDetail, setGuestAppointmentDetail] = useState<any>(null);
-  const [guestAppointmentModalOpen, setGuestAppointmentModalOpen] = useState(false);
+  const [warrantyModalVisible, setWarrantyModalVisible] = useState<boolean>(false);
+  const [selectedOriginalAppointment, setSelectedOriginalAppointment] = useState<AppointmentRow | null>(null);
+  const [creatingWarranty, setCreatingWarranty] = useState<boolean>(false);
 
-  // Load invoice when modal opens
+  // Load invoice when modal opens (chỉ load 1 lần khi modal mở)
   useEffect(() => {
     if (invoiceModalOpen && selectedAppointmentId) {
-      getByAppointmentId(selectedAppointmentId);
+      console.log("📄 Loading invoice for appointment:", selectedAppointmentId);
+      // Chỉ load invoice khi modal mở, không load lại khi polling
+      if (!openQrDialog) {
+        getByAppointmentId(selectedAppointmentId).catch(error => {
+          console.error("❌ Error loading invoice:", error);
+        });
+      }
     }
-  }, [invoiceModalOpen, selectedAppointmentId, getByAppointmentId]);
+  }, [invoiceModalOpen, selectedAppointmentId]);
 
   useEffect(() => {
     if (invoice) {
+      console.log("💰 Invoice loaded:", invoice);
+      console.log("📋 Maintenance details:", invoice.maintenanceDetails);
+      console.log("📋 Maintenance details type:", typeof invoice.maintenanceDetails, Array.isArray(invoice.maintenanceDetails));
       setPaidAmount(invoice.totalAmount);
     }
   }, [invoice]);
@@ -113,34 +124,51 @@ const LookupAppointmentsPage: React.FC = () => {
   const previousStatusRef = useRef<string | undefined>(undefined);
   
   useEffect(() => {
-    if (invoice) {
-      if (previousStatusRef.current !== invoice.status) {
-        previousStatusRef.current = invoice.status;
-      }
-      
-      if (invoice.status === "PAID" && openQrDialog && !hasNavigatedRef.current) {
-        hasNavigatedRef.current = true;
-        
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-        if (pollingTimeoutRef.current) {
-          clearTimeout(pollingTimeoutRef.current);
-          pollingTimeoutRef.current = null;
-        }
-        pollingStartTimeRef.current = null;
-        
-        setOpenQrDialog(false);
-        setPaymentUrl(null);
-        setInvoiceModalOpen(false);
-        setSelectedAppointmentId(null);
-        // Reload appointment list
-        fetchData(page, pageSize, keyword);
-        navigate(`/client/payment/success?appointmentId=${selectedAppointmentId}`, { replace: true });
-      }
+    // Chỉ xử lý khi có invoice và QR dialog đang mở (đang chờ thanh toán)
+    if (!invoice || !openQrDialog) {
+      return;
     }
-  }, [invoice, openQrDialog, navigate, selectedAppointmentId, page, pageSize, keyword]);
+    
+    if (previousStatusRef.current !== invoice.status) {
+      previousStatusRef.current = invoice.status;
+    }
+    
+    if (invoice.status === "PAID" && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+        pollingTimeoutRef.current = null;
+      }
+      pollingStartTimeRef.current = null;
+      
+      const appointmentIdToNavigate = selectedAppointmentId;
+      const currentUser = user; // Lưu user vào biến local để tránh closure issue
+      
+      setOpenQrDialog(false);
+      setPaymentUrl(null);
+      setInvoiceModalOpen(false);
+      setSelectedAppointmentId(null);
+      
+      // Reload appointment list
+      fetchData(page, pageSize, keyword);
+      
+      // Navigate sau khi đã clear state
+      // Nếu user đã đăng nhập: quay về trang lịch sử appointment
+      // Nếu là khách vãng lai: quay về trang chủ
+      setTimeout(() => {
+        if (currentUser) {
+          navigate(`/client/appointment-history`, { replace: true });
+        } else {
+          navigate(`/`, { replace: true });
+        }
+      }, 100);
+    }
+  }, [invoice?.status, openQrDialog, navigate, selectedAppointmentId, page, pageSize, keyword, user]);
 
   useEffect(() => {
     return () => {
@@ -171,7 +199,69 @@ const LookupAppointmentsPage: React.FC = () => {
     setOtpModalOpen(true);
   };
 
+  const handleRequestWarranty = (record: AppointmentRow) => {
+    if (!user?.userId) {
+      message.warning("Vui lòng đăng nhập để yêu cầu bảo hành");
+      return;
+    }
+    setSelectedOriginalAppointment(record);
+    setWarrantyModalVisible(true);
+  };
+
+  const handleCreateWarrantyAppointment = async () => {
+    if (!selectedOriginalAppointment || !user?.userId) {
+      message.error("Thông tin không đầy đủ");
+      return;
+    }
+
+    try {
+      setCreatingWarranty(true);
+      const appointmentDetail = await bookingService.getAppointmentById(selectedOriginalAppointment.appointmentId);
+      const appointmentData = appointmentDetail.data.data;
+
+      const warrantyAppointmentData = {
+        customerId: user.userId,
+        customerFullName: selectedOriginalAppointment.customerFullName,
+        customerPhoneNumber: selectedOriginalAppointment.customerPhoneNumber,
+        customerEmail: selectedOriginalAppointment.customerEmail,
+        vehicleTypeId: appointmentData.vehicleTypeResponse?.vehicleTypeId || "",
+        vehicleNumberPlate: selectedOriginalAppointment.vehicleNumberPlate,
+        vehicleKmDistances: appointmentData.vehicleKmDistances || "",
+        userAddress: appointmentData.userAddress || "",
+        serviceMode: appointmentData.serviceMode || "STATIONARY",
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mặc định 1 ngày sau
+        notes: `Yêu cầu bảo hành cho appointment ${selectedOriginalAppointment.appointmentId}`,
+        serviceTypeIds: appointmentData.serviceTypeResponses?.map((s: any) => s.serviceTypeId) || [],
+        isWarrantyAppointment: true,
+        originalAppointmentId: selectedOriginalAppointment.appointmentId,
+      };
+
+      await bookingService.createAppointment(warrantyAppointmentData);
+      
+      message.success("Đã tạo yêu cầu bảo hành thành công!");
+      setWarrantyModalVisible(false);
+      setSelectedOriginalAppointment(null);
+      fetchData(page, pageSize, keyword);
+    } catch (error: any) {
+      console.error("Error creating warranty appointment:", error);
+      message.error(error?.response?.data?.message || "Không thể tạo yêu cầu bảo hành. Vui lòng thử lại.");
+    } finally {
+      setCreatingWarranty(false);
+    }
+  };
+
   const handleCloseInvoiceModal = () => {
+    // Dừng tất cả polling trước khi đóng modal
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
+    pollingStartTimeRef.current = null;
+    
     setInvoiceModalOpen(false);
     setSelectedAppointmentId(null);
     setOpenPayDialog(false);
@@ -179,10 +269,6 @@ const LookupAppointmentsPage: React.FC = () => {
     setPaymentUrl(null);
     setPaymentMethod("VNPAY");
     setNotes("");
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
     hasNavigatedRef.current = false;
   };
 
@@ -214,7 +300,10 @@ const LookupAppointmentsPage: React.FC = () => {
   const MAX_POLLING_TIME = 5 * 60 * 1000; // 5 phút
 
   const checkPaymentStatus = async () => {
-    if (!selectedAppointmentId) return;
+    // Chỉ check khi QR dialog đang mở (đang chờ thanh toán)
+    if (!openQrDialog || !selectedAppointmentId) {
+      return;
+    }
     
     // Kiểm tra nếu đã quá thời gian polling
     if (pollingStartTimeRef.current) {
@@ -247,12 +336,20 @@ const LookupAppointmentsPage: React.FC = () => {
   };
 
   const startPolling = () => {
+    // Chỉ start polling khi QR dialog đang mở
+    if (!openQrDialog) {
+      console.log("⚠️ Cannot start polling: QR dialog is not open");
+      return;
+    }
+    
     // Clear existing polling
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
     if (pollingTimeoutRef.current) {
       clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
     }
     
     // Set start time
@@ -271,7 +368,16 @@ const LookupAppointmentsPage: React.FC = () => {
     }, MAX_POLLING_TIME);
     
     const checkStatus = () => {
-      checkPaymentStatus();
+      // Kiểm tra lại xem QR dialog vẫn đang mở không
+      if (openQrDialog && selectedAppointmentId) {
+        checkPaymentStatus();
+      } else {
+        // Nếu dialog đã đóng, dừng polling
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
     };
     
     // Poll mỗi 3 giây thay vì 1.5 giây để giảm tải
@@ -281,68 +387,37 @@ const LookupAppointmentsPage: React.FC = () => {
   const handlePayment = async () => {
     if (!invoice || !selectedAppointmentId) return;
     
-    switch (paymentMethod) {
-      case "VNPAY":
-        try {
-          hasNavigatedRef.current = false;
-          setOpenQrDialog(true);
-          handleClosePayDialog();
-          
-          // Set timeout cho việc tạo payment URL
-          const urlPromise = createVnPayPayment(selectedAppointmentId, "client");
-          const timeoutPromise = new Promise<string>((_, reject) => {
-            setTimeout(() => reject(new Error("Timeout: Không thể tạo URL thanh toán trong thời gian cho phép")), 30000);
-          });
-          
-          const url = await Promise.race([urlPromise, timeoutPromise]);
-          
-          if (url && url.trim() !== "") {
-            setPaymentUrl(url);
-            startPolling();
-          } else {
-            message.error("Không thể tạo URL thanh toán. Vui lòng thử lại.");
-            setOpenQrDialog(false);
-          }
-        } catch (error: any) {
-          console.error("Error creating VNPay payment:", error);
-          message.error(error?.message || "Không thể tạo URL thanh toán. Vui lòng thử lại.");
-          setOpenQrDialog(false);
-          hasNavigatedRef.current = false;
-          return;
-        }
-        break;
+    // Chỉ hỗ trợ thanh toán qua VNPay
+    if (paymentMethod !== "VNPAY") {
+      message.error("Chỉ hỗ trợ thanh toán qua VNPay");
+      return;
+    }
+    
+    try {
+      hasNavigatedRef.current = false;
+      setOpenQrDialog(true);
+      handleClosePayDialog();
       
-      case "CASH":
-        if (!paidAmount || paidAmount <= 0) {
-          alert("Số tiền thanh toán không hợp lệ");
-          return;
-        }
-        
-        if (paidAmount < invoice.totalAmount) {
-          alert("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
-          return;
-        }
-        
-        const success = await payCash(invoice.invoiceId, {
-          paymentMethod,
-          paidAmount,
-          notes
-        });
-
-        if (success) {
-          handleClosePayDialog();
-          if (selectedAppointmentId) {
-            await getByAppointmentId(selectedAppointmentId);
-          }
-          setInvoiceModalOpen(false);
-          fetchData(page, pageSize, keyword);
-          navigate(`/client/payment/success?appointmentId=${selectedAppointmentId}`, { replace: true });
-        }
-        break;
+      // Set timeout cho việc tạo payment URL
+      const urlPromise = createVnPayPayment(selectedAppointmentId, "client");
+      const timeoutPromise = new Promise<string>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout: Không thể tạo URL thanh toán trong thời gian cho phép")), 30000);
+      });
       
-      default:
-        alert("Phương thức thanh toán không hợp lệ");
-        break;
+      const url = await Promise.race([urlPromise, timeoutPromise]);
+      
+      if (url && url.trim() !== "") {
+        setPaymentUrl(url);
+        startPolling();
+      } else {
+        message.error("Không thể tạo URL thanh toán. Vui lòng thử lại.");
+        setOpenQrDialog(false);
+      }
+    } catch (error: any) {
+      console.error("Error creating VNPay payment:", error);
+      message.error(error?.message || "Không thể tạo URL thanh toán. Vui lòng thử lại.");
+      setOpenQrDialog(false);
+      hasNavigatedRef.current = false;
     }
   };
 
@@ -496,15 +571,26 @@ const LookupAppointmentsPage: React.FC = () => {
           )}
           {/* Hiển thị nút Hóa đơn khi đã hoàn thành và đã đăng nhập */}
           {user && record.status === "COMPLETED" && (
-            <Button
-              type="link"
-              size="small"
-              icon={<Receipt />}
-              onClick={() => handleViewInvoice(record.appointmentId)}
-              style={{ padding: 0, fontSize: "13px" }}
-            >
-              Hóa đơn
-            </Button>
+            <>
+              <Button
+                type="link"
+                size="small"
+                icon={<Receipt />}
+                onClick={() => handleViewInvoice(record.appointmentId)}
+                style={{ padding: 0, fontSize: "13px" }}
+              >
+                Hóa đơn
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                icon={<Construction />}
+                onClick={() => handleRequestWarranty(record)}
+                style={{ padding: 0, color: "#f59e0b", fontSize: "13px" }}
+              >
+                Yêu cầu bảo hành
+              </Button>
+            </>
           )}
         </Space>
       ),
@@ -575,7 +661,7 @@ const LookupAppointmentsPage: React.FC = () => {
             }
           }}
         >
-          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem" }}>
+          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.75rem" }}>
             Chi tiết hóa đơn
           </DialogTitle>
           <DialogContent>
@@ -587,21 +673,21 @@ const LookupAppointmentsPage: React.FC = () => {
               <Box sx={{ mt: 2 }}>
                 {/* Customer Info */}
                 <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb", mb: 2 }}>
-                  <MuiTypography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: "1rem" }}>
+                  <MuiTypography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: "1.4rem" }}>
                     Thông tin khách hàng
                   </MuiTypography>
                   <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
                     <Box>
-                      <MuiTypography variant="body2" color="text.secondary">Tên khách hàng:</MuiTypography>
-                      <MuiTypography variant="body1" sx={{ fontWeight: 600 }}>{invoice.customerName}</MuiTypography>
+                      <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>Tên khách hàng:</MuiTypography>
+                      <MuiTypography variant="body1" sx={{ fontWeight: 600, fontSize: "1.2rem" }}>{invoice.customerName || "N/A"}</MuiTypography>
                     </Box>
                     <Box>
-                      <MuiTypography variant="body2" color="text.secondary">Email:</MuiTypography>
-                      <MuiTypography variant="body1" sx={{ fontWeight: 600 }}>{invoice.customerEmail}</MuiTypography>
+                      <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>Email:</MuiTypography>
+                      <MuiTypography variant="body1" sx={{ fontWeight: 600, fontSize: "1.2rem" }}>{invoice.customerEmail || "N/A"}</MuiTypography>
                     </Box>
                     <Box>
-                      <MuiTypography variant="body2" color="text.secondary">Số điện thoại:</MuiTypography>
-                      <MuiTypography variant="body1" sx={{ fontWeight: 600 }}>{invoice.customerPhone}</MuiTypography>
+                      <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>Số điện thoại:</MuiTypography>
+                      <MuiTypography variant="body1" sx={{ fontWeight: 600, fontSize: "1.2rem" }}>{invoice.customerPhone || "N/A"}</MuiTypography>
                     </Box>
                   </Box>
                 </Box>
@@ -609,18 +695,18 @@ const LookupAppointmentsPage: React.FC = () => {
                 {/* Vehicle Info */}
                 {invoice.vehicleNumberPlate && (
                   <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb", mb: 2 }}>
-                    <MuiTypography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: "1rem" }}>
+                    <MuiTypography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: "1.4rem" }}>
                       Thông tin xe
                     </MuiTypography>
                     <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
                       <Box>
-                        <MuiTypography variant="body2" color="text.secondary">Biển số xe:</MuiTypography>
-                        <MuiTypography variant="body1" sx={{ fontWeight: 600 }}>{invoice.vehicleNumberPlate}</MuiTypography>
+                        <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>Biển số xe:</MuiTypography>
+                        <MuiTypography variant="body1" sx={{ fontWeight: 600, fontSize: "1.2rem" }}>{invoice.vehicleNumberPlate}</MuiTypography>
                       </Box>
                       {invoice.vehicleTypeName && (
                         <Box>
-                          <MuiTypography variant="body2" color="text.secondary">Loại xe:</MuiTypography>
-                          <MuiTypography variant="body1" sx={{ fontWeight: 600 }}>
+                          <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>Loại xe:</MuiTypography>
+                          <MuiTypography variant="body1" sx={{ fontWeight: 600, fontSize: "1.2rem" }}>
                             {invoice.vehicleTypeName} {invoice.vehicleManufacturer ? `(${invoice.vehicleManufacturer})` : ""}
                           </MuiTypography>
                         </Box>
@@ -630,86 +716,134 @@ const LookupAppointmentsPage: React.FC = () => {
                 )}
 
                 {/* Services & Parts */}
-                {invoice.maintenanceDetails && invoice.maintenanceDetails.length > 0 && (
-                  <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb", mb: 2 }}>
-                    <MuiTypography variant="h6" sx={{ fontWeight: 600, mb: 2, fontSize: "1rem" }}>
-                      Chi tiết dịch vụ & phụ tùng
-                    </MuiTypography>
-                    {invoice.maintenanceDetails.map((maintenance, index) => (
-                      <Box key={index} sx={{ mb: 2, "&:last-child": { mb: 0 } }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                          <MuiTypography variant="body1" sx={{ fontWeight: 600, color: "#3b82f6" }}>
-                            {index + 1}. {maintenance.serviceName}
-                          </MuiTypography>
-                          <MuiTypography variant="body1" sx={{ fontWeight: 600 }}>
-                            {formatCurrency(maintenance.serviceCost)}
+                {(() => {
+                  try {
+                    if (!invoice.maintenanceDetails || !Array.isArray(invoice.maintenanceDetails) || invoice.maintenanceDetails.length === 0) {
+                      return (
+                        <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb", mb: 2 }}>
+                          <MuiTypography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", fontSize: "1.1rem" }}>
+                            Chưa có thông tin dịch vụ và phụ tùng
                           </MuiTypography>
                         </Box>
-                        {maintenance.partsUsed && maintenance.partsUsed.length > 0 && (
-                          <Box sx={{ ml: 2, mt: 1 }}>
-                            <MuiTypography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                              Phụ tùng sử dụng:
-                            </MuiTypography>
-                            {maintenance.partsUsed.map((part, partIndex) => (
-                              <Box
-                                key={partIndex}
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  py: 0.5,
-                                  fontSize: "0.875rem",
-                                  borderBottom: partIndex < maintenance.partsUsed.length - 1 ? "1px solid #e5e7eb" : "none",
-                                }}
-                              >
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                  <MuiTypography variant="body2">• {part.partName}</MuiTypography>
-                                  {part.isUnderWarranty && (
-                                    <Chip
-                                      label="Bảo hành"
-                                      size="small"
-                                      sx={{
-                                        backgroundColor: "#dcfce7",
-                                        color: "#166534",
-                                        fontSize: "0.7rem",
-                                        height: "20px",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  )}
+                      );
+                    }
+
+                    return (
+                      <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb", mb: 2 }}>
+                        <MuiTypography variant="h6" sx={{ fontWeight: 600, mb: 2, fontSize: "1.4rem" }}>
+                          Chi tiết dịch vụ & phụ tùng
+                        </MuiTypography>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {invoice.maintenanceDetails.map((maintenance, index) => {
+                            if (!maintenance) return null;
+                            
+                            return (
+                              <Paper key={`maintenance-${index}`} elevation={0} sx={{ p: 2, backgroundColor: "#fff", borderRadius: 1, border: "1px solid #e5e7eb" }}>
+                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                                  <MuiTypography variant="body1" sx={{ fontWeight: 600, color: "#3b82f6", fontSize: "1.2rem" }}>
+                                    {index + 1}. {maintenance.serviceName || "N/A"}
+                                  </MuiTypography>
+                                  <MuiTypography variant="body1" sx={{ fontWeight: 600, fontSize: "1.2rem" }}>
+                                    {formatCurrency(maintenance.serviceCost || 0)}
+                                  </MuiTypography>
                                 </Box>
-                                <Box sx={{ textAlign: "right" }}>
-                                  {part.isUnderWarranty && part.originalPrice ? (
-                                    <Box>
-                                      <MuiTypography variant="body2" sx={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.75rem" }}>
-                                        {formatCurrency(part.originalPrice)}
-                                      </MuiTypography>
-                                      <MuiTypography variant="body2" sx={{ fontWeight: 600, color: "#10b981" }}>
-                                        {formatCurrency(part.totalPrice)}
-                                      </MuiTypography>
-                                    </Box>
-                                  ) : (
-                                    <MuiTypography variant="body2" sx={{ fontWeight: 600 }}>
-                                      {formatCurrency(part.totalPrice)}
+                                {maintenance.partsUsed && Array.isArray(maintenance.partsUsed) && maintenance.partsUsed.length > 0 ? (
+                                  <Box sx={{ mt: 1.5 }}>
+                                    <MuiTypography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontWeight: 600, fontSize: "1rem" }}>
+                                      Phụ tùng sử dụng:
                                     </MuiTypography>
-                                  )}
-                                </Box>
-                              </Box>
-                            ))}
-                          </Box>
-                        )}
+                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                      {maintenance.partsUsed.map((part, partIndex) => {
+                                        if (!part) return null;
+                                        
+                                        return (
+                                          <Box
+                                            key={`part-${index}-${partIndex}`}
+                                            sx={{
+                                              display: "flex",
+                                              justifyContent: "space-between",
+                                              alignItems: "flex-start",
+                                              py: 1,
+                                              px: 1.5,
+                                              backgroundColor: "#f9fafb",
+                                              borderRadius: 1,
+                                              border: "1px solid #e5e7eb",
+                                            }}
+                                          >
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, flexWrap: "wrap" }}>
+                                              <MuiTypography variant="body2" sx={{ fontSize: "1.05rem" }}>
+                                                • {part.partName || "N/A"}
+                                              </MuiTypography>
+                                              {part.quantity != null && (
+                                                <MuiTypography variant="caption" color="text.secondary" sx={{ fontSize: "0.95rem" }}>
+                                                  (SL: {part.quantity})
+                                                </MuiTypography>
+                                              )}
+                                              {(part as any)?.isUnderWarranty && (
+                                                <Chip
+                                                  label="Bảo hành"
+                                                  size="small"
+                                                  sx={{
+                                                    backgroundColor: "#dcfce7",
+                                                    color: "#166534",
+                                                    fontSize: "0.85rem",
+                                                    height: "24px",
+                                                    fontWeight: 600,
+                                                  }}
+                                                />
+                                              )}
+                                            </Box>
+                                            <Box sx={{ textAlign: "right", minWidth: "120px", flexShrink: 0 }}>
+                                              {(part as any)?.isUnderWarranty && (part as any)?.originalPrice ? (
+                                                <Box>
+                                                  <MuiTypography variant="caption" sx={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.9rem", display: "block" }}>
+                                                    {formatCurrency((part as any).originalPrice)}
+                                                  </MuiTypography>
+                                                  <MuiTypography variant="body2" sx={{ fontWeight: 600, color: "#10b981", fontSize: "1.05rem" }}>
+                                                    {formatCurrency(part.totalPrice || 0)}
+                                                  </MuiTypography>
+                                                </Box>
+                                              ) : (
+                                                <MuiTypography variant="body2" sx={{ fontWeight: 600, fontSize: "1.05rem" }}>
+                                                  {formatCurrency(part.totalPrice || 0)}
+                                                </MuiTypography>
+                                              )}
+                                            </Box>
+                                          </Box>
+                                        );
+                                      })}
+                                    </Box>
+                                  </Box>
+                                ) : (
+                                  <MuiTypography variant="caption" color="text.secondary" sx={{ fontSize: "1rem", fontStyle: "italic" }}>
+                                    Không có phụ tùng
+                                  </MuiTypography>
+                                )}
+                              </Paper>
+                            );
+                          })}
+                        </Box>
                       </Box>
-                    ))}
-                  </Box>
-                )}
+                    );
+                  } catch (error) {
+                    console.error("Error rendering maintenance details:", error);
+                    return (
+                      <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb", mb: 2 }}>
+                        <Alert severity="error">
+                          Lỗi khi hiển thị chi tiết dịch vụ. Vui lòng thử lại sau.
+                        </Alert>
+                      </Box>
+                    );
+                  }
+                })()}
 
                 {/* Total */}
                 <Box sx={{ p: 2, backgroundColor: "#f5f5f5", borderRadius: 2 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <MuiTypography variant="h6" sx={{ fontWeight: 600 }}>
+                    <MuiTypography variant="h6" sx={{ fontWeight: 600, fontSize: "1.5rem" }}>
                       Tổng cộng:
                     </MuiTypography>
-                    <MuiTypography variant="h6" sx={{ fontWeight: 700, color: "primary.main" }}>
+                    <MuiTypography variant="h6" sx={{ fontWeight: 700, color: "primary.main", fontSize: "1.5rem" }}>
                       {formatCurrency(invoice.totalAmount)}
                     </MuiTypography>
                   </Box>
@@ -743,71 +877,40 @@ const LookupAppointmentsPage: React.FC = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={handleCloseInvoiceModal}>Đóng</Button>
+            <Button onClick={handleCloseInvoiceModal} sx={{ fontSize: "1.15rem", py: 1.5, px: 3 }}>Đóng</Button>
           </DialogActions>
         </Dialog>
 
         {/* Payment Dialog */}
         <Dialog open={openPayDialog} onClose={handleClosePayDialog} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem" }}>
+          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.75rem" }}>
             Xác nhận thanh toán
           </DialogTitle>
           <DialogContent>
             <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 3 }}>
-              <Alert severity="info">
-                Tổng tiền cần thanh toán: <strong>{invoice ? formatCurrency(invoice.totalAmount) : "0 ₫"}</strong>
+              <Alert severity="info" sx={{ fontSize: "1.1rem" }}>
+                Tổng tiền cần thanh toán: <strong style={{ fontSize: "1.2rem" }}>{invoice ? formatCurrency(invoice.totalAmount) : "0 ₫"}</strong>
               </Alert>
               
-              <FormControl fullWidth>
-                <InputLabel>Phương thức thanh toán</InputLabel>
-                <Select
-                  value={paymentMethod}
-                  label="Phương thức thanh toán"
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                >
-                  <MenuItem value="VNPAY">Thanh toán qua VNPay</MenuItem>
-                  <MenuItem value="CASH">Tiền mặt (CASH)</MenuItem>
-                </Select>
-              </FormControl>
-
-              {paymentMethod === "CASH" && (
-                <>
-                  <TextField
-                    label="Số tiền thanh toán"
-                    type="number"
-                    value={paidAmount}
-                    disabled
-                    fullWidth
-                    InputProps={{
-                      endAdornment: <MuiTypography sx={{ color: "#6b7280" }}>₫</MuiTypography>,
-                    }}
-                    helperText="Thanh toán đủ số tiền hóa đơn"
-                  />
-
-                  <TextField
-                    label="Ghi chú (tùy chọn)"
-                    multiline
-                    rows={3}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    fullWidth
-                    placeholder="Nhập ghi chú về thanh toán..."
-                  />
-                </>
-              )}
+              <Alert severity="info" sx={{ fontSize: "1.1rem" }}>
+                Phương thức thanh toán: <strong style={{ fontSize: "1.15rem" }}>Thanh toán qua VNPay</strong>
+              </Alert>
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button onClick={handleClosePayDialog} disabled={paying}>
+            <Button onClick={handleClosePayDialog} disabled={paying} sx={{ fontSize: "1.15rem", py: 1.5, px: 3 }}>
               Hủy
             </Button>
             <Button
               variant="contained"
               onClick={handlePayment}
-              disabled={paying || paidAmount <= 0}
+              disabled={paying}
               startIcon={paying ? <CircularProgress size={20} /> : <Payment />}
               sx={{
                 backgroundColor: "#3b82f6",
+                fontSize: "1.15rem",
+                py: 1.5,
+                px: 3,
                 "&:hover": {
                   backgroundColor: "#2563eb",
                 },
@@ -830,12 +933,12 @@ const LookupAppointmentsPage: React.FC = () => {
             }
           }}
         >
-          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem", textAlign: "center" }}>
+          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.75rem", textAlign: "center" }}>
             Quét mã QR để thanh toán
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, py: 2 }}>
-              <Alert severity="info" sx={{ width: "100%" }}>
+              <Alert severity="info" sx={{ width: "100%", fontSize: "1.1rem", "& strong": { fontSize: "1.15rem" } }}>
                 Quét mã QR bằng ứng dụng ngân hàng hoặc VNPay để thanh toán.
                 <br />
                 <strong>Lưu ý:</strong> Khi thanh toán thành công, cửa sổ này sẽ tự động đóng và chuyển đến trang thành công.
@@ -863,7 +966,7 @@ const LookupAppointmentsPage: React.FC = () => {
               ) : (
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                   <CircularProgress size={40} />
-                  <MuiTypography variant="body2" color="text.secondary">
+                  <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>
                     Đang tạo mã QR...
                   </MuiTypography>
                 </Box>
@@ -871,7 +974,7 @@ const LookupAppointmentsPage: React.FC = () => {
 
               {paymentUrl && (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1, width: "100%" }}>
-                  <MuiTypography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+                  <MuiTypography variant="body2" color="text.secondary" sx={{ textAlign: "center", fontSize: "1.1rem" }}>
                     Hoặc nhấn vào nút bên dưới để mở trang thanh toán
                   </MuiTypography>
                   <Button
@@ -882,6 +985,7 @@ const LookupAppointmentsPage: React.FC = () => {
                     sx={{
                       mt: 1,
                       py: 1.5,
+                      fontSize: "1.15rem",
                     }}
                   >
                     Mở trang thanh toán VNPay
@@ -893,12 +997,12 @@ const LookupAppointmentsPage: React.FC = () => {
                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <CircularProgress size={16} />
-                    <MuiTypography variant="body2" color="text.secondary">
+                    <MuiTypography variant="body2" color="text.secondary" sx={{ fontSize: "1.1rem" }}>
                       Đang chờ thanh toán...
                     </MuiTypography>
                   </Box>
                   {pollingStartTimeRef.current && (
-                    <MuiTypography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+                    <MuiTypography variant="caption" color="text.secondary" sx={{ fontSize: "1rem" }}>
                       {(() => {
                         const elapsed = Date.now() - pollingStartTimeRef.current!;
                         const remaining = Math.max(0, Math.floor((MAX_POLLING_TIME - elapsed) / 1000));
@@ -911,7 +1015,7 @@ const LookupAppointmentsPage: React.FC = () => {
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3, justifyContent: "center" }}>
-            <Button onClick={handleCloseQrDialog} variant="outlined">
+            <Button onClick={handleCloseQrDialog} variant="outlined" sx={{ fontSize: "1.15rem", py: 1.5, px: 3 }}>
               Đóng
             </Button>
           </DialogActions>
@@ -923,7 +1027,6 @@ const LookupAppointmentsPage: React.FC = () => {
           onClose={() => {
             setOtpModalOpen(false);
             setOtpCode("");
-            setOtpVerified(false);
             setGuestEmail("");
           }}
           maxWidth="md"
@@ -938,8 +1041,7 @@ const LookupAppointmentsPage: React.FC = () => {
             Xác thực email
           </DialogTitle>
           <DialogContent sx={{ px: 3, pb: 3 }}>
-            {!otpVerified ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 4, mt: 1 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 4, mt: 1 }}>
                 <Box sx={{ p: 3, bgcolor: "#f0f7ff", borderRadius: 3, border: "2px solid #e0e7ff" }}>
                   <MuiTypography variant="h5" sx={{ fontSize: "1.5rem", fontWeight: 700, mb: 2, color: "#1e40af" }}>
                     Xác thực danh tính
@@ -1017,25 +1119,75 @@ const LookupAppointmentsPage: React.FC = () => {
                     }
                     setVerifyingOtp(true);
                     try {
-                      const appointment = await bookingService.verifyOtpForGuestAppointment(selectedAppointmentId, guestEmail, otpCode);
+                      const appointmentResponse = await bookingService.verifyOtpForGuestAppointment(selectedAppointmentId, guestEmail, otpCode);
+                      
+                      // appointmentResponse là appointment data trực tiếp từ API
+                      const appointmentData = appointmentResponse;
+                      
+                      // Debug: log để kiểm tra quotePrice
+                      console.log("🔍 Appointment data from API:", appointmentData);
+                      console.log("💰 QuotePrice from API:", appointmentData?.quotePrice, typeof appointmentData?.quotePrice);
                       
                       // Kiểm tra xem appointment có hợp lệ không
-                      if (!appointment || !appointment.appointmentId) {
+                      if (!appointmentData || !appointmentData.appointmentId) {
                         throw new Error("Không thể lấy thông tin cuộc hẹn");
                       }
                       
-                      // Chỉ mở modal khi verify thành công và có dữ liệu hợp lệ
-                      setGuestAppointmentDetail(appointment);
-                      setOtpVerified(true);
+                      // Convert quotePrice: giữ nguyên nếu là số, convert null/undefined thành 0
+                      const quotePrice = appointmentData.quotePrice != null ? Number(appointmentData.quotePrice) : 0;
+                      
+                      // Convert appointment response to UserAppointment format
+                      const userAppointment: UserAppointment = {
+                        appointmentId: appointmentData.appointmentId,
+                        customerFullName: appointmentData.customerFullName,
+                        customerPhoneNumber: appointmentData.customerPhoneNumber,
+                        customerEmail: appointmentData.customerEmail,
+                        vehicleNumberPlate: appointmentData.vehicleNumberPlate,
+                        vehicleKmDistances: appointmentData.vehicleKmDistances || "",
+                        userAddress: appointmentData.userAddress || "",
+                        serviceMode: appointmentData.serviceMode,
+                        status: appointmentData.status,
+                        scheduledAt: appointmentData.scheduledAt,
+                        quotePrice: quotePrice,
+                        notes: appointmentData.notes || "",
+                        vehicleTypeResponse: appointmentData.vehicleTypeResponse || {
+                          vehicleTypeId: "",
+                          vehicleTypeName: "",
+                          manufacturer: "",
+                          modelYear: 0,
+                        },
+                        serviceTypeResponses: appointmentData.serviceTypeResponses || [],
+                        technicianResponses: appointmentData.technicianResponses || [],
+                        isWarrantyAppointment: appointmentData.isWarrantyAppointment || false,
+                        originalAppointment: appointmentData.originalAppointment || undefined,
+                      };
+                      
+                      // Debug: log để kiểm tra quotePrice trước khi lưu
+                      console.log("💾 Saving to sessionStorage - quotePrice:", userAppointment.quotePrice);
+                      
+                      // Lưu appointment data vào sessionStorage để trang chi tiết có thể sử dụng
+                      sessionStorage.setItem(`guestAppointment_${selectedAppointmentId}`, JSON.stringify({
+                        appointment: userAppointment,
+                        email: guestEmail,
+                        verifiedAt: new Date().toISOString()
+                      }));
+                      
+                      // Lưu OTP và email để dùng khi chỉnh sửa appointment
+                      sessionStorage.setItem("guestAppointmentEdit", JSON.stringify({
+                        email: guestEmail,
+                        otp: otpCode
+                      }));
+                      
+                      // Đóng modal và chuyển đến trang chi tiết cuộc hẹn
                       setOtpModalOpen(false);
-                      setGuestAppointmentModalOpen(true);
+                      setOtpCode("");
                       message.success("Xác thực thành công!");
+                      
+                      // Chuyển đến trang chi tiết cuộc hẹn (tương tự như user đã đăng nhập)
+                      navigate(`/client/appointment/${selectedAppointmentId}`);
                     } catch (error: any) {
                       // Đảm bảo reset state khi có lỗi
-                      setGuestAppointmentDetail(null);
-                      setOtpVerified(false);
                       setOtpModalOpen(false);
-                      setGuestAppointmentModalOpen(false);
                       message.error(error?.response?.data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.");
                     } finally {
                       setVerifyingOtp(false);
@@ -1055,15 +1207,13 @@ const LookupAppointmentsPage: React.FC = () => {
                 >
                   {verifyingOtp ? <CircularProgress size={28} sx={{ color: "white" }} /> : "Xác thực"}
                 </Button>
-              </Box>
-            ) : null}
+            </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
             <Button 
               onClick={() => {
                 setOtpModalOpen(false);
                 setOtpCode("");
-                setOtpVerified(false);
               }}
               size="large"
               sx={{ 
@@ -1078,576 +1228,68 @@ const LookupAppointmentsPage: React.FC = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Guest Appointment Detail Modal */}
+        {/* Warranty Appointment Modal */}
         <Dialog
-          open={guestAppointmentModalOpen}
+          open={warrantyModalVisible}
           onClose={() => {
-            setGuestAppointmentModalOpen(false);
-            setGuestAppointmentDetail(null);
-            setOtpVerified(false);
+            setWarrantyModalVisible(false);
+            setSelectedOriginalAppointment(null);
           }}
-          maxWidth="lg"
+          maxWidth="sm"
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
-              maxHeight: "95vh",
+              borderRadius: 2,
             }
           }}
         >
-          <DialogTitle sx={{ 
-            fontWeight: 900, 
-            fontSize: "1.85rem", 
-            pb: 2,
-            borderBottom: "3px solid rgba(255,255,255,0.3)",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            px: 4,
-            py: 3,
-          }}>
-            <Assignment sx={{ fontSize: 36 }} />
-            Chi tiết cuộc hẹn
+          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem" }}>
+            Yêu cầu bảo hành
           </DialogTitle>
-          <DialogContent 
-            sx={{ 
-              p: 4,
-              overflowY: "auto",
-              maxHeight: "calc(95vh - 200px)",
-            }}
-          >
-            {guestAppointmentDetail ? (
-              <Stack spacing={4}>
-                {/* Header với Status Badge */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 4, borderBottom: "4px solid #e0e0e0" }}>
-                  <Box>
-                    <MuiTypography variant="h3" sx={{ fontWeight: 900, color: "#1976d2", mb: 1.5, fontSize: "2rem" }}>
-                      Mã cuộc hẹn: {guestAppointmentDetail.appointmentId?.substring(0, 8).toUpperCase()}
-                    </MuiTypography>
-                    <MuiTypography variant="body1" sx={{ color: "#666", fontSize: "1.2rem", fontWeight: 600 }}>
-                      Tạo lúc: {moment(guestAppointmentDetail.createdAt).format("DD/MM/YYYY HH:mm")}
-                    </MuiTypography>
-                  </Box>
-                  <Chip
-                    icon={<CheckCircle />}
-                    label={guestAppointmentDetail.status === "PENDING" ? "Chờ xác nhận" :
-                           guestAppointmentDetail.status === "CONFIRMED" ? "Đã xác nhận" :
-                           guestAppointmentDetail.status === "IN_PROGRESS" ? "Đang thực hiện" :
-                           guestAppointmentDetail.status === "COMPLETED" ? "Hoàn thành" :
-                           guestAppointmentDetail.status === "CANCELLED" ? "Đã hủy" : guestAppointmentDetail.status}
-                    color={guestAppointmentDetail.status === "PENDING" ? "warning" :
-                           guestAppointmentDetail.status === "CONFIRMED" ? "info" :
-                           guestAppointmentDetail.status === "IN_PROGRESS" ? "primary" :
-                           guestAppointmentDetail.status === "COMPLETED" ? "success" :
-                           guestAppointmentDetail.status === "CANCELLED" ? "error" : "default"}
-                    sx={{ fontSize: "1.25rem", fontWeight: 800, height: 48, px: 2 }}
-                  />
+          <DialogContent>
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Bạn đang yêu cầu bảo hành cho appointment đã hoàn thành. Appointment bảo hành sẽ được tạo với cùng thông tin dịch vụ và phụ tùng như appointment gốc.
+              </Alert>
+              {selectedOriginalAppointment && (
+                <Box sx={{ p: 2, bgcolor: "#f0f0f0", borderRadius: 2, mb: 2 }}>
+                  <MuiTypography variant="body2" sx={{ color: "#666", mb: 1 }}>
+                    <strong>Appointment gốc:</strong> {selectedOriginalAppointment.appointmentId.substring(0, 8).toUpperCase()}
+                  </MuiTypography>
+                  <MuiTypography variant="body2" sx={{ color: "#666" }}>
+                    <strong>Ngày hoàn thành:</strong> {moment(selectedOriginalAppointment.scheduledAt).format("DD/MM/YYYY HH:mm")}
+                  </MuiTypography>
                 </Box>
-
-                {/* Thông tin khách hàng - Card */}
-                <MuiCard elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
-                  <Box sx={{ bgcolor: "#1976d2", color: "white", p: 3.5, display: "flex", alignItems: "center", gap: 2.5 }}>
-                    <Person sx={{ fontSize: 48 }} />
-                    <MuiTypography variant="h3" sx={{ fontWeight: 900, fontSize: "1.9rem" }}>
-                      Thông tin khách hàng
-                    </MuiTypography>
-                  </Box>
-                  <CardContent sx={{ p: 5 }}>
-                    <Grid container spacing={4}>
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                          <Person sx={{ color: "#1976d2", fontSize: 32 }} />
-                          <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.3rem" }}>Họ và tên</MuiTypography>
-                        </Box>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem", ml: 7 }}>
-                          {guestAppointmentDetail.customerFullName}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                          <Phone sx={{ color: "#1976d2", fontSize: 32 }} />
-                          <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.3rem" }}>Số điện thoại</MuiTypography>
-                        </Box>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem", ml: 7 }}>
-                          {guestAppointmentDetail.customerPhoneNumber}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                          <Email sx={{ color: "#1976d2", fontSize: 32 }} />
-                          <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.3rem" }}>Email</MuiTypography>
-                        </Box>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem", ml: 7 }}>
-                          {guestAppointmentDetail.customerEmail}
-                        </MuiTypography>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </MuiCard>
-
-                {/* Thông tin xe - Card */}
-                <MuiCard elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
-                  <Box sx={{ bgcolor: "#2e7d32", color: "white", p: 3.5, display: "flex", alignItems: "center", gap: 2.5 }}>
-                    <DirectionsCar sx={{ fontSize: 48 }} />
-                    <MuiTypography variant="h3" sx={{ fontWeight: 900, fontSize: "1.9rem" }}>
-                      Thông tin xe
-                    </MuiTypography>
-                  </Box>
-                  <CardContent sx={{ p: 5 }}>
-                    <Grid container spacing={4}>
-                      <Grid item xs={12} sm={6}>
-                        <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Tên xe</MuiTypography>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                          {guestAppointmentDetail.vehicleTypeResponse?.vehicleTypeName || "Chưa có thông tin"}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Hãng sản xuất</MuiTypography>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                          {guestAppointmentDetail.vehicleTypeResponse?.manufacturer || "Chưa có thông tin"}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Năm sản xuất</MuiTypography>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                          {guestAppointmentDetail.vehicleTypeResponse?.modelYear || "Chưa có thông tin"}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Biển số xe</MuiTypography>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1976d2", fontSize: "1.6rem", fontFamily: "monospace", letterSpacing: 2 }}>
-                          {guestAppointmentDetail.vehicleNumberPlate || "Chưa có thông tin"}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Số km hiện tại</MuiTypography>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                          {guestAppointmentDetail.vehicleKmDistances ? `${parseInt(guestAppointmentDetail.vehicleKmDistances).toLocaleString('vi-VN')} km` : "Chưa có thông tin"}
-                        </MuiTypography>
-                      </Grid>
-                      {guestAppointmentDetail.vehicleTypeResponse?.batteryCapacity && (
-                        <Grid item xs={12} sm={6}>
-                          <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Dung lượng pin</MuiTypography>
-                          <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                            {guestAppointmentDetail.vehicleTypeResponse.batteryCapacity} kWh
-                          </MuiTypography>
-                        </Grid>
-                      )}
-                      {guestAppointmentDetail.vehicleTypeResponse?.maintenanceIntervalKm && (
-                        <Grid item xs={12} sm={6}>
-                          <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Chu kỳ bảo dưỡng (km)</MuiTypography>
-                          <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                            {guestAppointmentDetail.vehicleTypeResponse.maintenanceIntervalKm.toLocaleString('vi-VN')} km
-                          </MuiTypography>
-                        </Grid>
-                      )}
-                      {guestAppointmentDetail.vehicleTypeResponse?.maintenanceIntervalMonths && (
-                        <Grid item xs={12} sm={6}>
-                          <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Chu kỳ bảo dưỡng (tháng)</MuiTypography>
-                          <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                            {guestAppointmentDetail.vehicleTypeResponse.maintenanceIntervalMonths} tháng
-                          </MuiTypography>
-                        </Grid>
-                      )}
-                      {guestAppointmentDetail.vehicleTypeResponse?.description && (
-                        <Grid item xs={12}>
-                          <MuiTypography variant="body1" sx={{ color: "#666", mb: 2, fontWeight: 800, fontSize: "1.3rem" }}>Mô tả</MuiTypography>
-                          <Box sx={{ p: 3, bgcolor: "#f5f5f5", borderRadius: 3, borderLeft: "6px solid #2e7d32" }}>
-                            <MuiTypography variant="body1" sx={{ color: "#333", lineHeight: 2, fontSize: "1.2rem" }}>
-                              {guestAppointmentDetail.vehicleTypeResponse.description}
-                            </MuiTypography>
-                          </Box>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </CardContent>
-                </MuiCard>
-
-                {/* Thông tin cuộc hẹn - Card */}
-                <MuiCard elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
-                  <Box sx={{ bgcolor: "#9c27b0", color: "white", p: 3.5, display: "flex", alignItems: "center", gap: 2.5 }}>
-                    <CalendarToday sx={{ fontSize: 48 }} />
-                    <MuiTypography variant="h3" sx={{ fontWeight: 900, fontSize: "1.9rem" }}>
-                      Thông tin cuộc hẹn
-                    </MuiTypography>
-                  </Box>
-                  <CardContent sx={{ p: 5 }}>
-                    <Grid container spacing={4}>
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                          <Schedule sx={{ color: "#9c27b0", fontSize: 32 }} />
-                          <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.3rem" }}>Thời gian hẹn</MuiTypography>
-                        </Box>
-                        <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem", ml: 7 }}>
-                          {moment(guestAppointmentDetail.scheduledAt).format("DD/MM/YYYY HH:mm")}
-                        </MuiTypography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                          <Build sx={{ color: "#9c27b0", fontSize: 32 }} />
-                          <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.3rem" }}>Hình thức dịch vụ</MuiTypography>
-                        </Box>
-                        <Box sx={{ ml: 7 }}>
-                          <Chip
-                            icon={guestAppointmentDetail.serviceMode === "STATIONARY" ? <LocationOn /> : <DirectionsCar />}
-                            label={guestAppointmentDetail.serviceMode === "STATIONARY" ? "Tại trạm" : "Di động"}
-                            color={guestAppointmentDetail.serviceMode === "STATIONARY" ? "primary" : "success"}
-                            sx={{ fontWeight: 800, fontSize: "1.15rem", height: 40 }}
-                          />
-                        </Box>
-                      </Grid>
-                      {guestAppointmentDetail.userAddress && (
-                        <Grid item xs={12}>
-                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2.5, mb: 2.5 }}>
-                            <LocationOn sx={{ color: "#9c27b0", fontSize: 32, mt: 0.5 }} />
-                            <Box sx={{ flex: 1 }}>
-                              <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, mb: 2, fontSize: "1.3rem" }}>Địa chỉ</MuiTypography>
-                              <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.5rem", lineHeight: 1.8 }}>
-                                {guestAppointmentDetail.userAddress}
-                              </MuiTypography>
-                            </Box>
-                          </Box>
-                        </Grid>
-                      )}
-                      {guestAppointmentDetail.quotePrice && (
-                        <Grid item xs={12}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                            <AttachMoney sx={{ color: "#f57c00", fontSize: 36 }} />
-                            <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.3rem" }}>Giá tạm tính</MuiTypography>
-                          </Box>
-                          <MuiTypography variant="h3" sx={{ fontWeight: 900, color: "#f57c00", ml: 7, fontSize: "1.9rem" }}>
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(guestAppointmentDetail.quotePrice)}
-                          </MuiTypography>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </CardContent>
-                </MuiCard>
-
-                {/* Danh sách dịch vụ - Card với hierarchical structure */}
-                {guestAppointmentDetail.serviceTypeResponses && guestAppointmentDetail.serviceTypeResponses.length > 0 && (
-                  <MuiCard elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
-                    <Box sx={{ bgcolor: "#f57c00", color: "white", p: 4, display: "flex", alignItems: "center", gap: 3 }}>
-                      <Build sx={{ fontSize: 52 }} />
-                      <MuiTypography variant="h3" sx={{ fontWeight: 900, fontSize: "2rem" }}>
-                        Danh sách dịch vụ ({guestAppointmentDetail.serviceTypeResponses.length})
-                      </MuiTypography>
-                    </Box>
-                    <CardContent sx={{ p: 5, maxHeight: "650px", overflowY: "auto" }}>
-                      <Stack spacing={4}>
-                        {guestAppointmentDetail.serviceTypeResponses.map((parentService: any, parentIndex: number) => {
-                          // Debug: Log để kiểm tra children
-                          console.log(`Parent Service ${parentIndex + 1}:`, {
-                            name: parentService.serviceName,
-                            children: parentService.children,
-                            childrenLength: parentService.children?.length || 0
-                          });
-                          
-                          return (
-                            <Paper
-                              key={parentService.serviceTypeId || `parent-${parentIndex}`}
-                              elevation={2}
-                              sx={{
-                                p: 4,
-                                bgcolor: "#fff",
-                                borderRadius: 3,
-                                borderLeft: "8px solid #f57c00",
-                                transition: "all 0.3s",
-                                "&:hover": {
-                                  boxShadow: 4,
-                                  transform: "translateX(5px)",
-                                },
-                              }}
-                            >
-                              {/* Parent Service */}
-                              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 4, mb: parentService.children && parentService.children.length > 0 ? 4 : 0 }}>
-                                <Box
-                                  sx={{
-                                    minWidth: 70,
-                                    height: 70,
-                                    borderRadius: "50%",
-                                    bgcolor: "#f57c00",
-                                    color: "white",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontWeight: 900,
-                                    fontSize: "1.9rem",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {parentIndex + 1}
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2.5 }}>
-                                    <Chip
-                                      label="Dịch vụ chính"
-                                      size="medium"
-                                      sx={{ 
-                                        bgcolor: "#f57c00", 
-                                        color: "white", 
-                                        fontWeight: 900, 
-                                        fontSize: "1.1rem",
-                                        height: 36,
-                                        px: 1.5
-                                      }}
-                                    />
-                                    {parentService.estimatedDurationMinutes && (
-                                      <Chip
-                                        label={`${parentService.estimatedDurationMinutes} phút`}
-                                        size="medium"
-                                        sx={{ fontSize: "1.05rem", height: 36, fontWeight: 800 }}
-                                      />
-                                    )}
-                                  </Box>
-                                  <MuiTypography variant="h3" sx={{ fontWeight: 900, color: "#1a1a1a", mb: 2.5, fontSize: "1.8rem" }}>
-                                    {parentService.serviceName}
-                                  </MuiTypography>
-                                  {parentService.description && (
-                                    <MuiTypography variant="body1" sx={{ color: "#666", lineHeight: 2.2, fontSize: "1.25rem", mb: 2.5 }}>
-                                      {parentService.description}
-                                    </MuiTypography>
-                                  )}
-                                  
-                                  {/* Children Services - Sửa lỗi hiển thị */}
-                                  {parentService.children && Array.isArray(parentService.children) && parentService.children.length > 0 ? (
-                                    <Box sx={{ mt: 4, ml: 3, pl: 5, borderLeft: "6px solid #e0e0e0", bgcolor: "#fafafa", borderRadius: 3, p: 3.5 }}>
-                                      <MuiTypography variant="h6" sx={{ color: "#666", fontWeight: 900, mb: 3, fontSize: "1.3rem" }}>
-                                        Dịch vụ đã chọn ({parentService.children.length}):
-                                      </MuiTypography>
-                                      <Stack spacing={3}>
-                                        {parentService.children.map((childService: any, childIndex: number) => {
-                                          console.log(`Child Service ${parentIndex + 1}.${childIndex + 1}:`, childService);
-                                          return (
-                                            <Paper
-                                              key={childService?.serviceTypeId || `child-${parentIndex}-${childIndex}`}
-                                              elevation={1}
-                                              sx={{
-                                                p: 3.5,
-                                                bgcolor: "#fff",
-                                                borderRadius: 3,
-                                                borderLeft: "6px solid #4caf50",
-                                              }}
-                                            >
-                                              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 3 }}>
-                                                <Box
-                                                  sx={{
-                                                    minWidth: 50,
-                                                    height: 50,
-                                                    borderRadius: "50%",
-                                                    bgcolor: "#4caf50",
-                                                    color: "white",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    fontWeight: 900,
-                                                    fontSize: "1.3rem",
-                                                    flexShrink: 0,
-                                                  }}
-                                                >
-                                                  {parentIndex + 1}.{childIndex + 1}
-                                                </Box>
-                                                <Box sx={{ flex: 1 }}>
-                                                  <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 2 }}>
-                                                    <Chip
-                                                      label="Dịch vụ con"
-                                                      size="medium"
-                                                      sx={{ 
-                                                        bgcolor: "#4caf50", 
-                                                        color: "white", 
-                                                        fontWeight: 900, 
-                                                        fontSize: "1.05rem",
-                                                        height: 32,
-                                                        px: 1.5
-                                                      }}
-                                                    />
-                                                    {childService?.estimatedDurationMinutes && (
-                                                      <Chip
-                                                        label={`${childService.estimatedDurationMinutes} phút`}
-                                                        size="medium"
-                                                        sx={{ fontSize: "1.05rem", height: 32, fontWeight: 800 }}
-                                                      />
-                                                    )}
-                                                  </Box>
-                                                  <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", mb: 2, fontSize: "1.6rem" }}>
-                                                    {childService?.serviceName || "Tên dịch vụ không có"}
-                                                  </MuiTypography>
-                                                  {childService?.description && (
-                                                    <MuiTypography variant="body1" sx={{ color: "#666", lineHeight: 2, fontSize: "1.2rem" }}>
-                                                      {childService.description}
-                                                    </MuiTypography>
-                                                  )}
-                                                </Box>
-                                              </Box>
-                                            </Paper>
-                                          );
-                                        })}
-                                      </Stack>
-                                    </Box>
-                                  ) : null}
-                                </Box>
-                              </Box>
-                            </Paper>
-                          );
-                        })}
-                      </Stack>
-                    </CardContent>
-                  </MuiCard>
-                )}
-
-                {/* Thông tin bổ sung - Kỹ thuật viên, Người phụ trách */}
-                {(guestAppointmentDetail.technicianResponses?.length > 0 || guestAppointmentDetail.assignee) && (
-                  <MuiCard elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
-                    <Box sx={{ bgcolor: "#546e7a", color: "white", p: 3.5, display: "flex", alignItems: "center", gap: 2.5 }}>
-                      <Assignment sx={{ fontSize: 48 }} />
-                      <MuiTypography variant="h3" sx={{ fontWeight: 900, fontSize: "1.9rem" }}>
-                        Nhân viên phụ trách
-                      </MuiTypography>
-                    </Box>
-                    <CardContent sx={{ p: 5 }}>
-                      <Stack spacing={4}>
-                        {guestAppointmentDetail.assignee && (
-                          <Box>
-                            <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, mb: 2, fontSize: "1.3rem" }}>
-                              Người phân công
-                            </MuiTypography>
-                            <MuiTypography variant="h4" sx={{ fontWeight: 900, color: "#1a1a1a", fontSize: "1.6rem" }}>
-                              {guestAppointmentDetail.assignee.fullName || guestAppointmentDetail.assignee.email}
-                            </MuiTypography>
-                          </Box>
-                        )}
-                        {guestAppointmentDetail.technicianResponses && guestAppointmentDetail.technicianResponses.length > 0 && (
-                          <Box>
-                            <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, mb: 2.5, fontSize: "1.3rem" }}>
-                              Kỹ thuật viên ({guestAppointmentDetail.technicianResponses.length})
-                            </MuiTypography>
-                            <Stack spacing={2} direction="row" flexWrap="wrap">
-                              {guestAppointmentDetail.technicianResponses.map((tech: any) => (
-                                <Chip
-                                  key={tech.userId}
-                                  label={tech.fullName || tech.email}
-                                  size="medium"
-                                  sx={{ fontSize: "1.15rem", height: 40, fontWeight: 800 }}
-                                />
-                              ))}
-                            </Stack>
-                          </Box>
-                        )}
-                      </Stack>
-                    </CardContent>
-                  </MuiCard>
-                )}
-
-                {/* Ghi chú - Card */}
-                {guestAppointmentDetail.notes && (
-                  <MuiCard elevation={3} sx={{ borderRadius: 3, overflow: "hidden", bgcolor: "#fff8e1" }}>
-                    <Box sx={{ bgcolor: "#ff9800", color: "white", p: 3.5, display: "flex", alignItems: "center", gap: 2.5 }}>
-                      <Info sx={{ fontSize: 48 }} />
-                      <MuiTypography variant="h3" sx={{ fontWeight: 900, fontSize: "1.9rem" }}>
-                        Ghi chú
-                      </MuiTypography>
-                    </Box>
-                    <CardContent sx={{ p: 5 }}>
-                      <MuiTypography variant="body1" sx={{ color: "#333", lineHeight: 2.2, whiteSpace: "pre-wrap", fontSize: "1.3rem" }}>
-                        {guestAppointmentDetail.notes}
-                      </MuiTypography>
-                    </CardContent>
-                  </MuiCard>
-                )}
-
-                {/* Thông tin hệ thống */}
-                <Paper elevation={1} sx={{ p: 4, bgcolor: "#f5f5f5", borderRadius: 3 }}>
-                  <Grid container spacing={4}>
-                    <Grid item xs={12} sm={6}>
-                      <MuiTypography variant="body1" sx={{ color: "#999", display: "block", mb: 2, fontWeight: 800, fontSize: "1.15rem" }}>
-                        Ngày tạo
-                      </MuiTypography>
-                      <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.2rem" }}>
-                        {moment(guestAppointmentDetail.createdAt).format("DD/MM/YYYY HH:mm:ss")}
-                      </MuiTypography>
-                    </Grid>
-                    {guestAppointmentDetail.updatedAt && (
-                      <Grid item xs={12} sm={6}>
-                        <MuiTypography variant="body1" sx={{ color: "#999", display: "block", mb: 2, fontWeight: 800, fontSize: "1.15rem" }}>
-                          Cập nhật lần cuối
-                        </MuiTypography>
-                        <MuiTypography variant="body1" sx={{ color: "#666", fontWeight: 800, fontSize: "1.2rem" }}>
-                          {moment(guestAppointmentDetail.updatedAt).format("DD/MM/YYYY HH:mm:ss")}
-                        </MuiTypography>
-                      </Grid>
-                    )}
-                  </Grid>
-                </Paper>
-              </Stack>
-            ) : (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
-              </Box>
-            )}
+              )}
+              <MuiTypography variant="body2" sx={{ color: "#666" }}>
+                Appointment bảo hành sẽ được tạo với status PENDING và chờ xác nhận từ nhân viên.
+              </MuiTypography>
+            </Box>
           </DialogContent>
-          <DialogActions sx={{ p: 4, borderTop: "2px solid #e0e0e0", gap: 2 }}>
-            <Button 
+          <DialogActions sx={{ p: 3 }}>
+            <Button
               onClick={() => {
-                setGuestAppointmentModalOpen(false);
-                setGuestAppointmentDetail(null);
-                setOtpVerified(false);
+                setWarrantyModalVisible(false);
+                setSelectedOriginalAppointment(null);
               }}
-              variant="outlined"
-              startIcon={<Close />}
-              size="large"
+              disabled={creatingWarranty}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCreateWarrantyAppointment}
+              disabled={creatingWarranty}
+              startIcon={creatingWarranty ? <CircularProgress size={20} /> : <Construction />}
               sx={{
-                minWidth: 120,
-                borderColor: "#d0d0d0",
-                color: "#666",
-                fontSize: "1.15rem",
-                fontWeight: 700,
-                py: 1.5,
-                px: 3,
+                backgroundColor: "#f59e0b",
                 "&:hover": {
-                  borderColor: "#999",
-                  bgcolor: "#f5f5f5",
+                  backgroundColor: "#d97706",
                 },
               }}
             >
-              Đóng
+              {creatingWarranty ? "Đang tạo..." : "Tạo yêu cầu bảo hành"}
             </Button>
-            {guestAppointmentDetail?.status === "PENDING" && (
-              <Button
-                variant="contained"
-                startIcon={<Edit />}
-                size="large"
-                onClick={() => {
-                  // Navigate to edit page with appointment ID, guest mode, and store OTP info in sessionStorage
-                  if (selectedAppointmentId && guestEmail && otpCode) {
-                    sessionStorage.setItem("guestAppointmentEdit", JSON.stringify({
-                      appointmentId: selectedAppointmentId,
-                      email: guestEmail,
-                      otp: otpCode
-                    }));
-                    setGuestAppointmentModalOpen(false);
-                    navigate(`/client/booking?appointmentId=${selectedAppointmentId}&mode=edit&guest=true`);
-                  } else {
-                    message.error("Thông tin xác thực không đầy đủ. Vui lòng xác thực lại OTP.");
-                  }
-                }}
-                sx={{
-                  backgroundColor: "#1976d2",
-                  minWidth: 160,
-                  fontSize: "1.15rem",
-                  fontWeight: 700,
-                  py: 1.5,
-                  px: 3,
-                  "&:hover": { 
-                    backgroundColor: "#1565c0",
-                    boxShadow: 2,
-                  },
-                }}
-              >
-                Chỉnh sửa
-              </Button>
-            )}
           </DialogActions>
         </Dialog>
         </Card>

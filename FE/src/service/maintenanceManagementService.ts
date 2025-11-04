@@ -93,4 +93,23 @@ export const maintenanceManagementService = {
     console.log("SEARCH MAINTENANCE BY TECHNICIAN RESPONSE:", response);
     return response.data.data;
   },
+
+  // Create maintenance management
+  create: async (data: any) => {
+    const response = await apiClient.post<ApiResponse<string>>(
+      `/maintenance-management/`,
+      data
+    );
+    console.log("CREATE MAINTENANCE MANAGEMENT RESPONSE:", response);
+    return response.data;
+  },
+
+  // Delete maintenance management
+  delete: async (id: string) => {
+    const response = await apiClient.delete<ApiResponse<string>>(
+      `/maintenance-management/${id}/`
+    );
+    console.log("DELETE MAINTENANCE MANAGEMENT RESPONSE:", response);
+    return response.data;
+  },
 };

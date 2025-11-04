@@ -41,6 +41,8 @@ export const ServiceBookingPage: React.FC = () => {
     const [appointmentId, setAppointmentId] = useState<string | null>(null);
     const [loadingAppointment, setLoadingAppointment] = useState(false);
     const [guestOtpInfo, setGuestOtpInfo] = useState<{ email: string; otp: string } | null>(null);
+    const [pendingAppointmentServices, setPendingAppointmentServices] = useState<string[] | null>(null);
+    const [originalAppointmentData, setOriginalAppointmentData] = useState<any>(null); // Store original appointment data for price calculation
 
     // Confirmation modal states
     const [confirmModalVisible, setConfirmModalVisible] = useState(false);
@@ -64,20 +66,22 @@ export const ServiceBookingPage: React.FC = () => {
             setIsGuestMode(guest);
             
             // Load guest OTP info from sessionStorage if guest mode
+            let otpInfo: { email: string; otp: string } | null = null;
             if (guest) {
                 try {
                     const guestEditInfo = sessionStorage.getItem("guestAppointmentEdit");
                     if (guestEditInfo) {
                         const parsed = JSON.parse(guestEditInfo);
-                        setGuestOtpInfo({ email: parsed.email, otp: parsed.otp });
+                        otpInfo = { email: parsed.email, otp: parsed.otp };
+                        setGuestOtpInfo(otpInfo);
                     }
                 } catch (e) {
                     console.error("Error parsing guest appointment edit info:", e);
                 }
             }
             
-            // Load appointment data
-            loadAppointmentForEdit(appointmentIdParam);
+            // Load appointment data - pass guest mode and OTP info directly
+            loadAppointmentForEdit(appointmentIdParam, guest, otpInfo);
         }
     }, [searchParams]);
 
@@ -96,6 +100,17 @@ export const ServiceBookingPage: React.FC = () => {
             form.setFieldValue("services", undefined);
         }
     }, [selectedVehicleTypeId]);
+
+    // Set services into form when serviceTypes are loaded and we have pending services (edit mode)
+    useEffect(() => {
+        if (isEditMode && pendingAppointmentServices !== null && serviceTypes.length > 0) {
+            console.log("📋 Setting services from appointment:", pendingAppointmentServices);
+            form.setFieldsValue({
+                services: pendingAppointmentServices.length > 0 ? pendingAppointmentServices : undefined,
+            });
+            setPendingAppointmentServices(null); // Clear after setting
+        }
+    }, [serviceTypes, isEditMode, pendingAppointmentServices]);
 
     const handleOldData = () => {
         setIsUseOldData(true);
@@ -214,14 +229,56 @@ export const ServiceBookingPage: React.FC = () => {
         }
     };
 
+    // Helper function to extract all service IDs from appointment response (including children)
+    const extractServiceIdsFromAppointment = (serviceTypeResponses: any[]): string[] => {
+        const serviceIds: string[] = [];
+        
+        if (!serviceTypeResponses || serviceTypeResponses.length === 0) {
+            return serviceIds;
+        }
+        
+        serviceTypeResponses.forEach((service: any) => {
+            // Nếu service có children và có children được chọn
+            if (service.children && Array.isArray(service.children) && service.children.length > 0) {
+                // Chỉ thêm children IDs, không thêm parent ID
+                service.children.forEach((child: any) => {
+                    if (child.serviceTypeId) {
+                        serviceIds.push(child.serviceTypeId);
+                    }
+                });
+            } else {
+                // Nếu không có children, thêm chính service đó
+                if (service.serviceTypeId) {
+                    serviceIds.push(service.serviceTypeId);
+                }
+            }
+        });
+        
+        return serviceIds;
+    };
+
     // Load appointment data for edit mode
-    const loadAppointmentForEdit = async (id: string) => {
+    const loadAppointmentForEdit = async (id: string, guestMode: boolean = false, otpInfo: { email: string; otp: string } | null = null) => {
         setLoadingAppointment(true);
         try {
             let appointmentData;
-            if (isGuestMode && guestOtpInfo) {
+            if (guestMode && otpInfo) {
                 // For guest, use verify OTP API to get appointment details
-                appointmentData = await bookingService.verifyOtpForGuestAppointment(id, guestOtpInfo.email, guestOtpInfo.otp);
+                appointmentData = await bookingService.verifyOtpForGuestAppointment(id, otpInfo.email, otpInfo.otp);
+            } else if (guestMode && !otpInfo) {
+                // If guest mode but no OTP info, try to get from sessionStorage
+                try {
+                    const guestEditInfo = sessionStorage.getItem("guestAppointmentEdit");
+                    if (guestEditInfo) {
+                        const parsed = JSON.parse(guestEditInfo);
+                        appointmentData = await bookingService.verifyOtpForGuestAppointment(id, parsed.email, parsed.otp);
+                    } else {
+                        throw new Error("Không tìm thấy thông tin OTP. Vui lòng xác thực lại.");
+                    }
+                } catch (e) {
+                    console.error("Error getting OTP from sessionStorage:", e);
+                    throw e;
+                }
             } else {
                 // For authenticated users, use regular getById API
                 const response = await bookingService.getAppointmentById(id);
@@ -229,7 +286,10 @@ export const ServiceBookingPage: React.FC = () => {
             }
             
             if (appointmentData) {
-                // Fill form with appointment data
+                // Store original appointment data for price calculation
+                setOriginalAppointmentData(appointmentData);
+                
+                // Fill basic form fields first
                 form.setFieldsValue({
                     customerName: appointmentData.customerFullName,
                     phone: appointmentData.customerPhoneNumber,
@@ -242,13 +302,24 @@ export const ServiceBookingPage: React.FC = () => {
                     serviceType: appointmentData.serviceMode,
                     dateTime: appointmentData.scheduledAt ? dayjs(appointmentData.scheduledAt) : null,
                     notes: appointmentData.notes || "",
-                    services: appointmentData.serviceTypeResponses?.map((s: any) => s.serviceTypeId) || [],
                 });
+                
+                // Extract service IDs from appointment
+                const serviceIds = extractServiceIdsFromAppointment(appointmentData.serviceTypeResponses);
                 
                 // Set vehicle type to load services
                 if (appointmentData.vehicleTypeResponse?.vehicleTypeId) {
                     setSelectedVehicleTypeId(appointmentData.vehicleTypeResponse.vehicleTypeId);
+                    // Fetch service types first, then set services via useEffect
                     await fetchServiceTypes(appointmentData.vehicleTypeResponse.vehicleTypeId);
+                    // Store service IDs to be set after serviceTypes are loaded
+                    // Use null if empty to avoid unnecessary processing
+                    setPendingAppointmentServices(serviceIds.length > 0 ? serviceIds : null);
+                } else {
+                    // If no vehicle type, just set services directly
+                    form.setFieldsValue({
+                        services: serviceIds.length > 0 ? serviceIds : undefined,
+                    });
                 }
                 
                 if (appointmentData.serviceMode) {
@@ -259,7 +330,11 @@ export const ServiceBookingPage: React.FC = () => {
             console.error("Error loading appointment for edit:", error);
             message.error(error?.response?.data?.message || "Không thể tải thông tin cuộc hẹn. Vui lòng thử lại.");
             // Redirect back if failed
-            navigate("/client/lookup-appointments");
+            if (guestMode) {
+                navigate("/client/lookup");
+            } else {
+                navigate("/client/appointment-history");
+            }
         } finally {
             setLoadingAppointment(false);
         }
@@ -358,7 +433,14 @@ export const ServiceBookingPage: React.FC = () => {
 
     // Hàm tính giá tạm tính (quote price) dựa trên danh sách service IDs
     const calculateQuotePrice = (serviceIds: string[]): number => {
-        if (!serviceIds || serviceIds.length === 0) return 0;
+        if (!serviceIds || serviceIds.length === 0) {
+            console.log("💰 calculateQuotePrice: No service IDs provided");
+            return 0;
+        }
+        
+        console.log("💰 calculateQuotePrice - Input serviceIds:", serviceIds);
+        console.log("💰 calculateQuotePrice - Available serviceTypes:", serviceTypes.length);
+        console.log("💰 calculateQuotePrice - Has originalAppointmentData:", !!originalAppointmentData);
         
         // Helper function để tìm service trong tree
         const findServiceInTree = (services: any[], id: string): any | null => {
@@ -374,21 +456,73 @@ export const ServiceBookingPage: React.FC = () => {
             return null;
         };
         
+        // Helper function để tìm service trong original appointment data
+        const findServiceInOriginalAppointment = (serviceId: string): any | null => {
+            if (!originalAppointmentData || !originalAppointmentData.serviceTypeResponses) {
+                return null;
+            }
+            
+            for (const service of originalAppointmentData.serviceTypeResponses) {
+                if (service.serviceTypeId === serviceId) {
+                    return service;
+                }
+                if (service.children && service.children.length > 0) {
+                    for (const child of service.children) {
+                        if (child.serviceTypeId === serviceId) {
+                            return child;
+                        }
+                    }
+                }
+            }
+            return null;
+        };
+        
         let totalPrice = 0;
+        const notFoundServices: string[] = [];
+        
         serviceIds.forEach(serviceId => {
-            const service = findServiceInTree(serviceTypes, serviceId);
-            if (service && service.serviceTypeVehiclePartResponses) {
+            let service = findServiceInTree(serviceTypes, serviceId);
+            let serviceName = service?.serviceName || 'Unknown';
+            
+            // If service not found in serviceTypes or has no vehicle parts, try to find in original appointment data
+            if (!service || !service.serviceTypeVehiclePartResponses || service.serviceTypeVehiclePartResponses.length === 0) {
+                if (isEditMode && originalAppointmentData) {
+                    const originalService = findServiceInOriginalAppointment(serviceId);
+                    if (originalService && originalService.serviceTypeVehiclePartResponses && originalService.serviceTypeVehiclePartResponses.length > 0) {
+                        console.log(`💰 Using original appointment data for service: ${originalService.serviceName || serviceName} (${serviceId})`);
+                        service = originalService;
+                    }
+                }
+            }
+            
+            if (service && service.serviceTypeVehiclePartResponses && service.serviceTypeVehiclePartResponses.length > 0) {
+                console.log(`💰 Found service: ${service.serviceName || serviceName} (${service.serviceTypeId || serviceId})`);
                 service.serviceTypeVehiclePartResponses.forEach((stvp: any) => {
                     if (stvp.vehiclePart && stvp.vehiclePart.unitPrice) {
                         // Calculate price based on required quantity (default to 1 if not specified)
                         const quantity = stvp.requiredQuantity || 1;
                         const price = stvp.vehiclePart.unitPrice * quantity;
+                        console.log(`💰   Part: ${stvp.vehiclePart.partName || 'N/A'}, UnitPrice: ${stvp.vehiclePart.unitPrice}, Quantity: ${quantity}, Price: ${price}`);
                         totalPrice += price;
                     }
                 });
+            } else {
+                notFoundServices.push(serviceId);
+                console.warn(`⚠️ Service ID ${serviceId} not found or has no vehicle parts`);
             }
         });
         
+        if (notFoundServices.length > 0) {
+            console.warn(`⚠️ calculateQuotePrice: Some services not found or have no parts:`, notFoundServices);
+            if (serviceTypes.length > 0) {
+                console.warn(`⚠️ Available service IDs:`, serviceTypes.flatMap(s => [
+                    s.serviceTypeId,
+                    ...(s.children || []).map((c: any) => c.serviceTypeId)
+                ]));
+            }
+        }
+        
+        console.log("💰 calculateQuotePrice - Total price:", totalPrice);
         return totalPrice;
     };
 
@@ -401,9 +535,16 @@ export const ServiceBookingPage: React.FC = () => {
 
         // Xử lý service selection theo logic mới
         const processedServiceIds = processServiceSelection(values.services || [], serviceTreeData);
+        
+        console.log("📋 Form values.services:", values.services);
+        console.log("📋 Processed service IDs:", processedServiceIds);
+        console.log("📋 ServiceTypes loaded:", serviceTypes.length, "services");
+        console.log("📋 ServiceTreeData:", serviceTreeData.length, "items");
 
         // Tính giá tạm tính (quote price)
         const quotePrice = calculateQuotePrice(processedServiceIds);
+        
+        console.log("💰 Calculated quote price:", quotePrice);
 
         // Map form values to API request
         // Determine if we should include customerId
@@ -469,16 +610,55 @@ export const ServiceBookingPage: React.FC = () => {
                 
                 if (response.data.success) {
                     message.success(response.data.message || "Cập nhật cuộc hẹn thành công!");
-                    // Clear sessionStorage if guest mode
-                    if (isGuestMode) {
-                        sessionStorage.removeItem("guestAppointmentEdit");
-                    }
                     setConfirmModalVisible(false);
-                    // Navigate back to appointment detail page if authenticated user, otherwise to lookup page
-                    if (appointmentId && !isGuestMode) {
-                        navigate(`/client/appointment/${appointmentId}`);
+                    
+                    // For guest mode: After successful update, we need to re-fetch appointment data
+                    // But OTP is deleted after update, so we'll need to send a new OTP request
+                    // For now, we'll keep guestAppointmentEdit in sessionStorage so user can re-verify if needed
+                    // And update the appointment data in sessionStorage by fetching from API after reload
+                    if (isGuestMode && appointmentId && guestOtpInfo) {
+                        // Keep guestAppointmentEdit for future edits (even though OTP might be invalid)
+                        // User will need to request new OTP if they want to edit again
+                        // But we'll try to fetch updated data using the current OTP before it gets deleted
+                        // Note: This might fail if OTP is already deleted, but we'll try anyway
+                        try {
+                            const updatedAppointmentData = await bookingService.verifyOtpForGuestAppointment(
+                                appointmentId,
+                                guestOtpInfo.email,
+                                guestOtpInfo.otp
+                            );
+                            
+                            // Update sessionStorage with fresh data
+                            const guestDataKey = `guestAppointment_${appointmentId}`;
+                            const updatedGuestData = {
+                                appointment: updatedAppointmentData,
+                                email: guestOtpInfo.email,
+                                verifiedAt: new Date().toISOString()
+                            };
+                            sessionStorage.setItem(guestDataKey, JSON.stringify(updatedGuestData));
+                            
+                            console.log("✅ Updated guest appointment data in sessionStorage");
+                        } catch (error) {
+                            console.error("⚠️ Could not fetch updated appointment data (OTP may be deleted):", error);
+                            // Remove old sessionStorage data so AppointmentDetailPage will fetch fresh data
+                            const guestDataKey = `guestAppointment_${appointmentId}`;
+                            sessionStorage.removeItem(guestDataKey);
+                            // Also remove guestAppointmentEdit so user needs to verify again
+                            sessionStorage.removeItem("guestAppointmentEdit");
+                        }
+                    }
+                    
+                    // Navigate back to appointment detail page with reload for both authenticated users and guests
+                    if (appointmentId) {
+                        // Use window.location.href to force full page reload and fetch fresh data
+                        window.location.href = `/client/appointment/${appointmentId}`;
                     } else {
-                        navigate("/client/lookup-appointments");
+                        // Fallback: if no appointmentId, navigate based on mode
+                        if (isGuestMode) {
+                            navigate("/client/lookup-appointments");
+                        } else {
+                            navigate("/client/appointment-history");
+                        }
                     }
                 } else {
                     message.error(response.data.message || "Cập nhật cuộc hẹn thất bại!");

@@ -57,6 +57,32 @@ public class InvoiceConstants {
     public static final String LOG_INFO_SENT_PAYMENT_FAILED_EMAIL = "Sent payment failed email to customer: {}";
     public static final String LOG_ERR_FAILED_SEND_PAYMENT_FAILED_EMAIL = "Failed to send payment failed email: {}";
     
+    // Additional log and exception messages
+    public static final String LOG_INFO_GETTING_INVOICE_FOR_APPOINTMENT = "Getting invoice for appointment: {}";
+    public static final String LOG_WARN_APPOINTMENT_NOT_FOUND = "Appointment not found: {}";
+    public static final String MESSAGE_ERR_APPOINTMENT_NOT_READY_FOR_PAYMENT = "Appointment chưa sẵn sàng để thanh toán. Trạng thái hiện tại: %s";
+    public static final String LOG_WARN_APPOINTMENT_NOT_READY_STATUS = "Appointment {} is not in PENDING_PAYMENT or COMPLETED status";
+    public static final String LOG_WARN_NO_INVOICE_FOUND_FOR_APPOINTMENT = "No invoice found for appointment: {}";
+    public static final String MESSAGE_ERR_NO_INVOICE_FOUND_FOR_APPOINTMENT = "Không tìm thấy hóa đơn cho appointment này";
+    public static final String LOG_DEBUG_VEHICLE_NOT_FOUND_BY_PLATE = "Vehicle not found by plate number: {}";
+    public static final String LOG_DEBUG_ERROR_CHECKING_WARRANTY = "Error checking warranty for part {}: {}";
+    public static final String LOG_INFO_SUCCESSFULLY_RETRIEVED_INVOICE = "Successfully retrieved invoice for appointment: {}";
+    public static final String LOG_WARN_INVOICE_NOT_IN_PENDING_STATUS = "Invoice {} is not in PENDING status";
+    public static final String MESSAGE_ERR_INVOICE_ALREADY_PAID_OR_CANCELLED = "Hóa đơn đã được thanh toán hoặc đã hủy";
+    public static final String LOG_WARN_APPOINTMENT_NOT_PENDING_PAYMENT = "Appointment is not in PENDING_PAYMENT status";
+    public static final String MESSAGE_ERR_APPOINTMENT_NOT_PENDING_PAYMENT = "Appointment không ở trạng thái chờ thanh toán";
+    public static final String LOG_WARN_INVALID_PAID_AMOUNT = "Invalid paid amount: {}";
+    public static final String MESSAGE_ERR_INVALID_PAYMENT_AMOUNT = "Số tiền thanh toán không hợp lệ";
+    public static final String LOG_WARN_PAID_AMOUNT_LESS_THAN_TOTAL = "Paid amount {} is less than total amount {}";
+    public static final String MESSAGE_ERR_PAID_AMOUNT_MUST_EQUAL_TOTAL = "Số tiền thanh toán phải bằng tổng tiền hóa đơn";
+    public static final String LOG_INFO_INVOICE_MARKED_AS_PAID = "Invoice {} marked as PAID";
+    public static final String LOG_INFO_APPOINTMENT_MARKED_AS_COMPLETED = "Appointment {} marked as COMPLETED";
+    public static final String LOG_DEBUG_NO_SHIFTS_FOUND_TO_UPDATE_COMPLETED = "No shifts found for appointment {} to update to COMPLETED";
+    public static final String LOG_INFO_AUTO_UPDATED_SHIFT_TO_COMPLETED = "✅ Auto-updated shift {} status to COMPLETED when appointment {} completed after payment";
+    public static final String LOG_INFO_UPDATED_SHIFTS_TO_COMPLETED = "✅ Updated {} shift(s) to COMPLETED for appointment {}";
+    public static final String LOG_DEBUG_NO_SHIFTS_NEEDED_UPDATE_COMPLETED = "No shifts needed status update for appointment {} (all shifts are already COMPLETED or other status)";
+    public static final String LOG_ERR_FAILED_UPDATE_SHIFT_STATUS_ON_PAYMENT = "⚠️ Failed to update shift status when appointment {} completed after payment: {}";
+    
     // Email Content - Payment Confirmation
     public static final String EMAIL_SUBJECT_PAYMENT_CONFIRMATION = "Xác nhận thanh toán hóa đơn thành công";
     public static final String EMAIL_BODY_PAYMENT_CONFIRMATION_GREETING = "Xin chào %s,\n\n";

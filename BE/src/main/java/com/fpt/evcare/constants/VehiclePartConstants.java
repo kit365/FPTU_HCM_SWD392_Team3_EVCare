@@ -76,4 +76,7 @@ public class VehiclePartConstants {
     public static final String VEHICLE_PART_DELETE = "/{id}";
     public static final String VEHICLE_PART_RESTORE = "/restore/{id}";
     public static final String VEHICLE_PART_CREATION = "/";
+    
+    // Additional log messages
+    public static final String LOG_INFO_NO_VEHICLE_PARTS_FOUND = "No vehicle parts found - returning empty page";
 }

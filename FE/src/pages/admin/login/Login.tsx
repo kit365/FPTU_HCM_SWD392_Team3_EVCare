@@ -183,7 +183,7 @@ export const LoginPage = () => {
                             />
                         </Box>
                         <Box>
-                            <Typography sx={{ fontSize: "1.8rem", fontWeight: 700, lineHeight: 1.2 }}>EVCare</Typography>
+                            <Typography sx={{ fontSize: "2.5rem", fontWeight: 700, lineHeight: 1.2 }}>EVCare</Typography>
                             <Chip 
                                 label="ADMIN PANEL" 
                                 size="small" 
@@ -191,8 +191,8 @@ export const LoginPage = () => {
                                     background: "rgba(255,255,255,0.2)",
                                     color: "white",
                                     fontWeight: 600,
-                                    fontSize: "0.7rem",
-                                    height: "20px",
+                                    fontSize: "0.9rem",
+                                    height: "24px",
                                     letterSpacing: 1,
                                 }} 
                             />
@@ -200,7 +200,7 @@ export const LoginPage = () => {
                     </Box>
 
                     <Typography sx={{ 
-                        fontSize: "2.5rem", 
+                        fontSize: "3.5rem", 
                         fontWeight: 800, 
                         mb: 2,
                         textShadow: "0 2px 10px rgba(0,0,0,0.1)",
@@ -212,7 +212,7 @@ export const LoginPage = () => {
                     </Typography>
                     
                     <Typography sx={{ 
-                        fontSize: "1.05rem", 
+                        fontSize: "1.4rem", 
                         opacity: 0.95,
                         maxWidth: 400,
                         textAlign: "center",
@@ -278,7 +278,7 @@ export const LoginPage = () => {
 
                     <Typography
                         sx={{
-                            fontSize: "2rem",
+                            fontSize: "2.8rem",
                             fontWeight: 700,
                             color: "#1a1a1a",
                             textAlign: "center",
@@ -292,7 +292,7 @@ export const LoginPage = () => {
                     </Typography>
                     <Typography
                         sx={{
-                            fontSize: "0.95rem",
+                            fontSize: "1.2rem",
                             color: "#999",
                             textAlign: "center",
                             mb: 4,
@@ -315,11 +315,11 @@ export const LoginPage = () => {
                                 error={!!errors.email}
                                 helperText={errors.email?.message}
                                 FormHelperTextProps={{
-                                    sx: { fontSize: "0.8rem", mt: 0.5 }
+                                    sx: { fontSize: "1rem", mt: 0.5 }
                                 }}
                                 InputProps={{
                                     sx: {
-                                        fontSize: "1rem",
+                                        fontSize: "1.2rem",
                                         py: 0.5,
                                         "& .MuiOutlinedInput-notchedOutline": {
                                             borderColor: "#e0e0e0",
@@ -334,7 +334,7 @@ export const LoginPage = () => {
                                     },
                                 }}
                                 InputLabelProps={{
-                                    sx: { fontSize: "1rem" },
+                                    sx: { fontSize: "1.2rem" },
                                 }}
                             />
                         </Box>
@@ -352,11 +352,11 @@ export const LoginPage = () => {
                                 error={!!errors.password}
                                 helperText={errors.password?.message}
                                 FormHelperTextProps={{
-                                    sx: { fontSize: "0.8rem", mt: 0.5 }
+                                    sx: { fontSize: "1rem", mt: 0.5 }
                                 }}
                                 InputProps={{
                                     sx: {
-                                        fontSize: "1rem",
+                                        fontSize: "1.2rem",
                                         py: 0.5,
                                         "& .MuiOutlinedInput-notchedOutline": {
                                             borderColor: "#e0e0e0",
@@ -388,7 +388,7 @@ export const LoginPage = () => {
                                     ),
                                 }}
                                 InputLabelProps={{
-                                    sx: { fontSize: "1rem" },
+                                    sx: { fontSize: "1.2rem" },
                                 }}
                             />
                         </Box>
@@ -399,9 +399,9 @@ export const LoginPage = () => {
                             variant="contained"
                             fullWidth
                             sx={{
-                                py: 1.8,
+                                py: 2,
                                 fontWeight: 600,
-                                fontSize: "1rem",
+                                fontSize: "1.2rem",
                                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                                 boxShadow: "0 4px 14px rgba(102, 126, 234, 0.25)",
                                 textTransform: "none",
@@ -425,7 +425,7 @@ export const LoginPage = () => {
 
                         {/* Divider */}
                         <Divider sx={{ my: 3.5 }}>
-                            <Typography sx={{ color: "#999", fontSize: "0.85rem" }}>
+                            <Typography sx={{ color: "#999", fontSize: "1.1rem" }}>
                                 OR
                             </Typography>
                         </Divider>
@@ -438,8 +438,8 @@ export const LoginPage = () => {
                                     fullWidth
                                     startIcon={<Person />}
                                     sx={{
-                                        py: 1.5,
-                                        fontSize: "0.95rem",
+                                        py: 1.8,
+                                        fontSize: "1.15rem",
                                         fontWeight: 500,
                                         borderColor: "#ddd",
                                         color: "#666",

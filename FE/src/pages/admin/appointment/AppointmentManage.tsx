@@ -36,16 +36,17 @@ import { RoleEnum } from "../../../constants/roleConstants";
 import { useAuthContext } from "../../../context/useAuthContext";
 
 const columns = [
-  { title: "STT", width: 5 },
-  { title: "Khách hàng", width: 12 },
-  { title: "Số điện thoại", width: 10 },
-  { title: "Email", width: 15 },
-  { title: "Biển số xe", width: 10 },
-  { title: "Loại xe", width: 12 },
+  { title: "STT", width: 4 },
+  { title: "Khách hàng", width: 10 },
+  { title: "Số điện thoại", width: 9 },
+  { title: "Email", width: 12 },
+  { title: "Biển số xe", width: 9 },
+  { title: "Loại xe", width: 10 },
   { title: "Ngày hẹn", width: 10 },
-  { title: "Dịch vụ", width: 8 },
-  { title: "Trạng thái", width: 8 },
-  { title: "Hành động", width: 10 },
+  { title: "Dịch vụ", width: 7 },
+  { title: "Yêu cầu bảo hành", width: 8 },
+  { title: "Trạng thái", width: 7 },
+  { title: "Hành động", width: 14 },
 ];
 
 const AppointmentManage = () => {
@@ -63,6 +64,22 @@ const AppointmentManage = () => {
   const [newStatus, setNewStatus] = useState<string>("");
 
   const { list, totalPages, search, loading, updateStatus } = useAppointment();
+
+  // Sort appointments: warranty appointments first, then by scheduledAt ascending
+  const sortedList = Array.isArray(list) ? [...list].sort((a, b) => {
+    // Ưu tiên warranty appointments trước
+    const aIsWarranty = a.isWarrantyAppointment === true ? 1 : 0;
+    const bIsWarranty = b.isWarrantyAppointment === true ? 1 : 0;
+    
+    if (aIsWarranty !== bIsWarranty) {
+      return bIsWarranty - aIsWarranty; // Warranty appointments (1) sẽ đứng trước (0)
+    }
+    
+    // Nếu cùng loại, sort theo scheduledAt tăng dần (ngày gần nhất)
+    const aDate = new Date(a.scheduledAt).getTime();
+    const bDate = new Date(b.scheduledAt).getTime();
+    return aDate - bDate;
+  }) : [];
 
   const load = useCallback(() => {
     search({ 
@@ -317,14 +334,14 @@ const AppointmentManage = () => {
                   </tr>
                 </thead>
                 <tbody className="text-[#2b2d3b] text-[1.3rem]">
-                  {Array.isArray(list) && list.length > 0 ? (
-                    list.map((item: any, index: number) => {
+                  {sortedList.length > 0 ? (
+                    sortedList.map((item: any, index: number) => {
                       const statusInfo = getStatusLabel(item.status);
                       return (
                         <tr
                           key={item.appointmentId}
                           className={`border-b border-gray-200 text-center ${
-                            index !== (Array.isArray(list) ? list.length - 1 : 0)
+                            index !== sortedList.length - 1
                               ? "border-dashed"
                               : "border-none"
                           } ${
@@ -346,6 +363,15 @@ const AppointmentManage = () => {
                           </td>
                           <td className="p-[1.2rem]">
                             {getServiceModeLabel(item.serviceMode)}
+                          </td>
+                          <td className="p-[1.2rem]">
+                            {item.isWarrantyAppointment ? (
+                              <span className="px-2 py-1 rounded-full text-[1rem] font-medium bg-yellow-100 text-yellow-700 border border-yellow-300">
+                                Yêu cầu bảo hành
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </td>
                           <td className="p-[1.2rem]">
                             <span
@@ -408,7 +434,7 @@ const AppointmentManage = () => {
                 </tbody>
               </table>
 
-              {Array.isArray(list) && list.length > 0 && (
+              {sortedList.length > 0 && (
                 <Stack spacing={2} className="mt-[2rem]">
                   <Pagination
                     count={totalPages}

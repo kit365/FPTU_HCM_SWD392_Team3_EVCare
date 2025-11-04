@@ -275,15 +275,15 @@ public class UserServiceImpl implements UserService {
             // Check pending appointments
             Long pendingAppointmentsCount = appointmentRepository.countPendingAppointmentsByCustomerId(id);
             if(pendingAppointmentsCount != null && pendingAppointmentsCount > 0) {
-                log.warn("Cannot delete customer with pending appointments. Customer: {}", user.getUsername());
-                throw new UserValidationException("Không thể xóa tài khoản vì bạn vẫn còn " + pendingAppointmentsCount + " cuộc hẹn đang chờ xử lý. Vui lòng hoàn tất hoặc hủy các cuộc hẹn trước khi xóa tài khoản.");
+                log.warn(UserConstants.LOG_WARN_CANNOT_DELETE_CUSTOMER_PENDING_APPOINTMENTS, user.getUsername());
+                throw new UserValidationException(String.format(UserConstants.MESSAGE_ERR_CANNOT_DELETE_USER_PENDING_APPOINTMENTS, pendingAppointmentsCount));
             }
 
             // Check unpaid invoices
             Long unpaidInvoicesCount = invoiceRepository.countUnpaidInvoicesByCustomerId(id);
             if(unpaidInvoicesCount != null && unpaidInvoicesCount > 0) {
-                log.warn("Cannot delete customer with unpaid invoices. Customer: {}", user.getUsername());
-                throw new UserValidationException("Không thể xóa tài khoản vì bạn vẫn còn " + unpaidInvoicesCount + " hóa đơn chưa thanh toán. Vui lòng thanh toán các hóa đơn trước khi xóa tài khoản.");
+                log.warn(UserConstants.LOG_WARN_CANNOT_DELETE_CUSTOMER_UNPAID_INVOICES, user.getUsername());
+                throw new UserValidationException(String.format(UserConstants.MESSAGE_ERR_CANNOT_DELETE_USER_UNPAID_INVOICES, unpaidInvoicesCount));
             }
         }
 
@@ -312,7 +312,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<TechnicianResponse> getTechnicians() {
-        log.info("Getting technicians list");
+        log.info(UserConstants.LOG_INFO_GETTING_TECHNICIANS_LIST);
         List<UserEntity> technicians = userRepository.findTechnicians();
 
         return technicians.stream()
@@ -330,7 +330,7 @@ public class UserServiceImpl implements UserService {
             List<UserEntity> users = userRepository.findByRoleNameAndIsDeletedFalse(roleEnum);
 
             if (users.isEmpty()) {
-                log.warn("No users found for role: {}", roleName);
+                log.warn(UserConstants.LOG_WARN_NO_USERS_FOUND_FOR_ROLE, roleName);
                 return new ArrayList<>();
             }
 
@@ -345,11 +345,11 @@ public class UserServiceImpl implements UserService {
                 userResponses.add(response);
             }
 
-            log.info("Found {} users for role: {}", userResponses.size(), roleName);
+            log.info(UserConstants.LOG_INFO_FOUND_USERS_FOR_ROLE, userResponses.size(), roleName);
             return userResponses;
         } catch (IllegalArgumentException e) {
-            log.error("Invalid role name: {}", roleName);
-            throw new ResourceNotFoundException("Vai trò không hợp lệ: " + roleName);
+            log.error(UserConstants.LOG_ERR_INVALID_ROLE_NAME, roleName);
+            throw new ResourceNotFoundException(String.format(UserConstants.MESSAGE_ERR_INVALID_ROLE_NAME, roleName));
         }
     }
 
@@ -428,7 +428,7 @@ public class UserServiceImpl implements UserService {
         response.setRoleName(roleNames);
         response.setIsAdmin(isAdminRole(roleNames));
 
-        log.info("✅ Updated profile for user: {}", userId);
+        log.info(UserConstants.LOG_INFO_UPDATED_PROFILE_FOR_USER, userId);
         return response;
     }
 }

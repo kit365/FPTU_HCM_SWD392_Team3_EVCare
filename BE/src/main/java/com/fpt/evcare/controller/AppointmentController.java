@@ -36,6 +36,7 @@ public class AppointmentController {
 
     AppointmentService appointmentService;
     com.fpt.evcare.service.RedisService<String> redisService;
+    com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @GetMapping(AppointmentConstants.SERVICE_MODE)
     @Operation(summary = "Lấy danh sách Service Mode", description = "🔓 **Public** - Hiển thị toàn bộ các giá trị của enum ServiceModeEnum")
@@ -241,6 +242,28 @@ public class AppointmentController {
                 );
     }
 
+    @GetMapping(AppointmentConstants.WARRANTY_APPOINTMENTS)
+    @Operation(summary = "Lấy danh sách warranty appointments (COMPLETED và isWarrantyAppointment = true)", 
+            description = "👨‍💼 **Roles:** ADMIN, STAFF - Lấy danh sách các cuộc hẹn bảo hành đã hoàn thành")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<PageResponse<AppointmentResponse>>> getWarrantyAppointments(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
+            @Nullable @RequestParam(name = "keyword") String keyword) {
+        
+        Pageable pageable = PageRequest.of(page, pageSize);
+        PageResponse<AppointmentResponse> response = appointmentService.getWarrantyAppointments(keyword, pageable);
+        
+        log.info(AppointmentConstants.LOG_SUCCESS_SHOWING_APPOINTMENT_LIST);
+        return ResponseEntity
+                .ok(ApiResponse.<PageResponse<AppointmentResponse>>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_SHOWING_WARRANTY_APPOINTMENT_LIST)
+                        .data(response)
+                        .build()
+                );
+    }
+
     @GetMapping(AppointmentConstants.APPOINTMENT_BY_USER_ID)
     @Operation(summary = "Lấy thông tin cuộc hẹn của người dùng ", description = "👨‍💼 **Roles:** ADMIN, STAFF - Show thông tin cụ thể 1 cuộc hẹn của người dùng đó")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
@@ -264,10 +287,36 @@ public class AppointmentController {
     }
 
     @PostMapping(AppointmentConstants.APPOINTMENT_CREATION)
-    @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔓 **Public** - Tạo cuộc hẹn (không cần đăng nhập)")
+    @Operation(summary = "Tạo 1 cuộc hẹn ", description = "🔓 **Public** - Tạo cuộc hẹn (không cần đăng nhập). Nếu user đã đăng nhập, tự động set customerId từ SecurityContext.")
     public ResponseEntity<ApiResponse<String>> createAppointment(@Valid @RequestBody CreationAppointmentRequest creationAppointmentRequest) {
         log.info("🎬 Controller received request with customerId: {}", creationAppointmentRequest.getCustomerId());
         log.info("📧 Customer email from request: {}", creationAppointmentRequest.getCustomerEmail());
+        
+        // Nếu request không có customerId nhưng user đã authenticated, tự động lấy từ SecurityContext
+        if (creationAppointmentRequest.getCustomerId() == null) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            log.info("🔍 SecurityContext authentication: {}", authentication != null ? authentication.getName() : "NULL");
+            log.info("🔍 Is authenticated: {}", authentication != null && authentication.isAuthenticated());
+            
+            if (authentication != null && authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
+                try {
+                    String userIdStr = authentication.getName();
+                    UUID currentUserId = UUID.fromString(userIdStr);
+                    creationAppointmentRequest.setCustomerId(currentUserId);
+                    log.info("✅ Auto-set customerId from SecurityContext: {}", currentUserId);
+                } catch (Exception e) {
+                    log.warn("⚠️ Could not parse userId from SecurityContext: {}", e.getMessage());
+                }
+            } else {
+                log.info("ℹ️ No authenticated user found in SecurityContext - creating appointment as guest");
+            }
+        } else {
+            log.info("✅ Request already has customerId: {}", creationAppointmentRequest.getCustomerId());
+        }
+        
+        // Log lại customerId sau khi xử lý
+        log.info("🎯 Final customerId before calling service: {}", creationAppointmentRequest.getCustomerId());
+        
         boolean response = appointmentService.addAppointment(creationAppointmentRequest);
 
         log.info(AppointmentConstants.LOG_SUCCESS_CREATING_APPOINTMENT);
@@ -410,10 +459,12 @@ public class AppointmentController {
             requestData.remove("email");
             requestData.remove("otp");
             
-            // Convert to DTO using ObjectMapper or manually
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            updateRequest = mapper.convertValue(requestData, UpdationCustomerAppointmentRequest.class);
+            // Convert Map to JSON string first, then parse to DTO
+            // This ensures proper parsing of LocalDateTime from ISO string format
+            String jsonString = objectMapper.writeValueAsString(requestData);
+            updateRequest = objectMapper.readValue(jsonString, UpdationCustomerAppointmentRequest.class);
         } catch (Exception e) {
+            log.error("Error converting request to DTO: {}", e.getMessage(), e);
             throw new com.fpt.evcare.exception.EntityValidationException("Dữ liệu cập nhật không hợp lệ: " + e.getMessage());
         }
         
@@ -451,6 +502,24 @@ public class AppointmentController {
                 ApiResponse.<String>builder()
                         .success(response)
                         .message(AppointmentConstants.MESSAGE_SUCCESS_UPDATING_APPOINTMENT_CUSTOMER)
+                        .build()
+        );
+    }
+
+    @GetMapping(AppointmentConstants.APPOINTMENT_MAINTENANCE_DETAILS)
+    @Operation(summary = "Lấy chi tiết phụ tùng và dịch vụ của appointment", 
+            description = "👤 **Roles:** Tất cả - Lấy danh sách phụ tùng đã sử dụng và thông tin bảo hành (nếu có)")
+    public ResponseEntity<ApiResponse<java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary>>> getMaintenanceDetails(
+            @PathVariable("id") UUID appointmentId) {
+        
+        java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary> maintenanceDetails = 
+            appointmentService.getMaintenanceDetailsByAppointmentId(appointmentId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary>>builder()
+                        .success(true)
+                        .message("Lấy chi tiết phụ tùng thành công")
+                        .data(maintenanceDetails)
                         .build()
         );
     }

@@ -180,7 +180,7 @@ public class ShiftServiceImpl implements ShiftService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ShiftResponse> searchShiftForTechnician(UUID technicianId, String keyword, Pageable pageable) {
-        log.info("Showing shift list for technician: {}", technicianId);
+        log.info(ShiftConstants.LOG_INFO_SHOWING_SHIFT_LIST_FOR_TECHNICIAN, technicianId);
         
         // Kiểm tra technician có tồn tại không
         UserEntity technician = userRepository.findByUserIdAndIsDeletedFalse(technicianId);
@@ -226,6 +226,17 @@ public class ShiftServiceImpl implements ShiftService {
         log.info(ShiftConstants.LOG_INFO_CREATING_SHIFT);
         
         try {
+            // Validation: Bắt buộc phải có nhân viên và kỹ thuật viên
+            if (creationShiftRequest.getStaffId() == null) {
+                log.warn(ShiftConstants.LOG_ERR_STAFF_REQUIRED);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_STAFF_REQUIRED);
+            }
+            
+            if (creationShiftRequest.getTechnicianIds() == null || creationShiftRequest.getTechnicianIds().isEmpty()) {
+                log.warn(ShiftConstants.LOG_ERR_TECHNICIAN_REQUIRED);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_TECHNICIAN_REQUIRED);
+            }
+            
             // appointmentId is now OPTIONAL (for shifts like ca trực, kiểm kê, bảo trì,...)
             AppointmentEntity appointment = null;
             if (creationShiftRequest.getAppointmentId() != null) {
@@ -297,6 +308,35 @@ public class ShiftServiceImpl implements ShiftService {
             }
 
             shiftMapper.toUpdate(shiftEntity, updationShiftRequest);
+            
+            // Validation: Sau khi update, shift phải có nhân viên và kỹ thuật viên
+            // Chỉ kiểm tra nếu có cập nhật staffId hoặc technicianIds trong request
+            if (updationShiftRequest.getStaffId() != null || updationShiftRequest.getTechnicianIds() != null) {
+                // Nếu update staffId, kiểm tra không null sau khi update
+                if (updationShiftRequest.getStaffId() != null && shiftEntity.getStaff() == null) {
+                    log.warn(ShiftConstants.LOG_ERR_STAFF_REQUIRED);
+                    throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_STAFF_REQUIRED);
+                }
+                
+                // Nếu update technicianIds, kiểm tra không empty sau khi update
+                if (updationShiftRequest.getTechnicianIds() != null && 
+                    (shiftEntity.getTechnicians() == null || shiftEntity.getTechnicians().isEmpty())) {
+                    log.warn(ShiftConstants.LOG_ERR_TECHNICIAN_REQUIRED);
+                    throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_TECHNICIAN_REQUIRED);
+                }
+            }
+            
+            // Đảm bảo shift luôn có staff và technicians sau khi update
+            // (Kiểm tra nếu shift hiện tại không có staff/technicians sau khi update)
+            if (shiftEntity.getStaff() == null) {
+                log.warn(ShiftConstants.LOG_ERR_STAFF_REQUIRED);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_STAFF_REQUIRED);
+            }
+            
+            if (shiftEntity.getTechnicians() == null || shiftEntity.getTechnicians().isEmpty()) {
+                log.warn(ShiftConstants.LOG_ERR_TECHNICIAN_REQUIRED);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_TECHNICIAN_REQUIRED);
+            }
             
             shiftEntity.setSearch(buildSearchString(shiftEntity));
             
@@ -445,8 +485,19 @@ public class ShiftServiceImpl implements ShiftService {
             
             validateShiftForAssignment(shift);
             
+            // Validation: Bắt buộc phải có nhân viên và kỹ thuật viên
+            if (request.getStaffId() == null) {
+                log.warn(ShiftConstants.LOG_ERR_STAFF_REQUIRED);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_STAFF_REQUIRED);
+            }
+            
+            if (request.getTechnicianIds() == null || request.getTechnicianIds().isEmpty()) {
+                log.warn(ShiftConstants.LOG_ERR_TECHNICIAN_REQUIRED);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_TECHNICIAN_REQUIRED);
+            }
+            
             UserEntity assignee = findUserEntity(request.getAssigneeId(), "Người phụ trách không tồn tại");
-            UserEntity staff = findOptionalUserEntity(request.getStaffId());
+            UserEntity staff = findUserEntity(request.getStaffId(), "Nhân viên không tồn tại");
             List<UserEntity> technicians = mapTechnicians(request.getTechnicianIds());
             
             updateShiftAssignment(shift, request, assignee, staff, technicians);
@@ -628,15 +679,15 @@ public class ShiftServiceImpl implements ShiftService {
         
         // Không cho phép chỉnh sửa nếu đã COMPLETED hoặc CANCELLED
         if (currentStatus == ShiftStatusEnum.COMPLETED || currentStatus == ShiftStatusEnum.CANCELLED) {
-            log.warn("Cannot update shift that is already COMPLETED or CANCELLED: {}", currentStatus);
-            throw new EntityValidationException("Không thể cập nhật ca làm việc đã hoàn thành hoặc đã hủy");
+            log.warn(ShiftConstants.LOG_WARN_CANNOT_UPDATE_SHIFT_COMPLETED_OR_CANCELLED, currentStatus);
+            throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_CANNOT_UPDATE_SHIFT_COMPLETED_OR_CANCELLED);
         }
         
         // Chỉ cho phép chuyển sang IN_PROGRESS khi đang ở SCHEDULED
         if (newStatus == ShiftStatusEnum.IN_PROGRESS) {
             if (currentStatus != ShiftStatusEnum.SCHEDULED) {
-                log.warn("Cannot transition to IN_PROGRESS from status: {}", currentStatus);
-                throw new EntityValidationException("Chỉ có thể bắt đầu ca làm việc từ trạng thái SCHEDULED (Đã lên lịch)");
+                log.warn(ShiftConstants.LOG_WARN_CANNOT_TRANSITION_TO_IN_PROGRESS, currentStatus);
+                throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_CAN_ONLY_START_FROM_SCHEDULED);
             }
             
             // ✅ Khi shift chuyển sang IN_PROGRESS → tự động chuyển appointment sang IN_PROGRESS (nếu có)
@@ -648,10 +699,10 @@ public class ShiftServiceImpl implements ShiftService {
                 if (appointment.getStatus() != com.fpt.evcare.enums.AppointmentStatusEnum.IN_PROGRESS) {
                     try {
                         appointmentService.updateAppointmentStatus(appointment.getAppointmentId(), "IN_PROGRESS");
-                        log.info("✅ Auto-updated appointment {} to IN_PROGRESS when shift {} started", 
+                        log.info(ShiftConstants.LOG_INFO_AUTO_UPDATED_APPOINTMENT_TO_IN_PROGRESS, 
                                 appointment.getAppointmentId(), id);
                     } catch (Exception e) {
-                        log.warn("⚠️ Failed to auto-update appointment to IN_PROGRESS when shift started: {}", e.getMessage());
+                        log.warn(ShiftConstants.LOG_WARN_FAILED_AUTO_UPDATE_APPOINTMENT, e.getMessage());
                         // Không throw exception để không block việc update shift status
                         // Có thể appointment chưa đủ điều kiện (chưa CONFIRMED hoặc thiếu assignee/technicians)
                     }
@@ -662,8 +713,8 @@ public class ShiftServiceImpl implements ShiftService {
         // Không cho phép quay ngược từ IN_PROGRESS
         if (currentStatus == ShiftStatusEnum.IN_PROGRESS && 
             (newStatus == ShiftStatusEnum.PENDING_ASSIGNMENT || newStatus == ShiftStatusEnum.LATE_ASSIGNMENT || newStatus == ShiftStatusEnum.SCHEDULED)) {
-            log.warn("Cannot transition backward from IN_PROGRESS to {}", newStatus);
-            throw new EntityValidationException("Không thể quay ngược trạng thái từ Đang thực hiện");
+            log.warn(ShiftConstants.LOG_WARN_CANNOT_TRANSITION_BACKWARD, newStatus);
+            throw new EntityValidationException(ShiftConstants.MESSAGE_ERR_CANNOT_TRANSITION_BACKWARD);
         }
         
         // Cập nhật trạng thái mới
@@ -671,15 +722,15 @@ public class ShiftServiceImpl implements ShiftService {
         shiftEntity.setSearch(buildSearchString(shiftEntity));
         shiftRepository.save(shiftEntity);
         
-        log.info("Shift {} status updated from {} to {}", id, currentStatus, newStatus);
+        log.info(ShiftConstants.LOG_INFO_SHIFT_STATUS_UPDATED, id, currentStatus, newStatus);
     }
     
     private ShiftStatusEnum isValidShiftStatus(String statusEnum) {
         try {
             return ShiftStatusEnum.valueOf(statusEnum.toUpperCase().trim());
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid shift status: {}", statusEnum);
-            throw new EntityValidationException("Trạng thái không hợp lệ: " + statusEnum);
+            log.warn(ShiftConstants.LOG_WARN_INVALID_SHIFT_STATUS, statusEnum);
+            throw new EntityValidationException(String.format(ShiftConstants.MESSAGE_ERR_INVALID_SHIFT_STATUS, statusEnum));
         }
     }
     

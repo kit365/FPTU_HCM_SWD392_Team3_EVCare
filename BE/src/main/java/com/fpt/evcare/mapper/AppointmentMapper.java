@@ -21,6 +21,7 @@ public interface AppointmentMapper {
     @Mapping(target = "search", ignore = true)
     @Mapping(target = "quotePrice", ignore = true)
     @Mapping(target = "vehicleTypeEntity", ignore = true)
+    @Mapping(target = "originalAppointment", ignore = true)
     AppointmentEntity toEntity(CreationAppointmentRequest creationAppointmentRequest);
 
     @Mapping(target = "customer", ignore = true)
@@ -29,6 +30,7 @@ public interface AppointmentMapper {
     @Mapping(target = "serviceTypeResponses", ignore = true)
     @Mapping(target = "quotePrice", ignore = true)
     @Mapping(target = "vehicleTypeResponse", ignore = true)
+    @Mapping(target = "originalAppointment", ignore = true)
     AppointmentResponse toResponse(AppointmentEntity appointmentEntity);
 
     @Mapping(target = "serviceTypeEntities", ignore = true)

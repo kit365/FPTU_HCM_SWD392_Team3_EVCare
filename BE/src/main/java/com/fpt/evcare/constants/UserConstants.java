@@ -39,6 +39,18 @@ public class UserConstants {
     public static final String LOG_SUCCESS_DELETING_USER = "Đang xóa người dùng: {}";
     public static final String LOG_SUCCESS_RESTORING_USER = "Đang khôi phục người dùng: {}";
     public static final String LOG_SUCCESS_VALIDATION_USER_ROLE = "Người dùng có vai trò hợp lệ: {}";
+    
+    // Additional log messages
+    public static final String LOG_WARN_CANNOT_DELETE_CUSTOMER_PENDING_APPOINTMENTS = "Cannot delete customer with pending appointments. Customer: {}";
+    public static final String LOG_WARN_CANNOT_DELETE_CUSTOMER_UNPAID_INVOICES = "Cannot delete customer with unpaid invoices. Customer: {}";
+    public static final String LOG_INFO_GETTING_TECHNICIANS_LIST = "Getting technicians list";
+    public static final String LOG_WARN_NO_USERS_FOUND_FOR_ROLE = "No users found for role: {}";
+    public static final String LOG_INFO_FOUND_USERS_FOR_ROLE = "Found {} users for role: {}";
+    public static final String LOG_ERR_INVALID_ROLE_NAME = "Invalid role name: {}";
+    public static final String MESSAGE_ERR_INVALID_ROLE_NAME = "Vai trò không hợp lệ: {}";
+    public static final String MESSAGE_ERR_CANNOT_DELETE_USER_PENDING_APPOINTMENTS = "Không thể xóa tài khoản vì bạn vẫn còn %d cuộc hẹn đang chờ xử lý. Vui lòng hoàn tất hoặc hủy các cuộc hẹn trước khi xóa tài khoản.";
+    public static final String MESSAGE_ERR_CANNOT_DELETE_USER_UNPAID_INVOICES = "Không thể xóa tài khoản vì bạn vẫn còn %d hóa đơn chưa thanh toán. Vui lòng thanh toán các hóa đơn trước khi xóa tài khoản.";
+    public static final String LOG_INFO_UPDATED_PROFILE_FOR_USER = "✅ Updated profile for user: {}";
 
     public static final String DEFAULT_PAGE_SIZE = "10";
     public static final String DEFAULT_PAGE_NUMBER = "0";

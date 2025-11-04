@@ -39,10 +39,6 @@ import ShiftDetail from "../pages/admin/shift/ShiftDetail";
 import MyShifts from "../pages/admin/shift/MyShifts";
 import MaintenanceManagementDetail from "../pages/admin/maintenance/MaintenanceManagementDetail";
 import MyMaintenanceManagement from "../pages/admin/maintenance/MyMaintenanceManagement";
-import { WarrantyPackageList } from "../pages/admin/warranty/WarrantyPackageList";
-import { WarrantyPackageCreate } from "../pages/admin/warranty/WarrantyPackageCreate";
-import { WarrantyPackageEdit } from "../pages/admin/warranty/WarrantyPackageEdit";
-import { WarrantyPackageDetail } from "../pages/admin/warranty/WarrantyPackageDetail";
 import { AdminCustomerManagement } from "../pages/admin/user/AdminCustomerManagement";
 import { AdminMessagePage } from "../pages/admin/message/AdminMessagePage";
 import { MessageAssignmentManagement } from "../pages/admin/message/MessageAssignmentManagement";
@@ -54,6 +50,11 @@ import UserCreate from "../pages/admin/user/UserCreate";
 import { InvoiceView } from "../pages/admin/payment/InvoiceView";
 import { PaymentSuccess } from "../pages/admin/payment/PaymentSuccess";
 import { PaymentFail } from "../pages/admin/payment/PaymentFail";
+import { WarrantyPartList } from "../pages/admin/warranty-part/WarrantyPartList";
+import { WarrantyPartCreate } from "../pages/admin/warranty-part/WarrantyPartCreate";
+import { WarrantyPartEdit } from "../pages/admin/warranty-part/WarrantyPartEdit";
+import { WarrantyPartDetail } from "../pages/admin/warranty-part/WarrantyPartDetail";
+import WarrantyAppointmentList from "../pages/admin/appointment/WarrantyAppointmentList";
 export const AdminRoutes: RouteObject[] = [
     { path: "dashboard", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><DashboardPage /></RoleProtectedRoute> },
     { path: "setting", element: <SettingPage /> },
@@ -84,6 +85,7 @@ export const AdminRoutes: RouteObject[] = [
     { path: "service-type/view/:id", element: <ServiceTypeDetail /> },
     { path: "profile", element: <Profile /> },
     { path: "appointment-manage", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF, RoleEnum.TECHNICIAN]}><AppointmentManage/></RoleProtectedRoute> },
+    { path: "warranty-appointments", element: <RoleProtectedRoute allowedRoles={[RoleEnum.ADMIN, RoleEnum.STAFF]}><WarrantyAppointmentList/></RoleProtectedRoute> },
     { path: "appointment/view/:id", element: <AppointmentView/> },
     { path: "invoice/:appointmentId", element: <InvoiceView/> },
     { path: "payment/success", element: <PaymentSuccess/> },
@@ -96,10 +98,6 @@ export const AdminRoutes: RouteObject[] = [
     { path: "shift/create", element: <ShiftCreate/> },
     { path: "shift/edit/:id", element: <ShiftEdit/> },
     { path: "shift/view/:id", element: <ShiftDetail/> },
-    { path: "warranty", element: <WarrantyPackageList /> },
-    { path: "warranty/create", element: <WarrantyPackageCreate /> },
-    { path: "warranty/edit/:id", element: <WarrantyPackageEdit /> },
-    { path: "warranty/view/:id", element: <WarrantyPackageDetail /> },
     { path: "message", element: <AdminMessagePage /> },
     { path: "message-assignments", element: <MessageAssignmentManagement /> },
     { path: "users/customers", element: <AdminCustomerManagement /> },
@@ -108,6 +106,10 @@ export const AdminRoutes: RouteObject[] = [
     { path: "users/staff", element: <AdminStaffManagement /> },
     { path: "users/create", element: <UserCreate /> },
     { path: "users/edit/:id", element: <UserEdit /> },
+    { path: "warranty-part", element: <WarrantyPartList /> },
+    { path: "warranty-part/create", element: <WarrantyPartCreate /> },
+    { path: "warranty-part/edit/:id", element: <WarrantyPartEdit /> },
+    { path: "warranty-part/view/:id", element: <WarrantyPartDetail /> },
 ];
 export const AuthAdminRoutes = [
     { path: "login", element: <LoginPage /> },

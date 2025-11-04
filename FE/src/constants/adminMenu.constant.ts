@@ -59,9 +59,9 @@ export const adminMenuItems: AdminMenuItem[] = [
                 icon: Erase
             },
             {
-                href: `/${pathAdmin}/warranty`,
-                label: "Bảo hành",
-                icon: Shield,
+                href: `/${pathAdmin}/warranty-part`,
+                label: "Bảo hành phụ tùng",
+                icon: Shield
             },
         ],
     },
@@ -69,6 +69,11 @@ export const adminMenuItems: AdminMenuItem[] = [
         href: `/${pathAdmin}/appointment-manage`,
         label: "Quản lý lịch hẹn",
         icon: DownloadDataWindow,
+    },
+    {
+        href: `/${pathAdmin}/warranty-appointments`,
+        label: "Lịch hẹn bảo hành",
+        icon: Shield,
     },
     {
         label: "Ca làm",

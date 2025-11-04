@@ -15,11 +15,8 @@ import com.fpt.evcare.repository.AppointmentRepository;
 import com.fpt.evcare.repository.InvoiceRepository;
 import com.fpt.evcare.repository.MaintenanceManagementRepository;
 import com.fpt.evcare.repository.PaymentMethodRepository;
-import com.fpt.evcare.repository.VehicleRepository;
-import com.fpt.evcare.repository.WarrantyPackagePartRepository;
 import com.fpt.evcare.service.EmailService;
 import com.fpt.evcare.service.InvoiceService;
-import com.fpt.evcare.service.WarrantyPackageService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,10 +40,8 @@ public class InvoiceServiceImpl implements InvoiceService {
     PaymentMethodRepository paymentMethodRepository;
     MaintenanceManagementRepository maintenanceManagementRepository;
     EmailService emailService;
-    WarrantyPackageService warrantyPackageService;
-    VehicleRepository vehicleRepository;
-    WarrantyPackagePartRepository warrantyPackagePartRepository;
     com.fpt.evcare.repository.ShiftRepository shiftRepository;
+    com.fpt.evcare.repository.WarrantyPartRepository warrantyPartRepository;
 //
 //    @Override
 //    @Transactional
@@ -67,12 +62,12 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceByAppointmentId(UUID appointmentId) {
-        log.info("Getting invoice for appointment: {}", appointmentId);
+        log.info(InvoiceConstants.LOG_INFO_GETTING_INVOICE_FOR_APPOINTMENT, appointmentId);
 
         AppointmentEntity appointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentId);
         if (appointment == null) {
-            log.warn("Appointment not found: {}", appointmentId);
-            throw new ResourceNotFoundException("Không tìm thấy appointment");
+            log.warn(InvoiceConstants.LOG_WARN_APPOINTMENT_NOT_FOUND, appointmentId);
+            throw new ResourceNotFoundException(InvoiceConstants.MESSAGE_ERR_APPOINTMENT_NOT_FOUND);
         }
 
         // Force initialization of lazy-loaded relationships within transaction
@@ -81,14 +76,14 @@ public class InvoiceServiceImpl implements InvoiceService {
         // Kiểm tra appointment phải ở trạng thái PENDING_PAYMENT hoặc COMPLETED
         if (appointment.getStatus() != AppointmentStatusEnum.PENDING_PAYMENT &&
             appointment.getStatus() != AppointmentStatusEnum.COMPLETED) {
-            log.warn("Appointment {} is not in PENDING_PAYMENT or COMPLETED status", appointmentId);
-            throw new IllegalStateException("Appointment chưa sẵn sàng để thanh toán. Trạng thái hiện tại: " + appointment.getStatus());
+            log.warn(InvoiceConstants.LOG_WARN_APPOINTMENT_NOT_READY_STATUS, appointmentId);
+            throw new IllegalStateException(String.format(InvoiceConstants.MESSAGE_ERR_APPOINTMENT_NOT_READY_FOR_PAYMENT, appointment.getStatus()));
         }
 
         java.util.List<InvoiceEntity> invoices = invoiceRepository.findByAppointmentAndIsDeletedFalse(appointment);
         if (invoices.isEmpty()) {
-            log.warn("No invoice found for appointment: {}", appointmentId);
-            throw new ResourceNotFoundException("Không tìm thấy hóa đơn cho appointment này");
+            log.warn(InvoiceConstants.LOG_WARN_NO_INVOICE_FOUND_FOR_APPOINTMENT, appointmentId);
+            throw new ResourceNotFoundException(InvoiceConstants.MESSAGE_ERR_NO_INVOICE_FOUND_FOR_APPOINTMENT);
         }
 
         InvoiceEntity invoice = invoices.get(0); // Lấy invoice đầu tiên (mỗi appointment chỉ có 1 invoice)
@@ -111,60 +106,56 @@ public class InvoiceServiceImpl implements InvoiceService {
         java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> maintenanceList = 
             maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointmentId);
         
-        // Lấy vehicleId từ appointment
-        UUID vehicleId = null;
-        if (appointment.getVehicleNumberPlate() != null) {
-            try {
-                com.fpt.evcare.entity.VehicleEntity vehicle = vehicleRepository.findByPlateNumberAndIsDeletedFalse(appointment.getVehicleNumberPlate());
-                if (vehicle != null) {
-                    vehicleId = vehicle.getVehicleId();
-                }
-            } catch (Exception e) {
-                log.debug("Vehicle not found by plate number: {}", appointment.getVehicleNumberPlate());
-            }
-        }
-        final UUID finalVehicleId = vehicleId;
-        
         java.util.List<InvoiceResponse.MaintenanceManagementSummary> maintenanceDetails = maintenanceList.stream()
             .map(mm -> {
                 java.util.List<InvoiceResponse.PartUsed> partsUsed = mm.getMaintenanceRecords().stream()
                     .filter(record -> !record.getIsDeleted() && Boolean.TRUE.equals(record.getApprovedByUser()))
                     .map(record -> {
-                        UUID partId = record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartId() : null;
                         BigDecimal unitPrice = record.getVehiclePart() != null ? record.getVehiclePart().getUnitPrice() : BigDecimal.ZERO;
                         BigDecimal originalPrice = unitPrice.multiply(BigDecimal.valueOf(record.getQuantityUsed()));
                         
-                        // Kiểm tra xem phụ tùng có bảo hành không
-                        boolean isUnderWarranty = false;
-                        String warrantyPackageName = null;
-                        BigDecimal finalPrice = originalPrice;
+                        // Kiểm tra warranty cho phụ tùng này
+                        UUID vehiclePartId = record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartId() : null;
+                        com.fpt.evcare.entity.WarrantyPartEntity warrantyPart = null;
+                        Boolean isUnderWarranty = false;
+                        String warrantyDiscountType = null;
+                        BigDecimal warrantyDiscountValue = null;
+                        BigDecimal warrantyDiscountAmount = BigDecimal.ZERO;
+                        BigDecimal totalPrice = originalPrice;
                         
-                        if (partId != null) {
-                            try {
-                                isUnderWarranty = warrantyPackageService.isVehiclePartUnderWarranty(finalVehicleId, partId);
+                        if (vehiclePartId != null && appointment.getStatus() == AppointmentStatusEnum.COMPLETED) {
+                            // Chỉ kiểm tra warranty nếu appointment đã COMPLETED
+                            warrantyPart = warrantyPartRepository
+                                .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                                .orElse(null);
+                            
+                            if (warrantyPart != null) {
+                                // Kiểm tra xem có phải warranty appointment và có original appointment không
+                                boolean isWarrantyAppointment = Boolean.TRUE.equals(appointment.getIsWarrantyAppointment());
+                                boolean hasOriginalAppointment = appointment.getOriginalAppointment() != null;
                                 
-                                if (isUnderWarranty) {
-                                    // Nếu có bảo hành, giá sẽ là 0
-                                    finalPrice = BigDecimal.ZERO;
+                                if (isWarrantyAppointment && hasOriginalAppointment) {
+                                    // Kiểm tra customer và service có khớp với original appointment không
+                                    com.fpt.evcare.entity.AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
+                                    boolean customerMatches = checkCustomerMatches(appointment, originalAppointment);
+                                    boolean servicesMatch = checkServicesMatch(appointment, originalAppointment);
+                                    boolean partInOriginal = checkPartInOriginalAppointment(vehiclePartId, originalAppointment);
                                     
-                                    // Lấy tên gói bảo hành
-                                    java.time.LocalDateTime checkDate = java.time.LocalDateTime.now();
-                                    java.util.List<com.fpt.evcare.entity.WarrantyPackagePartEntity> warranties = 
-                                        warrantyPackagePartRepository.findValidWarrantiesForVehiclePart(finalVehicleId, partId, checkDate);
-                                    
-                                    if (!warranties.isEmpty()) {
-                                        com.fpt.evcare.entity.WarrantyPackagePartEntity firstWarranty = warranties.get(0);
-                                        if (firstWarranty.getWarrantyPackage() != null) {
-                                            warrantyPackageName = firstWarranty.getWarrantyPackage().getWarrantyPackageName();
-                                        } else {
-                                            warrantyPackageName = "Bảo hành";
+                                    if (customerMatches && servicesMatch && partInOriginal) {
+                                        isUnderWarranty = true;
+                                        warrantyDiscountType = warrantyPart.getDiscountType().name();
+                                        
+                                        if (warrantyPart.getDiscountType() == com.fpt.evcare.enums.WarrantyDiscountTypeEnum.PERCENTAGE) {
+                                            warrantyDiscountValue = warrantyPart.getDiscountValue();
+                                            warrantyDiscountAmount = originalPrice.multiply(warrantyDiscountValue)
+                                                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                                            totalPrice = originalPrice.subtract(warrantyDiscountAmount);
+                                        } else if (warrantyPart.getDiscountType() == com.fpt.evcare.enums.WarrantyDiscountTypeEnum.FREE) {
+                                            warrantyDiscountAmount = originalPrice;
+                                            totalPrice = BigDecimal.ZERO;
                                         }
-                                    } else {
-                                        warrantyPackageName = "Bảo hành";
                                     }
                                 }
-                            } catch (Exception e) {
-                                log.debug("Error checking warranty for part {}: {}", partId, e.getMessage());
                             }
                         }
                         
@@ -172,10 +163,12 @@ public class InvoiceServiceImpl implements InvoiceService {
                             .partName(record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartName() : "N/A")
                             .quantity(record.getQuantityUsed())
                             .unitPrice(unitPrice)
-                            .totalPrice(finalPrice)
+                            .totalPrice(totalPrice)
                             .originalPrice(originalPrice)
                             .isUnderWarranty(isUnderWarranty)
-                            .warrantyPackageName(warrantyPackageName)
+                            .warrantyDiscountType(warrantyDiscountType)
+                            .warrantyDiscountValue(warrantyDiscountValue)
+                            .warrantyDiscountAmount(warrantyDiscountAmount)
                             .build();
                     })
                     .toList();
@@ -190,8 +183,111 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         response.setMaintenanceDetails(maintenanceDetails);
 
-        log.info("Successfully retrieved invoice for appointment: {}", appointmentId);
+        log.info(InvoiceConstants.LOG_INFO_SUCCESSFULLY_RETRIEVED_INVOICE, appointmentId);
         return response;
+    }
+
+    /**
+     * Kiểm tra khách hàng có khớp không (customer full name, email, phone, hoặc customer_id)
+     */
+    private boolean checkCustomerMatches(com.fpt.evcare.entity.AppointmentEntity currentAppointment, com.fpt.evcare.entity.AppointmentEntity originalAppointment) {
+        // Kiểm tra customer_id nếu cả hai đều có customer
+        if (currentAppointment.getCustomer() != null && originalAppointment.getCustomer() != null) {
+            if (currentAppointment.getCustomer().getUserId().equals(originalAppointment.getCustomer().getUserId())) {
+                return true;
+            }
+        }
+        
+        // Kiểm tra customer full name
+        if (currentAppointment.getCustomerFullName() != null && originalAppointment.getCustomerFullName() != null) {
+            if (currentAppointment.getCustomerFullName().equalsIgnoreCase(originalAppointment.getCustomerFullName())) {
+                return true;
+            }
+        }
+        
+        // Kiểm tra email
+        if (currentAppointment.getCustomerEmail() != null && originalAppointment.getCustomerEmail() != null) {
+            if (currentAppointment.getCustomerEmail().equalsIgnoreCase(originalAppointment.getCustomerEmail())) {
+                return true;
+            }
+        }
+        
+        // Kiểm tra phone
+        if (currentAppointment.getCustomerPhoneNumber() != null && originalAppointment.getCustomerPhoneNumber() != null) {
+            if (currentAppointment.getCustomerPhoneNumber().equals(originalAppointment.getCustomerPhoneNumber())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Kiểm tra dịch vụ có giống nhau không
+     */
+    private boolean checkServicesMatch(com.fpt.evcare.entity.AppointmentEntity currentAppointment, com.fpt.evcare.entity.AppointmentEntity originalAppointment) {
+        // Lấy service types từ cả hai appointments
+        java.util.List<com.fpt.evcare.entity.ServiceTypeEntity> currentServices = currentAppointment.getServiceTypeEntities();
+        java.util.List<com.fpt.evcare.entity.ServiceTypeEntity> originalServices = originalAppointment.getServiceTypeEntities();
+        
+        if (currentServices == null || originalServices == null || currentServices.isEmpty() || originalServices.isEmpty()) {
+            return false;
+        }
+        
+        // So sánh số lượng dịch vụ
+        if (currentServices.size() != originalServices.size()) {
+            return false;
+        }
+        
+        // Kiểm tra từng dịch vụ có khớp không
+        java.util.List<UUID> currentServiceIds = currentServices.stream()
+                .map(com.fpt.evcare.entity.ServiceTypeEntity::getServiceTypeId)
+                .sorted()
+                .toList();
+        
+        java.util.List<UUID> originalServiceIds = originalServices.stream()
+                .map(com.fpt.evcare.entity.ServiceTypeEntity::getServiceTypeId)
+                .sorted()
+                .toList();
+        
+        return currentServiceIds.equals(originalServiceIds);
+    }
+
+    /**
+     * Kiểm tra phụ tùng có trong appointment gốc không và có warranty part active không
+     */
+    private boolean checkPartInOriginalAppointment(UUID vehiclePartId, com.fpt.evcare.entity.AppointmentEntity originalAppointment) {
+        // Lấy tất cả maintenance managements từ appointment gốc
+        java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> originalMaintenanceManagements = maintenanceManagementRepository
+                .findByAppointmentIdAndIsDeletedFalse(originalAppointment.getAppointmentId());
+        
+        if (originalMaintenanceManagements == null || originalMaintenanceManagements.isEmpty()) {
+            return false;
+        }
+        
+        // Kiểm tra phụ tùng có trong maintenance records của appointment gốc không
+        for (com.fpt.evcare.entity.MaintenanceManagementEntity maintenanceManagement : originalMaintenanceManagements) {
+            java.util.List<com.fpt.evcare.entity.MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
+            
+            if (maintenanceRecords == null || maintenanceRecords.isEmpty()) {
+                continue;
+            }
+            
+            for (com.fpt.evcare.entity.MaintenanceRecordEntity record : maintenanceRecords) {
+                if (record.getVehiclePart() != null && 
+                    record.getVehiclePart().getVehiclePartId().equals(vehiclePartId) &&
+                    Boolean.TRUE.equals(record.getApprovedByUser())) {
+                    // Kiểm tra phụ tùng này có warranty part active không
+                    com.fpt.evcare.entity.WarrantyPartEntity warrantyPart = warrantyPartRepository
+                            .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                            .orElse(null);
+                    
+                    return warrantyPart != null;
+                }
+            }
+        }
+        
+        return false;
     }
 //
 //    @Override
@@ -388,28 +484,28 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     @Transactional
     public boolean payCash(UUID invoiceId, PaymentRequest paymentRequest) {
-        log.info("Processing CASH payment for invoice: {}", invoiceId);
+        log.info(InvoiceConstants.LOG_INFO_PROCESSING_CASH_PAYMENT, invoiceId);
 
         InvoiceEntity invoice = invoiceRepository.findByInvoiceIdAndIsDeletedFalse(invoiceId);
         if (invoice == null) {
-            log.warn("Invoice not found: {}", invoiceId);
-            throw new ResourceNotFoundException("Không tìm thấy hóa đơn");
+            log.warn(InvoiceConstants.LOG_ERR_INVOICE_NOT_FOUND, invoiceId);
+            throw new ResourceNotFoundException(InvoiceConstants.MESSAGE_ERR_INVOICE_NOT_FOUND);
         }
 
         // Kiểm tra invoice phải ở trạng thái PENDING
         if (invoice.getStatus() != InvoiceStatusEnum.PENDING) {
-            log.warn("Invoice {} is not in PENDING status", invoiceId);
+            log.warn(InvoiceConstants.LOG_WARN_INVOICE_NOT_IN_PENDING_STATUS, invoiceId);
             // Gửi email thông báo thanh toán thất bại
-            sendPaymentFailedEmail(invoice, "Hóa đơn đã được thanh toán hoặc đã hủy");
-            throw new IllegalStateException("Hóa đơn đã được thanh toán hoặc đã hủy");
+            sendPaymentFailedEmail(invoice, InvoiceConstants.MESSAGE_ERR_INVOICE_ALREADY_PAID_OR_CANCELLED);
+            throw new IllegalStateException(InvoiceConstants.MESSAGE_ERR_INVOICE_ALREADY_PAID_OR_CANCELLED);
         }
 
         AppointmentEntity appointment = invoice.getAppointment();
         if (appointment == null || appointment.getStatus() != AppointmentStatusEnum.PENDING_PAYMENT) {
-            log.warn("Appointment is not in PENDING_PAYMENT status");
+            log.warn(InvoiceConstants.LOG_WARN_APPOINTMENT_NOT_PENDING_PAYMENT);
             // Gửi email thông báo thanh toán thất bại
-            sendPaymentFailedEmail(invoice, "Appointment không ở trạng thái chờ thanh toán");
-            throw new IllegalStateException("Appointment không ở trạng thái chờ thanh toán");
+            sendPaymentFailedEmail(invoice, InvoiceConstants.MESSAGE_ERR_APPOINTMENT_NOT_PENDING_PAYMENT);
+            throw new IllegalStateException(InvoiceConstants.MESSAGE_ERR_APPOINTMENT_NOT_PENDING_PAYMENT);
         }
 
         // Validate paidAmount - phải thanh toán đủ số tiền
@@ -417,15 +513,15 @@ public class InvoiceServiceImpl implements InvoiceService {
                 paymentRequest.getPaidAmount() : invoice.getTotalAmount();
         
         if (paidAmount == null || paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            log.warn("Invalid paid amount: {}", paidAmount);
-            sendPaymentFailedEmail(invoice, "Số tiền thanh toán không hợp lệ");
-            throw new EntityValidationException("Số tiền thanh toán không hợp lệ");
+            log.warn(InvoiceConstants.LOG_WARN_INVALID_PAID_AMOUNT, paidAmount);
+            sendPaymentFailedEmail(invoice, InvoiceConstants.MESSAGE_ERR_INVALID_PAYMENT_AMOUNT);
+            throw new EntityValidationException(InvoiceConstants.MESSAGE_ERR_INVALID_PAYMENT_AMOUNT);
         }
         
         if (paidAmount.compareTo(invoice.getTotalAmount()) < 0) {
-            log.warn("Paid amount {} is less than total amount {}", paidAmount, invoice.getTotalAmount());
-            sendPaymentFailedEmail(invoice, "Số tiền thanh toán phải bằng tổng tiền hóa đơn");
-            throw new EntityValidationException("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
+            log.warn(InvoiceConstants.LOG_WARN_PAID_AMOUNT_LESS_THAN_TOTAL, paidAmount, invoice.getTotalAmount());
+            sendPaymentFailedEmail(invoice, InvoiceConstants.MESSAGE_ERR_PAID_AMOUNT_MUST_EQUAL_TOTAL);
+            throw new EntityValidationException(InvoiceConstants.MESSAGE_ERR_PAID_AMOUNT_MUST_EQUAL_TOTAL);
         }
 
         // Tìm payment method CASH (hoặc tạo mới nếu chưa có)
@@ -450,16 +546,52 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
 
         invoiceRepository.save(invoice);
-        log.info("Invoice {} marked as PAID", invoiceId);
+        log.info(InvoiceConstants.LOG_INFO_INVOICE_MARKED_AS_PAID, invoiceId);
 
         // Cập nhật appointment sang COMPLETED
+        // Đảm bảo giữ nguyên isWarrantyAppointment và originalAppointment
+        Boolean isWarrantyAppointment = appointment.getIsWarrantyAppointment();
+        AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
+        
         appointment.setStatus(AppointmentStatusEnum.COMPLETED);
+        appointment.setIsWarrantyAppointment(isWarrantyAppointment); // Đảm bảo giữ nguyên giá trị
+        appointment.setOriginalAppointment(originalAppointment); // Đảm bảo giữ nguyên giá trị
+        
         appointmentRepository.save(appointment);
-        log.info("Appointment {} marked as COMPLETED", appointment.getAppointmentId());
+        appointmentRepository.flush(); // Flush để đảm bảo dữ liệu được ghi vào database ngay lập tức
+        
+        // Refresh appointment từ database để đảm bảo có dữ liệu mới nhất
+        UUID appointmentIdForRefresh = appointment.getAppointmentId();
+        appointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentIdForRefresh);
+        if (appointment != null) {
+            initializeAppointmentRelations(appointment);
+            log.info(InvoiceConstants.LOG_INFO_APPOINTMENT_MARKED_AS_COMPLETED, appointment.getAppointmentId());
+        } else {
+            log.warn("⚠️ Could not refresh appointment after payment: {}", appointmentIdForRefresh);
+            log.info(InvoiceConstants.LOG_INFO_APPOINTMENT_MARKED_AS_COMPLETED, appointmentIdForRefresh);
+        }
+        
+        // Debug: Log warranty appointment info sau khi refresh
+        if (appointment != null && Boolean.TRUE.equals(appointment.getIsWarrantyAppointment())) {
+            log.info("✅ Warranty appointment marked as COMPLETED - ID: {}, isWarranty: {}, Status: {}, OriginalAppt: {}", 
+                    appointment.getAppointmentId(),
+                    appointment.getIsWarrantyAppointment(),
+                    appointment.getStatus(),
+                    appointment.getOriginalAppointment() != null ? appointment.getOriginalAppointment().getAppointmentId() : "null");
+        } else if (appointment != null) {
+            log.info("ℹ️ Regular appointment marked as COMPLETED - ID: {}, isWarranty: {}, Status: {}", 
+                    appointment.getAppointmentId(),
+                    appointment.getIsWarrantyAppointment(),
+                    appointment.getStatus());
+        }
 
         // ✅ Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
         // Để kỹ thuật viên thấy ca làm đã hoàn thành
-        updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+        if (appointment != null) {
+            updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+        } else {
+            updateShiftStatusWhenAppointmentCompleted(appointmentIdForRefresh);
+        }
 
         // Gửi email xác nhận thanh toán thành công
         sendPaymentConfirmationEmail(invoice);
@@ -478,87 +610,6 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
 
         try {
-            // Lấy thông tin maintenance management để kiểm tra warranty
-            AppointmentEntity appointment = invoice.getAppointment();
-            java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> maintenanceList = 
-                maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointment.getAppointmentId());
-            
-            // Lấy vehicleId từ appointment
-            UUID vehicleId = null;
-            if (appointment.getVehicleNumberPlate() != null) {
-                try {
-                    com.fpt.evcare.entity.VehicleEntity vehicle = vehicleRepository.findByPlateNumberAndIsDeletedFalse(appointment.getVehicleNumberPlate());
-                    if (vehicle != null) {
-                        vehicleId = vehicle.getVehicleId();
-                    }
-                } catch (Exception e) {
-                    log.debug("Vehicle not found by plate number: {}", appointment.getVehicleNumberPlate());
-                }
-            }
-            final UUID finalVehicleId = vehicleId;
-            
-            // Format thông tin về phụ tùng đã được gán warranty package
-            StringBuilder warrantyInfo = new StringBuilder();
-            int warrantyPartsCount = 0;
-            int totalPartsCount = 0;
-            
-            if (!maintenanceList.isEmpty()) {
-                warrantyInfo.append("\nThông tin bảo hành phụ tùng:\n");
-                for (com.fpt.evcare.entity.MaintenanceManagementEntity mm : maintenanceList) {
-                    if (mm.getMaintenanceRecords() != null && !mm.getMaintenanceRecords().isEmpty()) {
-                        for (com.fpt.evcare.entity.MaintenanceRecordEntity record : mm.getMaintenanceRecords()) {
-                            if (record.getIsDeleted() || !Boolean.TRUE.equals(record.getApprovedByUser())) {
-                                continue;
-                            }
-                            
-                            String partName = record.getVehiclePart() != null ? 
-                                record.getVehiclePart().getVehiclePartName() : "N/A";
-                            UUID partId = record.getVehiclePart() != null ? 
-                                record.getVehiclePart().getVehiclePartId() : null;
-                            
-                            totalPartsCount++;
-                            
-                            // Kiểm tra warranty
-                            boolean isUnderWarranty = false;
-                            String warrantyPackageName = null;
-                            if (partId != null) {
-                                try {
-                                    isUnderWarranty = warrantyPackageService.isVehiclePartUnderWarranty(finalVehicleId, partId);
-                                    if (isUnderWarranty) {
-                                        warrantyPartsCount++;
-                                        // Lấy tên gói bảo hành
-                                        java.time.LocalDateTime checkDate = java.time.LocalDateTime.now();
-                                        java.util.List<com.fpt.evcare.entity.WarrantyPackagePartEntity> warranties = 
-                                            warrantyPackagePartRepository.findValidWarrantiesForVehiclePart(finalVehicleId, partId, checkDate);
-                                        
-                                        if (!warranties.isEmpty()) {
-                                            com.fpt.evcare.entity.WarrantyPackagePartEntity firstWarranty = warranties.get(0);
-                                            if (firstWarranty.getWarrantyPackage() != null) {
-                                                warrantyPackageName = firstWarranty.getWarrantyPackage().getWarrantyPackageName();
-                                            }
-                                        }
-                                        
-                                        warrantyInfo.append(String.format("- %s: Đã được bảo hành (%s)\n", 
-                                            partName,
-                                            warrantyPackageName != null ? warrantyPackageName : "Miễn phí"));
-                                    } else {
-                                        warrantyInfo.append(String.format("- %s: Chưa được gán bảo hành\n", partName));
-                                    }
-                                } catch (Exception e) {
-                                    log.debug("Error checking warranty for part {}: {}", partId, e.getMessage());
-                                    warrantyInfo.append(String.format("- %s: Chưa được gán bảo hành\n", partName));
-                                }
-                            } else {
-                                warrantyInfo.append(String.format("- %s: Chưa được gán bảo hành\n", partName));
-                            }
-                        }
-                    }
-                }
-                if (totalPartsCount > 0) {
-                    warrantyInfo.append(String.format("\nTổng kết: %d/%d phụ tùng đã được gán bảo hành.\n", warrantyPartsCount, totalPartsCount));
-                }
-            }
-
             String emailSubject = InvoiceConstants.EMAIL_SUBJECT_PAYMENT_CONFIRMATION;
             String emailBody = String.format(
                 InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_GREETING +
@@ -567,7 +618,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_INVOICE_ID +
                 InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_AMOUNT +
                 InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_DATE +
-                warrantyInfo.toString() +
                 InvoiceConstants.EMAIL_BODY_PAYMENT_CONFIRMATION_FOOTER,
                 invoice.getAppointment().getCustomerFullName(),
                 invoice.getInvoiceId(),
@@ -796,7 +846,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             java.util.List<com.fpt.evcare.entity.ShiftEntity> shifts = shiftPage.getContent();
             
             if (shifts.isEmpty()) {
-                log.debug("No shifts found for appointment {} to update to COMPLETED", appointmentId);
+                log.debug(InvoiceConstants.LOG_DEBUG_NO_SHIFTS_FOUND_TO_UPDATE_COMPLETED, appointmentId);
                 return;
             }
             
@@ -815,18 +865,18 @@ public class InvoiceServiceImpl implements InvoiceService {
                     shift.setSearch(search);
                     shiftRepository.save(shift);
                     updatedCount++;
-                    log.info("✅ Auto-updated shift {} status to COMPLETED when appointment {} completed after payment", 
+                    log.info(InvoiceConstants.LOG_INFO_AUTO_UPDATED_SHIFT_TO_COMPLETED, 
                             shift.getShiftId(), appointmentId);
                 }
             }
             
             if (updatedCount > 0) {
-                log.info("✅ Updated {} shift(s) to COMPLETED for appointment {}", updatedCount, appointmentId);
+                log.info(InvoiceConstants.LOG_INFO_UPDATED_SHIFTS_TO_COMPLETED, updatedCount, appointmentId);
             } else {
-                log.debug("No shifts needed status update for appointment {} (all shifts are already COMPLETED or other status)", appointmentId);
+                log.debug(InvoiceConstants.LOG_DEBUG_NO_SHIFTS_NEEDED_UPDATE_COMPLETED, appointmentId);
             }
         } catch (Exception e) {
-            log.error("⚠️ Failed to update shift status when appointment {} completed after payment: {}", 
+            log.error(InvoiceConstants.LOG_ERR_FAILED_UPDATE_SHIFT_STATUS_ON_PAYMENT, 
                     appointmentId, e.getMessage());
             // Không throw exception để không block việc payment
         }

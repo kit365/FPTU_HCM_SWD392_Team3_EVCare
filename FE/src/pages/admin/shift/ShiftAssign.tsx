@@ -15,8 +15,8 @@ import { shiftService } from "../../../service/shiftService";
 
 type FormData = {
   assigneeId: string;
-  staffId?: string;
-  technicianIds: string[];
+  staffId: string; // Bắt buộc
+  technicianIds: string[]; // Bắt buộc
   endTime: string; // Allow updating endTime
 };
 
@@ -40,6 +40,7 @@ export const ShiftAssign = () => {
     control,
     watch,
     reset,
+    setValue,
   } = useForm<FormData>({
     defaultValues: {
       assigneeId: "",
@@ -47,7 +48,7 @@ export const ShiftAssign = () => {
       technicianIds: [],
       endTime: "",
     },
-    mode: 'onSubmit',
+    mode: 'onChange', // Đổi sang 'onChange' để watch() update real-time
   });
 
   const calculateEndTime = (startTime: string, services: any[]): string => {
@@ -143,6 +144,32 @@ export const ShiftAssign = () => {
 
   // Watch endTime để load available technicians
   const endTimeValue = watch("endTime");
+  
+  // Watch form values để disable button
+  const staffIdValue = watch("staffId");
+  const technicianIdsValue = watch("technicianIds");
+  
+  // Debug logs (có thể remove sau)
+  useEffect(() => {
+    console.log("🔍 Form state debug:", {
+      staffIdValue,
+      technicianIdsValue,
+      staffIdTrimmed: staffIdValue?.trim(),
+      technicianIdsLength: technicianIdsValue?.length,
+      currentUserId: currentUser?.userId
+    });
+  }, [staffIdValue, technicianIdsValue, currentUser?.userId]);
+  
+  // Check if form is valid for submission
+  const isFormValid = !!(
+    currentUser?.userId &&
+    staffIdValue &&
+    typeof staffIdValue === 'string' &&
+    staffIdValue.trim() !== "" &&
+    technicianIdsValue &&
+    Array.isArray(technicianIdsValue) &&
+    technicianIdsValue.length > 0
+  );
 
   useEffect(() => {
     const loadAvailableTechnicians = async () => {
@@ -206,6 +233,17 @@ export const ShiftAssign = () => {
       return;
     }
 
+    // Validation: Bắt buộc phải có nhân viên và kỹ thuật viên
+    if (!data.staffId || data.staffId.trim() === "") {
+      toast.error("Vui lòng chọn nhân viên hỗ trợ!");
+      return;
+    }
+
+    if (!data.technicianIds || data.technicianIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một kỹ thuật viên!");
+      return;
+    }
+
     try {
       // Format endTime từ datetime-local (YYYY-MM-DDTHH:mm) sang ISO format
       const formattedEndTime = data.endTime.includes('T') 
@@ -214,8 +252,8 @@ export const ShiftAssign = () => {
 
       const payload: AssignShiftRequest = {
         assigneeId: data.assigneeId,
-        staffId: data.staffId || undefined,
-        technicianIds: data.technicianIds.length > 0 ? data.technicianIds : undefined,
+        staffId: data.staffId, // Bắt buộc
+        technicianIds: data.technicianIds, // Bắt buộc
         endTime: formattedEndTime,
       };
 
@@ -384,22 +422,41 @@ export const ShiftAssign = () => {
 
             {/* Nhân viên hỗ trợ */}
             <div className="flex flex-col gap-[0.8rem]">
-              <LabelAdmin htmlFor="staffId" content="Nhân viên hỗ trợ (Tùy chọn)" />
+              <LabelAdmin htmlFor="staffId" content="Nhân viên hỗ trợ *" />
               <SelectAdmin
                 name="staffId"
                 id="staffId"
-                register={register("staffId")}
+                register={register("staffId", {
+                  required: "Nhân viên hỗ trợ không được để trống!",
+                })}
                 options={staffOptions}
                 placeholder="Chọn nhân viên hỗ trợ..."
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setValue("staffId", value, { 
+                    shouldValidate: true,
+                    shouldDirty: true,
+                    shouldTouch: true
+                  });
+                  // Force re-render để watch() update
+                  console.log("✅ Staff ID changed to:", value);
+                }}
               />
+              {errors.staffId && (
+                <span className="text-red-500 text-[1.2rem]">{errors.staffId.message}</span>
+              )}
             </div>
 
             {/* Kỹ thuật viên */}
             <div className="flex flex-col gap-[0.8rem]">
-              <LabelAdmin htmlFor="technicianIds" content="Kỹ thuật viên (Có thể chọn nhiều)" />
+              <LabelAdmin htmlFor="technicianIds" content="Kỹ thuật viên * (Có thể chọn nhiều)" />
               <Controller
                 name="technicianIds"
                 control={control}
+                rules={{
+                  required: "Vui lòng chọn ít nhất một kỹ thuật viên!",
+                  validate: (value) => value && value.length > 0 || "Vui lòng chọn ít nhất một kỹ thuật viên!",
+                }}
                 render={({ field }) => (
                   <Autocomplete
                     multiple
@@ -408,7 +465,10 @@ export const ShiftAssign = () => {
                     getOptionLabel={(option) => option.label}
                     value={technicianOptions.filter(opt => field.value?.includes(opt.value))}
                     onChange={(_, newValue) => {
-                      field.onChange(newValue.map(item => item.value));
+                      const technicianIds = newValue.map(item => item.value);
+                      field.onChange(technicianIds);
+                      // Force re-render để watch() update
+                      console.log("✅ Technician IDs changed to:", technicianIds);
                     }}
                     loading={loadingTechnicians}
                     disabled={!endTimeValue}
@@ -454,6 +514,9 @@ export const ShiftAssign = () => {
                   />
                 )}
               />
+              {errors.technicianIds && (
+                <span className="text-red-500 text-[1.2rem]">{errors.technicianIds.message}</span>
+              )}
               {!endTimeValue && (
                 <span className="text-amber-600 text-[1.2rem]">
                   ⚠️ Vui lòng chọn thời gian kết thúc để xem danh sách kỹ thuật viên available
@@ -479,7 +542,7 @@ export const ShiftAssign = () => {
           </button>
           <button
             type="submit"
-            disabled={!currentUser?.userId}
+            disabled={!isFormValid}
             className="px-[2.4rem] py-[1.2rem] text-[1.4rem] bg-blue-600 text-white rounded-[0.8rem] hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Phân Công

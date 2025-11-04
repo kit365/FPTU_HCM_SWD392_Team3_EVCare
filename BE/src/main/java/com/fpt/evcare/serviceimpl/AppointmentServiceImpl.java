@@ -58,6 +58,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     MaintenanceManagementService maintenanceManagementService;
     MaintenanceRecordRepository maintenanceRecordRepository;
     MaintenanceManagementRepository maintenanceManagementRepository;
+    WarrantyPartRepository warrantyPartRepository;
     EmailService emailService;
     InvoiceRepository invoiceRepository;
     InvoiceMapper invoiceMapper;
@@ -106,11 +107,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Force initialization of lazy-loaded relationships within transaction
         initializeAppointmentRelations(appointmentEntity);
 
-        // Nếu user là customer (có currentUserId), kiểm tra xem appointment có phải của họ không
+        // Chỉ kiểm tra ownership nếu user là CUSTOMER
+        // ADMIN, STAFF, TECHNICIAN có thể xem tất cả appointments
         if(currentUserId != null && appointmentEntity.getCustomer() != null) {
-            if (!appointmentEntity.getCustomer().getUserId().equals(currentUserId)) {
-                log.warn("Customer {} attempted to access appointment {} that doesn't belong to them", currentUserId, id);
-                throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_NOT_FOUND);
+            // Query user để lấy role
+            UserEntity currentUser = userRepository.findByUserIdAndIsDeletedFalse(currentUserId);
+            if(currentUser != null && currentUser.getRole() != null) {
+                RoleEnum userRole = currentUser.getRole().getRoleName();
+                // Chỉ CUSTOMER mới cần kiểm tra ownership
+                if(userRole == RoleEnum.CUSTOMER) {
+                    if (!appointmentEntity.getCustomer().getUserId().equals(currentUserId)) {
+                        log.warn(AppointmentConstants.LOG_WARN_CUSTOMER_ACCESS_OTHER_APPOINTMENT, currentUserId, id);
+                        throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_NOT_FOUND);
+                    }
+                }
+                // ADMIN, STAFF, TECHNICIAN có thể xem tất cả appointments, không cần kiểm tra
             }
         }
 
@@ -155,6 +166,34 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
         }
 
+        // Map originalAppointment nếu đây là appointment bảo hành
+        if (appointmentEntity.getOriginalAppointment() != null) {
+            AppointmentEntity originalAppointmentEntity = appointmentEntity.getOriginalAppointment();
+            AppointmentResponse originalAppointmentResponse = appointmentMapper.toResponse(originalAppointmentEntity);
+            // Map customer, technicians, assignee, serviceTypes, vehicleType cho originalAppointment
+            if (originalAppointmentEntity.getCustomer() != null) {
+                UserResponse originalCustomerResponse = new UserResponse();
+                originalCustomerResponse.setUserId(originalAppointmentEntity.getCustomer().getUserId());
+                originalAppointmentResponse.setCustomer(originalCustomerResponse);
+            }
+            List<UserResponse> originalTechnicians = new ArrayList<>();
+            originalAppointmentEntity.getTechnicianEntities().forEach(technician -> {
+                originalTechnicians.add(mapUserEntityToResponse(technician));
+            });
+            originalAppointmentResponse.setTechnicianResponses(originalTechnicians);
+            originalAppointmentResponse.setAssignee(mapUserEntityToResponse(originalAppointmentEntity.getAssignee()));
+            originalAppointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(originalAppointmentEntity));
+            VehicleTypeResponse originalVehicleTypeResponse = new VehicleTypeResponse();
+            if (originalAppointmentEntity.getVehicleTypeEntity() != null) {
+                originalVehicleTypeResponse.setVehicleTypeId(originalAppointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
+                originalVehicleTypeResponse.setVehicleTypeName(originalAppointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
+                originalVehicleTypeResponse.setManufacturer(originalAppointmentEntity.getVehicleTypeEntity().getManufacturer());
+                originalVehicleTypeResponse.setModelYear(originalAppointmentEntity.getVehicleTypeEntity().getModelYear());
+            }
+            originalAppointmentResponse.setVehicleTypeResponse(originalVehicleTypeResponse);
+            appointmentResponse.setOriginalAppointment(originalAppointmentResponse);
+        }
+
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT + id);
         return appointmentResponse;
     }
@@ -185,7 +224,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Nếu không có kết quả, trả về page rỗng thay vì throw exception
         if(appointmentEntityPage == null || appointmentEntityPage.getTotalElements() == 0) {
-            log.info("No appointments found for user {} - returning empty page", userId);
+            log.info(AppointmentConstants.LOG_INFO_NO_APPOINTMENTS_FOUND_FOR_USER, userId);
             return PageResponse.<AppointmentResponse>builder()
                     .data(List.of())
                     .page(pageable != null ? pageable.getPageNumber() : 0)
@@ -268,7 +307,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Nếu không có kết quả, trả về page rỗng thay vì throw exception
         if(appointmentEntityPage == null || appointmentEntityPage.getTotalElements() == 0) {
-            log.info("No appointments found - returning empty page");
+            log.info(AppointmentConstants.LOG_INFO_NO_APPOINTMENTS_FOUND);
             return PageResponse.<AppointmentResponse>builder()
                     .data(List.of())
                     .page(pageable != null ? pageable.getPageNumber() : 0)
@@ -411,22 +450,29 @@ public class AppointmentServiceImpl implements AppointmentService {
     public PageResponse<AppointmentResponse> getAllAppointmentsByEmailOrPhoneForCustomer(String keyword, UUID currentUserId, Pageable pageable){
         Page<AppointmentEntity> appointmentEntityPage;
         
-        // Nếu có currentUserId (user đã authenticated), lấy appointments của user đó
+        // Nếu có currentUserId (user đã authenticated)
         if(currentUserId != null) {
-            log.info("🔍 Fetching appointments for authenticated user with customerId: {}", currentUserId);
-            appointmentEntityPage = appointmentRepository.findByCustomerId(currentUserId, pageable);
+            // Nếu có keyword, tìm kiếm kết hợp customerId và keyword
+            if(keyword != null && !keyword.trim().isEmpty()) {
+                log.info(AppointmentConstants.LOG_INFO_SEARCHING_APPOINTMENTS_FOR_USER_WITH_KEYWORD, currentUserId, keyword);
+                appointmentEntityPage = appointmentRepository.findByCustomerIdAndKeyword(currentUserId, keyword.trim(), pageable);
+            } else {
+                // Nếu không có keyword, chỉ tìm theo customerId
+                log.info(AppointmentConstants.LOG_INFO_FETCHING_APPOINTMENTS_FOR_USER, currentUserId);
+                appointmentEntityPage = appointmentRepository.findByCustomerId(currentUserId, pageable);
+            }
         } else if(keyword == null || keyword.trim().isEmpty()) {
             // Nếu không có keyword và không có userId, trả về empty result
-            log.info("No keyword or userId provided, returning empty result");
+            log.info(AppointmentConstants.LOG_INFO_NO_KEYWORD_OR_USER_ID);
             appointmentEntityPage = Page.empty(pageable);
         } else {
             // Tìm theo email, phone hoặc search field (cho trường hợp search như guest)
-            log.info("🔍 Searching appointments by keyword: {}", keyword);
+            log.info(AppointmentConstants.LOG_INFO_SEARCHING_APPOINTMENTS_BY_KEYWORD, keyword);
             appointmentEntityPage = appointmentRepository.findByEmailOrPhoneForCustomer(keyword.trim(), pageable);
         }
 
         if(appointmentEntityPage == null || appointmentEntityPage.isEmpty()) {
-            log.info("No appointments found for customer - userId: {}, keyword: {}", currentUserId, keyword);
+            log.info(AppointmentConstants.LOG_INFO_NO_APPOINTMENTS_FOUND_FOR_CUSTOMER, currentUserId, keyword);
             return PageResponse.<AppointmentResponse>builder()
                     .data(new ArrayList<>())
                     .page(pageable.getPageNumber())
@@ -506,7 +552,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         if(appointmentEntityPage == null || appointmentEntityPage.isEmpty()) {
-            log.info("No appointments found for guest with keyword: {}", keyword);
+            log.info(AppointmentConstants.LOG_INFO_NO_APPOINTMENTS_FOUND_FOR_GUEST, keyword);
             return PageResponse.<AppointmentResponse>builder()
                     .data(new ArrayList<>())
                     .page(pageable.getPageNumber())
@@ -581,24 +627,35 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         AppointmentEntity appointmentEntity = appointmentMapper.toEntity(creationAppointmentRequest);
 
-        log.info("🔍 Creating appointment with customerId: {}", creationAppointmentRequest.getCustomerId());
-        UserEntity customer = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getCustomerId());
-        log.info("👤 Found customer: {}", customer != null ? customer.getEmail() : "NULL");
-        if(customer != null) {
-            checkRoleUser(customer, RoleEnum.CUSTOMER);
-            appointmentEntity.setCustomer(customer);
-            // Đảm bảo customerEmail được set từ customer entity nếu chưa có
-            if (appointmentEntity.getCustomerEmail() == null || appointmentEntity.getCustomerEmail().isEmpty()) {
-                appointmentEntity.setCustomerEmail(customer.getEmail());
+        log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT, creationAppointmentRequest.getCustomerId());
+        
+        // Nếu có customerId, tìm và set customer
+        if (creationAppointmentRequest.getCustomerId() != null) {
+            UserEntity customer = userRepository.findByUserIdAndIsDeletedFalse(creationAppointmentRequest.getCustomerId());
+            log.info(AppointmentConstants.LOG_INFO_FOUND_CUSTOMER, customer != null ? customer.getEmail() : "NULL");
+            
+            if (customer != null) {
+                checkRoleUser(customer, RoleEnum.CUSTOMER);
+                appointmentEntity.setCustomer(customer);
+                log.info("✅ Set customer for appointment: customerId={}, email={}", customer.getUserId(), customer.getEmail());
+                
+                // Đảm bảo customerEmail được set từ customer entity nếu chưa có
+                if (appointmentEntity.getCustomerEmail() == null || appointmentEntity.getCustomerEmail().isEmpty()) {
+                    appointmentEntity.setCustomerEmail(customer.getEmail());
+                }
+                // Đảm bảo customerFullName được set từ customer entity nếu chưa có
+                if (appointmentEntity.getCustomerFullName() == null || appointmentEntity.getCustomerFullName().isEmpty()) {
+                    appointmentEntity.setCustomerFullName(customer.getFullName());
+                }
+                // Đảm bảo customerPhoneNumber được set từ customer entity nếu chưa có
+                if (appointmentEntity.getCustomerPhoneNumber() == null || appointmentEntity.getCustomerPhoneNumber().isEmpty()) {
+                    appointmentEntity.setCustomerPhoneNumber(customer.getNumberPhone());
+                }
+            } else {
+                log.warn("⚠️ CustomerId {} provided but customer not found in database", creationAppointmentRequest.getCustomerId());
             }
-            // Đảm bảo customerFullName được set từ customer entity nếu chưa có
-            if (appointmentEntity.getCustomerFullName() == null || appointmentEntity.getCustomerFullName().isEmpty()) {
-                appointmentEntity.setCustomerFullName(customer.getFullName());
-            }
-            // Đảm bảo customerPhoneNumber được set từ customer entity nếu chưa có
-            if (appointmentEntity.getCustomerPhoneNumber() == null || appointmentEntity.getCustomerPhoneNumber().isEmpty()) {
-                appointmentEntity.setCustomerPhoneNumber(customer.getNumberPhone());
-            }
+        } else {
+            log.info("ℹ️ No customerId provided - creating appointment as guest");
         }
 
         ServiceModeEnum serviceModeEnum = isValidServiceMode(creationAppointmentRequest.getServiceMode());
@@ -651,6 +708,40 @@ public class AppointmentServiceImpl implements AppointmentService {
         checkValidScheduleDate(creationAppointmentRequest.getScheduledAt());
         appointmentEntity.setScheduledAt(creationAppointmentRequest.getScheduledAt());
 
+        // Xử lý logic tạo appointment bảo hành
+        Boolean isWarrantyAppointment = creationAppointmentRequest.getIsWarrantyAppointment() != null 
+                && creationAppointmentRequest.getIsWarrantyAppointment();
+        
+        log.info("🔍 Creating appointment - isWarrantyAppointment: {}, originalAppointmentId: {}", 
+                isWarrantyAppointment, creationAppointmentRequest.getOriginalAppointmentId());
+        
+        appointmentEntity.setIsWarrantyAppointment(isWarrantyAppointment);
+
+        if (isWarrantyAppointment && creationAppointmentRequest.getOriginalAppointmentId() != null) {
+            // Validate appointment gốc đã completed
+            AppointmentEntity originalAppointment = appointmentRepository
+                    .findByAppointmentIdAndIsDeletedFalse(creationAppointmentRequest.getOriginalAppointmentId());
+            if (originalAppointment == null) {
+                log.warn("❌ Không tìm thấy appointment gốc: {}", creationAppointmentRequest.getOriginalAppointmentId());
+                throw new ResourceNotFoundException("Không tìm thấy appointment gốc để tạo appointment bảo hành");
+            }
+            if (originalAppointment.getStatus() != AppointmentStatusEnum.COMPLETED) {
+                log.warn("❌ Appointment gốc chưa completed: {}", originalAppointment.getStatus());
+                throw new EntityValidationException("Chỉ có thể tạo appointment bảo hành từ appointment đã hoàn thành");
+            }
+            // Link appointment mới với appointment gốc
+            appointmentEntity.setOriginalAppointment(originalAppointment);
+            log.info("✅ Tạo appointment bảo hành từ appointment gốc: {} - Warranty appointment ID sẽ là: {}", 
+                    originalAppointment.getAppointmentId(), appointmentEntity.getAppointmentId());
+        } else if (isWarrantyAppointment && creationAppointmentRequest.getOriginalAppointmentId() == null) {
+            log.warn("❌ Thiếu originalAppointmentId khi tạo appointment bảo hành");
+            throw new EntityValidationException("Cần cung cấp originalAppointmentId khi tạo appointment bảo hành");
+        } else {
+            // Appointment thông thường
+            appointmentEntity.setIsWarrantyAppointment(false);
+            appointmentEntity.setOriginalAppointment(null);
+        }
+
         //Ghép các thông tin lại
         String search = UtilFunction.concatenateSearchField(
                 appointmentEntity.getCustomerFullName(),
@@ -659,9 +750,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
         appointmentEntity.setSearch(search);
 
-        log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT);
+        log.info(AppointmentConstants.LOG_INFO_CREATING_APPOINTMENT, 
+                creationAppointmentRequest.getCustomerId() != null ? creationAppointmentRequest.getCustomerId() : "GUEST");
         AppointmentEntity savedEntity = appointmentRepository.save(appointmentEntity);
-        log.info("✅ Saved appointment with ID: {} and customer_id: {}", 
+        appointmentRepository.flush(); // Flush để đảm bảo dữ liệu được ghi vào database ngay lập tức
+        
+        // Log thông tin warranty appointment sau khi save
+        if (Boolean.TRUE.equals(savedEntity.getIsWarrantyAppointment())) {
+            log.info("✅ Warranty appointment saved successfully - ID: {}, Status: {}, isWarranty: {}, OriginalAppt: {}", 
+                    savedEntity.getAppointmentId(),
+                    savedEntity.getStatus(),
+                    savedEntity.getIsWarrantyAppointment(),
+                    savedEntity.getOriginalAppointment() != null ? savedEntity.getOriginalAppointment().getAppointmentId() : "null");
+        }
+        
+        log.info(AppointmentConstants.LOG_INFO_SAVED_APPOINTMENT, 
                 savedEntity.getAppointmentId(), 
                 savedEntity.getCustomer() != null ? savedEntity.getCustomer().getUserId() : "NULL");
 
@@ -883,7 +986,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (appointmentEntity.getStatus() == AppointmentStatusEnum.PENDING && 
             !technicians.isEmpty() && assignee != null) {
             appointmentEntity.setStatus(AppointmentStatusEnum.CONFIRMED);
-            log.info("Appointment {} automatically changed to CONFIRMED after assignment", id);
+            log.info(AppointmentConstants.LOG_INFO_APPOINTMENT_AUTO_CONFIRMED, id);
         }
 
         log.info(AppointmentConstants.LOG_INFO_UPDATING_APPOINTMENT, id);
@@ -937,7 +1040,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Reload entity để đảm bảo có đầy đủ thông tin (bao gồm cả customerEmail từ customer entity)
         AppointmentEntity refreshedAppointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(id);
         if (refreshedAppointment == null) {
-            log.warn("Failed to reload appointment after status update: {}", id);
+            log.warn(AppointmentConstants.LOG_WARN_FAILED_RELOAD_APPOINTMENT, id);
             refreshedAppointment = appointmentEntity; // Fallback to original entity
         } else {
             // Đảm bảo customerEmail được set từ customer nếu có
@@ -955,8 +1058,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Chỉ cho phép chuyển sang CONFIRMED khi đang ở PENDING
         if (newStatus == AppointmentStatusEnum.CONFIRMED) {
             if (currentStatus != AppointmentStatusEnum.PENDING) {
-                log.warn("Cannot transition to CONFIRMED from status: {}", currentStatus);
-                throw new EntityValidationException("Chỉ có thể chuyển sang CONFIRMED từ trạng thái PENDING");
+                log.warn(AppointmentConstants.LOG_WARN_CANNOT_TRANSITION_TO_CONFIRMED, currentStatus);
+                throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_CAN_ONLY_TRANSITION_TO_CONFIRMED_FROM_PENDING);
             }
 
             // Đảm bảo đã có kỹ thuật viên và người được phân công
@@ -1030,7 +1133,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         serviceTypeEntities.forEach(serviceTypeEntity -> serviceTypeEntity.getServiceTypeVehiclePartList().forEach(serviceTypeVehiclePart -> {
                     VehiclePartEntity vehiclePartEntity = serviceTypeVehiclePart.getVehiclePart();
                     if (vehiclePartRepository.existsByVehiclePartIdAndIsDeletedFalse(vehiclePartEntity.getVehiclePartId()) && vehiclePartEntity.getUnitPrice() != null) {
-                        quotePrice.set(quotePrice.get().add(vehiclePartEntity.getUnitPrice()));
+                        // Calculate price based on required quantity (default to 1 if not specified)
+                        Integer requiredQuantity = serviceTypeVehiclePart.getRequiredQuantity() != null ? serviceTypeVehiclePart.getRequiredQuantity() : 1;
+                        BigDecimal partPrice = vehiclePartEntity.getUnitPrice().multiply(BigDecimal.valueOf(requiredQuantity));
+                        quotePrice.set(quotePrice.get().add(partPrice));
                     }
                 })
         );
@@ -1255,7 +1361,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             // ⚠️ CHECK: Nếu dịch vụ chưa được config phụ tùng thì SKIP (tránh lỗi "danh sách rỗng")
             if (recordRequests.isEmpty()) {
-                log.warn("⚠️ Service '{}' chưa được cấu hình phụ tùng trong service_type_vehicle_part. Skip tạo MaintenanceManagement cho dịch vụ này!", parentService.getServiceName());
+                log.warn(AppointmentConstants.LOG_WARN_SERVICE_NOT_CONFIGURED_PARTS, parentService.getServiceName());
                 return; // Skip service này, không throw exception
             }
 
@@ -1397,9 +1503,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             notif.setAppointmentId(appointment.getAppointmentId().toString());
             
             notificationHelperService.sendNotification(appointment.getCustomer().getUserId(), notif);
-            log.info("📬 Sent IN_PROGRESS notification to customer: {}", appointment.getCustomer().getUserId());
+            log.info(AppointmentConstants.LOG_INFO_SENT_IN_PROGRESS_EMAIL, appointment.getCustomer().getUserId());
         } catch (Exception e) {
-            log.error("❌ Failed to send IN_PROGRESS notification: {}", e.getMessage());
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_IN_PROGRESS_EMAIL, e.getMessage());
         }
     }
     
@@ -1417,9 +1523,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             notif.setAppointmentId(appointment.getAppointmentId().toString());
             
             notificationHelperService.sendNotification(appointment.getCustomer().getUserId(), notif);
-            log.info("📬 Sent COMPLETED notification to customer: {}", appointment.getCustomer().getUserId());
+            log.info(AppointmentConstants.LOG_INFO_SENT_COMPLETED_EMAIL, appointment.getCustomer().getUserId());
         } catch (Exception e) {
-            log.error("❌ Failed to send COMPLETED notification: {}", e.getMessage());
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_COMPLETED_EMAIL, e.getMessage());
         }
     }
     
@@ -1437,9 +1543,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             notif.setAppointmentId(appointment.getAppointmentId().toString());
             
             notificationHelperService.sendNotification(appointment.getCustomer().getUserId(), notif);
-            log.info("📬 Sent CANCELLED notification to customer: {}", appointment.getCustomer().getUserId());
+            log.info(AppointmentConstants.LOG_INFO_SENT_CANCELLED_EMAIL, appointment.getCustomer().getUserId());
         } catch (Exception e) {
-            log.error("❌ Failed to send CANCELLED notification: {}", e.getMessage());
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_CANCELLED_EMAIL, e.getMessage());
         }
     }
 
@@ -1578,7 +1684,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             // Lấy invoice của appointment
             List<InvoiceEntity> invoices = invoiceRepository.findByAppointmentAndIsDeletedFalse(appointment);
             if (invoices.isEmpty()) {
-                log.warn("No invoice found for appointment: {}", appointment.getAppointmentId());
+                log.warn(AppointmentConstants.LOG_WARN_NO_INVOICE_FOUND, appointment.getAppointmentId());
                 return;
             }
 
@@ -1667,7 +1773,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             List<ShiftEntity> shifts = shiftPage.getContent();
             
             if (shifts.isEmpty()) {
-                log.debug("No shifts found for appointment {} to update", appointmentId);
+                log.debug(AppointmentConstants.LOG_DEBUG_NO_SHIFTS_FOUND_TO_UPDATE, appointmentId);
                 return;
             }
             
@@ -1687,18 +1793,18 @@ public class AppointmentServiceImpl implements AppointmentService {
                     shift.setSearch(search);
                     shiftRepository.save(shift);
                     updatedCount++;
-                    log.info("✅ Auto-updated shift {} status to IN_PROGRESS when appointment {} changed to IN_PROGRESS", 
+                    log.info(AppointmentConstants.LOG_INFO_AUTO_UPDATED_SHIFT_STATUS, 
                             shift.getShiftId(), appointmentId);
                 }
             }
             
             if (updatedCount > 0) {
-                log.info("✅ Updated {} shift(s) to IN_PROGRESS for appointment {}", updatedCount, appointmentId);
+                log.info(AppointmentConstants.LOG_INFO_UPDATED_SHIFTS_TO_IN_PROGRESS, updatedCount, appointmentId);
             } else {
-                log.debug("No shifts needed status update for appointment {} (all shifts are already IN_PROGRESS or other status)", appointmentId);
+                log.debug(AppointmentConstants.LOG_DEBUG_NO_SHIFTS_NEEDED_UPDATE, appointmentId);
             }
         } catch (Exception e) {
-            log.error("⚠️ Failed to update shift status when appointment {} changed to IN_PROGRESS: {}", 
+            log.error(AppointmentConstants.LOG_ERR_FAILED_UPDATE_SHIFT_STATUS, 
                     appointmentId, e.getMessage());
             // Không throw exception để không block việc update appointment status
         }
@@ -1741,7 +1847,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Kiểm tra email có khớp với appointment không
         if (!email.equalsIgnoreCase(appointment.getCustomerEmail())) {
-            log.warn("Email {} does not match appointment {} email {}", email, appointmentId, appointment.getCustomerEmail());
+            log.warn(AppointmentConstants.LOG_WARN_EMAIL_NOT_MATCH_APPOINTMENT, email, appointmentId, appointment.getCustomerEmail());
             throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_EMAIL_NOT_MATCH);
         }
 
@@ -1749,7 +1855,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String otpKey = getGuestOtpKey(appointmentId, email);
         if (redisService.getValue(otpKey) != null) {
             redisService.delete(otpKey);
-            log.info("Đã xóa mã OTP cũ cho appointment {} và email {}", appointmentId, email);
+            log.info(AppointmentConstants.LOG_INFO_DELETED_OLD_OTP, appointmentId, email);
         }
 
         // Tạo OTP mới
@@ -1787,8 +1893,8 @@ public class AppointmentServiceImpl implements AppointmentService {
             emailService.sendEmailTemplate(emailRequest);
             log.info(AppointmentConstants.LOG_SUCCESS_SEND_OTP_FOR_GUEST, appointmentId);
         } catch (Exception e) {
-            log.error("Failed to send OTP email for appointment {}: {}", appointmentId, e.getMessage());
-            throw new ResourceNotFoundException("Không thể gửi email OTP. Vui lòng thử lại sau.");
+            log.error(AppointmentConstants.LOG_ERR_FAILED_SEND_OTP_EMAIL, appointmentId, e.getMessage());
+            throw new ResourceNotFoundException(AppointmentConstants.MESSAGE_ERR_CANNOT_SEND_OTP_EMAIL);
         }
     }
 
@@ -1805,7 +1911,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Kiểm tra email có khớp không
         if (!email.equalsIgnoreCase(appointment.getCustomerEmail())) {
-            log.warn("Email {} does not match appointment {} email {}", email, appointmentId, appointment.getCustomerEmail());
+            log.warn(AppointmentConstants.LOG_WARN_EMAIL_NOT_MATCH_APPOINTMENT, email, appointmentId, appointment.getCustomerEmail());
             throw new EntityValidationException(AppointmentConstants.MESSAGE_ERR_APPOINTMENT_EMAIL_NOT_MATCH);
         }
 
@@ -1852,10 +1958,118 @@ public class AppointmentServiceImpl implements AppointmentService {
         UserEntity assignee = appointment.getAssignee();
         response.setAssignee(mapUserEntityToResponse(assignee));
         
+        // Set quotePrice: Nếu dịch vụ đó không còn tồn tại, giá tạm tính phải mất
+        if(response.getServiceTypeResponses().isEmpty()) {
+            response.setQuotePrice(BigDecimal.ZERO);
+        } else {
+            // Đảm bảo quotePrice không null - nếu null thì set ZERO
+            BigDecimal quotePrice = appointment.getQuotePrice();
+            response.setQuotePrice(quotePrice != null ? quotePrice : BigDecimal.ZERO);
+        }
+        
         log.info(AppointmentConstants.LOG_SUCCESS_VERIFY_OTP_FOR_GUEST, appointmentId);
         return response;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AppointmentResponse> getWarrantyAppointments(String keyword, Pageable pageable) {
+        log.info(AppointmentConstants.LOG_INFO_SHOWING_WARRANTY_APPOINTMENT_LIST + " - keyword: {}", keyword);
+        
+        // Xử lý keyword: nếu null hoặc empty thì set null để query bỏ qua điều kiện keyword
+        String searchKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        
+        Page<AppointmentEntity> appointmentEntityPage = appointmentRepository.findWarrantyAppointments(
+                searchKeyword, 
+                AppointmentStatusEnum.COMPLETED.name(), // Convert enum sang String
+                pageable);
+        
+        log.info("🔍 Found {} warranty appointments (total: {})", 
+                appointmentEntityPage.getContent().size(), 
+                appointmentEntityPage.getTotalElements());
+        
+        // Debug: log các appointment tìm được
+        if (!appointmentEntityPage.getContent().isEmpty()) {
+            appointmentEntityPage.getContent().forEach(apt -> {
+                log.info("📋 Warranty Appointment: ID={}, Status={}, isWarranty={}, OriginalAppt={}", 
+                        apt.getAppointmentId(), 
+                        apt.getStatus(), 
+                        apt.getIsWarrantyAppointment(),
+                        apt.getOriginalAppointment() != null ? apt.getOriginalAppointment().getAppointmentId() : "null");
+            });
+        } else {
+            log.warn("⚠️ No warranty appointments found with keyword: {} and status: COMPLETED", searchKeyword);
+            // Debug: Thử query tất cả warranty appointments (không cần COMPLETED) để xem có warranty appointments nào không
+            try {
+                List<AppointmentEntity> allWarranty = appointmentRepository.findAll().stream()
+                    .filter(a -> Boolean.TRUE.equals(a.getIsWarrantyAppointment()) 
+                        && !a.getIsDeleted() 
+                        && a.getIsActive())
+                    .toList();
+                log.info("🔍 Debug: Total warranty appointments (all statuses): {}", allWarranty.size());
+                if (!allWarranty.isEmpty()) {
+                    log.info("🔍 Debug: Warranty appointments statuses: {}", 
+                        allWarranty.stream()
+                            .map(a -> a.getAppointmentId() + "=" + a.getStatus() + "(isWarranty=" + a.getIsWarrantyAppointment() + ")")
+                            .collect(java.util.stream.Collectors.joining(", ")));
+                }
+            } catch (Exception e) {
+                log.error("Error debugging warranty appointments: {}", e.getMessage(), e);
+            }
+        }
+        
+        // Force initialization of lazy-loaded relationships within transaction
+        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
+        
+        List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
+            AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
+            
+            UserEntity customer = appointmentEntity.getCustomer();
+            if (customer != null) {
+                UserResponse response = new UserResponse();
+                response.setUserId(customer.getUserId());
+                appointmentResponse.setCustomer(response);
+            }
+            
+            List<UserResponse> technicianEntities = new ArrayList<>();
+            appointmentEntity.getTechnicianEntities().forEach(technicianEntity -> {
+                UserResponse technicianResponse = mapUserEntityToResponse(technicianEntity);
+                technicianEntities.add(technicianResponse);
+            });
+            appointmentResponse.setTechnicianResponses(technicianEntities);
+            
+            UserEntity assignee = appointmentEntity.getAssignee();
+            appointmentResponse.setAssignee(mapUserEntityToResponse(assignee));
+            
+            // Map service types
+            appointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(appointmentEntity));
+            
+            // Map vehicle type
+            if (appointmentEntity.getVehicleTypeEntity() != null) {
+                VehicleTypeResponse vehicleTypeResponse = new VehicleTypeResponse();
+                vehicleTypeResponse.setVehicleTypeId(appointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
+                vehicleTypeResponse.setVehicleTypeName(appointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
+                vehicleTypeResponse.setManufacturer(appointmentEntity.getVehicleTypeEntity().getManufacturer());
+                vehicleTypeResponse.setModelYear(appointmentEntity.getVehicleTypeEntity().getModelYear());
+                appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
+            }
+            
+            // Map original appointment if exists
+            if (appointmentEntity.getOriginalAppointment() != null) {
+                AppointmentResponse originalResponse = appointmentMapper.toResponse(appointmentEntity.getOriginalAppointment());
+                appointmentResponse.setOriginalAppointment(originalResponse);
+            }
+            
+            return appointmentResponse;
+        }).getContent();
+        
+        return PageResponse.<AppointmentResponse>builder()
+                .data(appointmentResponseList)
+                .page(appointmentEntityPage.getNumber())
+                .totalElements(appointmentEntityPage.getTotalElements())
+                .totalPages(appointmentEntityPage.getTotalPages())
+                .build();
+    }
 
     /**
      * Helper method to force initialization of lazy-loaded appointment relationships
@@ -1895,5 +2109,176 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private String getGuestOtpKey(UUID appointmentId, String email) {
         return GUEST_OTP_REDIS_KEY_PREFIX + appointmentId + ":" + email.toLowerCase();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary> getMaintenanceDetailsByAppointmentId(UUID appointmentId) {
+        log.info("Getting maintenance details for appointment: {}", appointmentId);
+        
+        AppointmentEntity appointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentId);
+        if (appointment == null) {
+            log.warn("Appointment not found: {}", appointmentId);
+            throw new com.fpt.evcare.exception.ResourceNotFoundException("Không tìm thấy cuộc hẹn");
+        }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        initializeAppointmentRelations(appointment);
+
+        // Populate maintenance management details (services + parts used)
+        java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> maintenanceList = 
+            maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointmentId);
+        
+        java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary> maintenanceDetails = maintenanceList.stream()
+            .map(mm -> {
+                java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.PartUsed> partsUsed = mm.getMaintenanceRecords().stream()
+                    .filter(record -> !record.getIsDeleted() && Boolean.TRUE.equals(record.getApprovedByUser()))
+                    .map(record -> {
+                        java.math.BigDecimal unitPrice = record.getVehiclePart() != null ? record.getVehiclePart().getUnitPrice() : java.math.BigDecimal.ZERO;
+                        java.math.BigDecimal originalPrice = unitPrice.multiply(java.math.BigDecimal.valueOf(record.getQuantityUsed()));
+                        
+                        // Kiểm tra warranty cho phụ tùng này
+                        UUID vehiclePartId = record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartId() : null;
+                        com.fpt.evcare.entity.WarrantyPartEntity warrantyPart = null;
+                        Boolean isUnderWarranty = false;
+                        String warrantyDiscountType = null;
+                        java.math.BigDecimal warrantyDiscountValue = null;
+                        java.math.BigDecimal warrantyDiscountAmount = java.math.BigDecimal.ZERO;
+                        java.math.BigDecimal totalPrice = originalPrice;
+                        
+                        if (vehiclePartId != null && appointment.getStatus() == AppointmentStatusEnum.COMPLETED) {
+                            // Chỉ kiểm tra warranty nếu appointment đã COMPLETED
+                            warrantyPart = warrantyPartRepository
+                                .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                                .orElse(null);
+                            
+                            if (warrantyPart != null) {
+                                // Kiểm tra xem có phải warranty appointment và có original appointment không
+                                boolean isWarrantyAppointment = Boolean.TRUE.equals(appointment.getIsWarrantyAppointment());
+                                boolean hasOriginalAppointment = appointment.getOriginalAppointment() != null;
+                                
+                                if (isWarrantyAppointment && hasOriginalAppointment) {
+                                    // Kiểm tra customer và service có khớp với original appointment không
+                                    AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
+                                    boolean customerMatches = checkCustomerMatchesForWarranty(appointment, originalAppointment);
+                                    boolean servicesMatch = checkServicesMatchForWarranty(appointment, originalAppointment);
+                                    boolean partInOriginal = checkPartInOriginalAppointmentForWarranty(vehiclePartId, originalAppointment);
+                                    
+                                    if (customerMatches && servicesMatch && partInOriginal) {
+                                        isUnderWarranty = true;
+                                        warrantyDiscountType = warrantyPart.getDiscountType().name();
+                                        
+                                        if (warrantyPart.getDiscountType() == com.fpt.evcare.enums.WarrantyDiscountTypeEnum.PERCENTAGE) {
+                                            warrantyDiscountValue = warrantyPart.getDiscountValue();
+                                            warrantyDiscountAmount = originalPrice.multiply(warrantyDiscountValue)
+                                                .divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                                            totalPrice = originalPrice.subtract(warrantyDiscountAmount);
+                                        } else if (warrantyPart.getDiscountType() == com.fpt.evcare.enums.WarrantyDiscountTypeEnum.FREE) {
+                                            warrantyDiscountAmount = originalPrice;
+                                            totalPrice = java.math.BigDecimal.ZERO;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        return com.fpt.evcare.dto.response.InvoiceResponse.PartUsed.builder()
+                            .partName(record.getVehiclePart() != null ? record.getVehiclePart().getVehiclePartName() : "N/A")
+                            .quantity(record.getQuantityUsed())
+                            .unitPrice(unitPrice)
+                            .totalPrice(totalPrice)
+                            .originalPrice(originalPrice)
+                            .isUnderWarranty(isUnderWarranty)
+                            .warrantyDiscountType(warrantyDiscountType)
+                            .warrantyDiscountValue(warrantyDiscountValue)
+                            .warrantyDiscountAmount(warrantyDiscountAmount)
+                            .build();
+                    })
+                    .toList();
+
+                return com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary.builder()
+                    .serviceName(mm.getServiceType() != null ? mm.getServiceType().getServiceName() : "N/A")
+                    .serviceCost(mm.getTotalCost() != null ? mm.getTotalCost() : java.math.BigDecimal.ZERO)
+                    .partsUsed(partsUsed)
+                    .build();
+            })
+            .toList();
+
+        return maintenanceDetails;
+    }
+
+    /**
+     * Helper methods for warranty checking (reused from MaintenanceManagementServiceImpl logic)
+     */
+    private boolean checkCustomerMatchesForWarranty(AppointmentEntity currentAppointment, AppointmentEntity originalAppointment) {
+        if (currentAppointment.getCustomer() != null && originalAppointment.getCustomer() != null) {
+            if (currentAppointment.getCustomer().getUserId().equals(originalAppointment.getCustomer().getUserId())) {
+                return true;
+            }
+        }
+        if (currentAppointment.getCustomerFullName() != null && originalAppointment.getCustomerFullName() != null) {
+            if (currentAppointment.getCustomerFullName().equalsIgnoreCase(originalAppointment.getCustomerFullName())) {
+                return true;
+            }
+        }
+        if (currentAppointment.getCustomerEmail() != null && originalAppointment.getCustomerEmail() != null) {
+            if (currentAppointment.getCustomerEmail().equalsIgnoreCase(originalAppointment.getCustomerEmail())) {
+                return true;
+            }
+        }
+        if (currentAppointment.getCustomerPhoneNumber() != null && originalAppointment.getCustomerPhoneNumber() != null) {
+            if (currentAppointment.getCustomerPhoneNumber().equals(originalAppointment.getCustomerPhoneNumber())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean checkServicesMatchForWarranty(AppointmentEntity currentAppointment, AppointmentEntity originalAppointment) {
+        java.util.List<com.fpt.evcare.entity.ServiceTypeEntity> currentServices = currentAppointment.getServiceTypeEntities();
+        java.util.List<com.fpt.evcare.entity.ServiceTypeEntity> originalServices = originalAppointment.getServiceTypeEntities();
+        
+        if (currentServices == null || originalServices == null || currentServices.isEmpty() || originalServices.isEmpty()) {
+            return false;
+        }
+        if (currentServices.size() != originalServices.size()) {
+            return false;
+        }
+        java.util.List<UUID> currentServiceIds = currentServices.stream()
+                .map(com.fpt.evcare.entity.ServiceTypeEntity::getServiceTypeId)
+                .sorted()
+                .toList();
+        java.util.List<UUID> originalServiceIds = originalServices.stream()
+                .map(com.fpt.evcare.entity.ServiceTypeEntity::getServiceTypeId)
+                .sorted()
+                .toList();
+        return currentServiceIds.equals(originalServiceIds);
+    }
+
+    private boolean checkPartInOriginalAppointmentForWarranty(UUID vehiclePartId, AppointmentEntity originalAppointment) {
+        java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> originalMaintenanceManagements = maintenanceManagementRepository
+                .findByAppointmentIdAndIsDeletedFalse(originalAppointment.getAppointmentId());
+        
+        if (originalMaintenanceManagements == null || originalMaintenanceManagements.isEmpty()) {
+            return false;
+        }
+        
+        for (com.fpt.evcare.entity.MaintenanceManagementEntity maintenanceManagement : originalMaintenanceManagements) {
+            java.util.List<com.fpt.evcare.entity.MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
+            if (maintenanceRecords == null || maintenanceRecords.isEmpty()) {
+                continue;
+            }
+            for (com.fpt.evcare.entity.MaintenanceRecordEntity record : maintenanceRecords) {
+                if (record.getVehiclePart() != null && 
+                    record.getVehiclePart().getVehiclePartId().equals(vehiclePartId) &&
+                    Boolean.TRUE.equals(record.getApprovedByUser())) {
+                    com.fpt.evcare.entity.WarrantyPartEntity warrantyPart = warrantyPartRepository
+                            .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                            .orElse(null);
+                    return warrantyPart != null;
+                }
+            }
+        }
+        return false;
     }
 }

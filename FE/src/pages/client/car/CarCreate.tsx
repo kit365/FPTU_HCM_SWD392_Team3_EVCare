@@ -3,7 +3,6 @@ import { Button, Input, Modal, Select, Form, message } from "antd";
 import { useAuthContext } from "../../../context/useAuthContext";
 import { useVehicleProfile } from "../../../hooks/useVehicleProfile";
 import { useVehicleType } from "../../../hooks/useVehicleType";
-import ViewOldDataModal, { type VehicleProfileData } from "../../client/booking/ViewOldDataModal";
 import type { CreationVehicleProfileRequest } from "../../../types/vehicle-profile.types";
 import dayjs from "dayjs";
 
@@ -22,7 +21,6 @@ const CarCreate: React.FC<CarCreateProps> = ({ onSearch, onSuccess }) => {
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [isUseOldData, setIsUseOldData] = useState(false);
 
     useEffect(() => {
         fetchVehicleTypeNames();
@@ -40,16 +38,6 @@ const CarCreate: React.FC<CarCreateProps> = ({ onSearch, onSuccess }) => {
         if (user?.userId) {
             form.setFieldValue("userId", user.userId);
         }
-    };
-
-    const handleSelectVehicle = (vehicleData: VehicleProfileData) => {
-        // Auto-fill form với dữ liệu từ xe đã chọn
-        form.setFieldsValue({
-            vehicleTypeId: vehicleData.vehicleTypeId,
-            plateNumber: vehicleData.licensePlate,
-            mileage: vehicleData.mileage ? parseInt(vehicleData.mileage) : undefined,
-            notes: vehicleData.notes || "",
-        });
     };
 
     const handleSubmit = async () => {
@@ -155,16 +143,6 @@ const CarCreate: React.FC<CarCreateProps> = ({ onSearch, onSuccess }) => {
                 confirmLoading={loading}
                 width={800}
             >
-                <div style={{ marginBottom: "16px" }}>
-                    <Button 
-                        type="dashed" 
-                        onClick={() => setIsUseOldData(true)}
-                        style={{ width: "100%" }}
-                    >
-                        Chọn từ xe đã đặt lịch trước
-                    </Button>
-                </div>
-
                 <Form
                     form={form}
                     layout="vertical"
@@ -245,12 +223,6 @@ const CarCreate: React.FC<CarCreateProps> = ({ onSearch, onSuccess }) => {
                     </Form.Item>
                 </Form>
             </Modal>
-
-            <ViewOldDataModal
-                open={isUseOldData}
-                onCancel={() => setIsUseOldData(false)}
-                onSelectVehicle={handleSelectVehicle}
-            />
         </div>
     );
 };

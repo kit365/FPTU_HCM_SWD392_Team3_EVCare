@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table, Input, Space, Typography, Tag, Card, Button, message } from "antd";
+import { Table, Input, Space, Typography, Tag, Card, Button, message, Modal, Form, DatePicker, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { bookingService } from "../../service/bookingService";
 import { useAuthContext } from "../../context/useAuthContext";
-import { Receipt, Payment } from "@mui/icons-material";
+import { Receipt, Payment, Build } from "@mui/icons-material";
 import moment from "moment";
 import AppointmentDetail from "./car/AppointmentDetail";
 import type { UserAppointment } from "../../types/booking.types";
+import dayjs from "dayjs";
 
 const { Title } = Typography;
 
@@ -37,6 +38,10 @@ const ClientAppointmentHistory: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [appointmentDetail, setAppointmentDetail] = useState<UserAppointment | null>(null);
   const [isOpenDetail, setIsOpenDetail] = useState<boolean>(false);
+  const [warrantyModalVisible, setWarrantyModalVisible] = useState<boolean>(false);
+  const [selectedOriginalAppointment, setSelectedOriginalAppointment] = useState<AppointmentRow | null>(null);
+  const [warrantyForm] = Form.useForm();
+  const [creatingWarranty, setCreatingWarranty] = useState<boolean>(false);
 
   const fetchData = async (_page = page, _pageSize = pageSize, _keyword = keyword) => {
     if (!user?.userId) return;
@@ -110,6 +115,69 @@ const ClientAppointmentHistory: React.FC = () => {
 
   const handleViewDetail = (appointmentId: string) => {
     navigate(`/client/appointment/${appointmentId}`);
+  };
+
+  const handleRequestWarranty = (record: AppointmentRow) => {
+    setSelectedOriginalAppointment(record);
+    // Lấy thông tin appointment gốc để pre-fill form
+    warrantyForm.setFieldsValue({
+      scheduledAt: dayjs().add(1, 'day'),
+      serviceMode: record.serviceMode,
+      notes: `Yêu cầu bảo hành cho appointment ${record.appointmentId}`,
+    });
+    setWarrantyModalVisible(true);
+  };
+
+  const handleCreateWarrantyAppointment = async () => {
+    if (!selectedOriginalAppointment || !user?.userId) {
+      message.error("Thông tin không đầy đủ");
+      return;
+    }
+
+    try {
+      const values = await warrantyForm.validateFields();
+      setCreatingWarranty(true);
+
+      const warrantyAppointmentData = {
+        customerId: user.userId,
+        customerFullName: selectedOriginalAppointment.customerFullName,
+        customerPhoneNumber: selectedOriginalAppointment.customerPhoneNumber,
+        customerEmail: selectedOriginalAppointment.customerEmail,
+        vehicleTypeId: "", // Cần lấy từ appointment gốc, nhưng hiện tại không có trong AppointmentRow
+        vehicleNumberPlate: selectedOriginalAppointment.vehicleNumberPlate,
+        vehicleKmDistances: "",
+        userAddress: "",
+        serviceMode: values.serviceMode,
+        scheduledAt: values.scheduledAt.toISOString(),
+        notes: values.notes || "",
+        serviceTypeIds: [], // Cần lấy từ appointment gốc, nhưng hiện tại không có trong AppointmentRow
+        isWarrantyAppointment: true,
+        originalAppointmentId: selectedOriginalAppointment.appointmentId,
+      };
+
+      // Tuy nhiên, để lấy đầy đủ thông tin, tôi cần fetch appointment detail trước
+      // Hoặc có thể lấy từ appointment detail nếu đã có
+      const appointmentDetail = await bookingService.getAppointmentById(selectedOriginalAppointment.appointmentId);
+      const appointmentData = appointmentDetail.data.data;
+
+      warrantyAppointmentData.vehicleTypeId = appointmentData.vehicleTypeResponse?.vehicleTypeId || "";
+      warrantyAppointmentData.serviceTypeIds = appointmentData.serviceTypeResponses?.map((s: any) => s.serviceTypeId) || [];
+      warrantyAppointmentData.vehicleKmDistances = appointmentData.vehicleKmDistances || "";
+      warrantyAppointmentData.userAddress = appointmentData.userAddress || "";
+
+      await bookingService.createAppointment(warrantyAppointmentData);
+      
+      message.success("Đã tạo yêu cầu bảo hành thành công!");
+      setWarrantyModalVisible(false);
+      warrantyForm.resetFields();
+      setSelectedOriginalAppointment(null);
+      fetchData(page, pageSize, keyword);
+    } catch (error: any) {
+      console.error("Error creating warranty appointment:", error);
+      message.error(error?.response?.data?.message || "Không thể tạo yêu cầu bảo hành. Vui lòng thử lại.");
+    } finally {
+      setCreatingWarranty(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -232,6 +300,17 @@ const ClientAppointmentHistory: React.FC = () => {
               Hóa đơn
             </Button>
           )}
+          {record.status === "COMPLETED" && (
+            <Button
+              type="link"
+              size="small"
+              icon={<Build />}
+              onClick={() => handleRequestWarranty(record)}
+              style={{ padding: 0, color: "#f59e0b", fontSize: "13px" }}
+            >
+              Yêu cầu bảo hành
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -308,6 +387,69 @@ const ClientAppointmentHistory: React.FC = () => {
             fetchData(page, pageSize, keyword);
           }}
         />
+
+        {/* Warranty Appointment Modal */}
+        <Modal
+          title="Yêu cầu bảo hành"
+          open={warrantyModalVisible}
+          onOk={handleCreateWarrantyAppointment}
+          onCancel={() => {
+            setWarrantyModalVisible(false);
+            warrantyForm.resetFields();
+            setSelectedOriginalAppointment(null);
+          }}
+          confirmLoading={creatingWarranty}
+          okText="Tạo yêu cầu bảo hành"
+          cancelText="Hủy"
+          width={600}
+        >
+          <Form
+            form={warrantyForm}
+            layout="vertical"
+            initialValues={{
+              serviceMode: "STATIONARY",
+            }}
+          >
+            <Form.Item
+              label="Thời gian hẹn"
+              name="scheduledAt"
+              rules={[{ required: true, message: "Vui lòng chọn thời gian hẹn" }]}
+            >
+              <DatePicker
+                showTime
+                format="DD/MM/YYYY HH:mm"
+                style={{ width: "100%" }}
+                disabledDate={(current) => current && current < dayjs().startOf('day')}
+              />
+            </Form.Item>
+            <Form.Item
+              label="Hình thức dịch vụ"
+              name="serviceMode"
+              rules={[{ required: true, message: "Vui lòng chọn hình thức dịch vụ" }]}
+            >
+              <Select>
+                <Select.Option value="STATIONARY">Tại trạm</Select.Option>
+                <Select.Option value="MOBILE">Di động</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item
+              label="Ghi chú"
+              name="notes"
+            >
+              <Input.TextArea rows={4} placeholder="Nhập ghi chú về yêu cầu bảo hành..." />
+            </Form.Item>
+            {selectedOriginalAppointment && (
+              <div style={{ marginTop: 16, padding: 12, backgroundColor: "#f0f0f0", borderRadius: 4 }}>
+                <p style={{ margin: 0, fontSize: "12px", color: "#666" }}>
+                  <strong>Appointment gốc:</strong> {selectedOriginalAppointment.appointmentId.substring(0, 8).toUpperCase()}
+                </p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#666" }}>
+                  <strong>Ngày hoàn thành:</strong> {moment(selectedOriginalAppointment.scheduledAt).format("DD/MM/YYYY HH:mm")}
+                </p>
+              </div>
+            )}
+          </Form>
+        </Modal>
       </div>
     </div>
   );

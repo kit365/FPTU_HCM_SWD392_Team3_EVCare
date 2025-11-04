@@ -37,4 +37,10 @@ public interface AppointmentService {
     // Guest appointment OTP methods
     void sendOtpForGuestAppointment(UUID appointmentId, String email);
     AppointmentResponse verifyOtpForGuestAppointment(UUID appointmentId, String email, String otp);
+    
+    // Warranty appointments
+    PageResponse<AppointmentResponse> getWarrantyAppointments(String keyword, Pageable pageable);
+    
+    // Maintenance details for appointment
+    java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary> getMaintenanceDetailsByAppointmentId(UUID appointmentId);
 }

@@ -35,6 +35,7 @@ export interface MaintenanceRecordResponse {
     vehiclePartName: string;
     unitPrice: number; // Changed from vehiclePartPrice
     quantity?: number;
+    currentQuantity?: number; // Tồn kho hiện tại của phụ tùng
   };
   quantityUsed: number;
   approvedByUser: boolean; // Changed from isApprovedByUser

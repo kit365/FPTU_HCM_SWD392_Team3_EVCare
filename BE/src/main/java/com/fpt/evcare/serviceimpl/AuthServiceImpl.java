@@ -80,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
             String role = user.getRole() != null 
                 ? user.getRole().getRoleName().toString()
                 : "NULL_ROLE";
-            log.info("Login - User: {}, Role: {}, isAdmin: {}", loginRequest.getEmail(), role, isAdmin);
+            log.info(AuthConstants.LOG_INFO_LOGIN_USER, loginRequest.getEmail(), role, isAdmin);
             log.info(AuthConstants.MESSAGE_SUCCESS_ACCOUNT_LOGIN, loginRequest.getEmail());
         }
 
@@ -116,18 +116,18 @@ public class AuthServiceImpl implements AuthService {
                 userRepository.save(user);
                 
                 if (user.getRole().getRoleName() == RoleEnum.STAFF || user.getRole().getRoleName() == RoleEnum.ADMIN) {
-                    log.info("⚠️ Staff {} logged out, set to OFFLINE", request.getUserId());
+                    log.info(AuthConstants.LOG_INFO_STAFF_LOGGED_OUT, request.getUserId());
                 } else if (user.getRole().getRoleName() == RoleEnum.CUSTOMER) {
-                    log.info("⚠️ Customer {} logged out, set to OFFLINE", request.getUserId());
+                    log.info(AuthConstants.LOG_INFO_CUSTOMER_LOGGED_OUT, request.getUserId());
                 }
             }
         } catch (Exception e) {
-            log.error("❌ Error updating offline status during logout: {}", e.getMessage());
+            log.error(AuthConstants.LOG_ERR_ERROR_UPDATING_OFFLINE_STATUS, e.getMessage());
             // Không throw exception vì logout đã thành công
         }
         
         if (log.isInfoEnabled()) {
-            log.info("User with ID {} logged out successfully", request.getUserId());
+            log.info(AuthConstants.LOG_INFO_USER_LOGGED_OUT_SUCCESSFULLY, request.getUserId());
         }
         return "Đăng xuất thành công";
     }
@@ -153,7 +153,7 @@ public class AuthServiceImpl implements AuthService {
             return response;
         } catch (Exception e) {
             if (log.isErrorEnabled()) {
-                log.error("Failed to get user from token: {}", e.getMessage());
+                log.error(AuthConstants.LOG_ERR_FAILED_GET_USER_FROM_TOKEN, e.getMessage());
             }
             throw new IllegalArgumentException(TokenConstants.MESSAGE_ERR_TOKEN_DISABLED);
         }
@@ -241,7 +241,7 @@ public class AuthServiceImpl implements AuthService {
             user.setFullName(name);
             user.setProvider("GOOGLE");
             userEntity = userRepository.save(user);
-            log.info("Saved user from Google login: " + user);
+            log.info(AuthConstants.LOG_INFO_SAVED_USER_FROM_GOOGLE_LOGIN + " {}", user);
         }
         tokenService.saveAccessToken(userEntity.getUserId(), accessToken, 3600);
         tokenService.saveRefreshToken(userEntity.getUserId(), refreshToken, 604800);
