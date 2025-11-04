@@ -127,12 +127,16 @@ public class MessageServiceImpl implements MessageService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public MessageResponse getMessage(UUID messageId, UUID currentUserId) {
         MessageEntity message = messageRepository.findByMessageIdAndIsDeletedFalse(messageId);
         if (message == null) {
             log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
             throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
         }
+        
+        // Force initialization of lazy-loaded relationships
+        initializeMessageRelations(message);
         
         // Check authorization
         boolean isSender = message.getSender().getUserId().equals(currentUserId);
@@ -146,7 +150,34 @@ public class MessageServiceImpl implements MessageService {
         return messageMapper.toResponse(message);
     }
     
+    /**
+     * Helper method to force initialization of lazy-loaded message relationships
+     * This must be called within an active transaction
+     */
+    private void initializeMessageRelations(MessageEntity message) {
+        if (message == null) {
+            return;
+        }
+        
+        // Initialize sender (UserEntity)
+        if (message.getSender() != null) {
+            message.getSender().getUserId(); // Access to trigger loading
+            if (message.getSender().getRole() != null) {
+                message.getSender().getRole().getRoleName(); // Load role if needed
+            }
+        }
+        
+        // Initialize receiver (UserEntity)
+        if (message.getReceiver() != null) {
+            message.getReceiver().getUserId(); // Access to trigger loading
+            if (message.getReceiver().getRole() != null) {
+                message.getReceiver().getRole().getRoleName(); // Load role if needed
+            }
+        }
+    }
+    
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MessageResponse> getConversation(UUID currentUserId, UUID otherUserId, Pageable pageable) {
         UserEntity currentUser = userRepository.findByUserIdAndIsDeletedFalse(currentUserId);
         UserEntity otherUser = userRepository.findByUserIdAndIsDeletedFalse(otherUserId);
@@ -163,6 +194,9 @@ public class MessageServiceImpl implements MessageService {
         }
         
         Page<MessageEntity> messagePage = messageRepository.findConversation(currentUserId, otherUserId, pageable);
+        
+        // Force initialization of lazy-loaded relationships before mapping
+        messagePage.getContent().forEach(this::initializeMessageRelations);
         
         List<MessageResponse> messageResponses = messagePage.getContent().stream()
                 .map(messageMapper::toResponse)
@@ -186,6 +220,9 @@ public class MessageServiceImpl implements MessageService {
             log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
             throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
         }
+        
+        // Force initialization of lazy-loaded relationships
+        initializeMessageRelations(message);
         
         // Chỉ receiver mới có thể mark as read
         if (!message.getReceiver().getUserId().equals(userId)) {
@@ -226,6 +263,9 @@ public class MessageServiceImpl implements MessageService {
             throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
         }
         
+        // Force initialization of lazy-loaded relationships
+        initializeMessageRelations(message);
+        
         // Chỉ receiver mới có thể mark as delivered
         if (!message.getReceiver().getUserId().equals(userId)) {
             log.warn(MessageConstants.LOG_ERR_UNAUTHORIZED, userId, messageId);
@@ -248,6 +288,7 @@ public class MessageServiceImpl implements MessageService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public long countUnreadMessages(UUID userId) {
         return messageRepository.countUnreadMessages(userId);
     }
@@ -271,6 +312,9 @@ public class MessageServiceImpl implements MessageService {
             log.warn(MessageConstants.LOG_ERR_MESSAGE_NOT_FOUND, messageId);
             throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NOT_FOUND);
         }
+        
+        // Force initialization of lazy-loaded relationships
+        initializeMessageRelations(message);
         
         // Chỉ sender mới có thể xóa
         if (!message.getSender().getUserId().equals(currentUserId)) {
