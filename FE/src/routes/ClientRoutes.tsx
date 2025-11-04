@@ -9,6 +9,7 @@ import LookupAppointmentsPage from "../pages/client/LookupAppointments";
 import ClientAppointmentHistory from "../pages/client/ClientAppointmentHistory";
 import { ClientInvoiceView } from "../pages/client/payment/ClientInvoiceView";
 import { ClientPaymentSuccess } from "../pages/client/payment/PaymentSuccess";
+import { ClientPaymentFail } from "../pages/client/payment/PaymentFail";
 import AppointmentDetailPage from "../pages/client/appointment/AppointmentDetailPage";
 export const ClientRoutes: RouteObject[] = [
     { path: "", element: <HomePage /> }, 
@@ -22,4 +23,5 @@ export const ClientRoutes: RouteObject[] = [
     { path: "appointment/:appointmentId", element: <ProtectedRoute><AppointmentDetailPage /></ProtectedRoute> }, // /client/appointment/:appointmentId
     { path: "invoice/:appointmentId", element: <ProtectedRoute><ClientInvoiceView /></ProtectedRoute> }, // /client/invoice/:appointmentId
     { path: "payment/success", element: <ProtectedRoute><ClientPaymentSuccess /></ProtectedRoute> }, // /client/payment/success
+    { path: "payment/fail", element: <ProtectedRoute><ClientPaymentFail /></ProtectedRoute> }, // /client/payment/fail
 ];

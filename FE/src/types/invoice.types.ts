@@ -8,10 +8,11 @@ export interface InvoiceResponse {
   paymentMethodName?: string;
   totalAmount: number;
   paidAmount: number;
-  status: string; // PENDING, PAID, CANCELLED
+  status: string; // PENDING, PAID, CANCELLED, FAILED
   invoiceDate: string;
   dueDate?: string;
   notes?: string;
+  errorMessage?: string; // Thêm trường này để lưu thông báo lỗi
   createdAt: string;
   updatedAt: string;
   

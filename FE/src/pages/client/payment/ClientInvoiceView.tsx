@@ -19,7 +19,8 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { ArrowBack, Receipt, Payment } from "@mui/icons-material";
+import { ArrowBack, Receipt, Payment, Close } from "@mui/icons-material";
+import { Snackbar, IconButton } from "@mui/material";
 import QRCode from "react-qr-code";
 import { useInvoice } from "../../../hooks/useInvoice";
 import moment from "moment";
@@ -28,15 +29,31 @@ export const ClientInvoiceView = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
   const { invoice, loading, paying, getByAppointmentId, payCash, createVnPayPayment } = useInvoice();
-  
+
   const [openPayDialog, setOpenPayDialog] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("VNPAY");
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [openQrDialog, setOpenQrDialog] = useState(false);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  interface SnackbarState {
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }
+
+  const [snackbar, setSnackbar] = useState<SnackbarState>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasNavigatedRef = useRef<boolean>(false);
+  const isCheckingRef = useRef<boolean>(false);
+  const retryCountRef = useRef<number>(0);
+  const MAX_RETRY_ATTEMPTS = 3;
 
   useEffect(() => {
     if (appointmentId) {
@@ -51,40 +68,66 @@ export const ClientInvoiceView = () => {
   }, [invoice]);
 
   const previousStatusRef = useRef<string | undefined>(undefined);
-  
+
+  // Hàm dừng polling
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
+  };
+
+  // Xử lý khi nhận được status mới từ invoice
   useEffect(() => {
-    if (invoice) {
-      if (previousStatusRef.current !== invoice.status) {
-        console.log("📊 Invoice status changed:", {
-          previous: previousStatusRef.current,
-          current: invoice.status,
-          openQrDialog,
-          hasNavigated: hasNavigatedRef.current
-        });
-        previousStatusRef.current = invoice.status;
-      }
-      
-      if (invoice.status === "PAID" && openQrDialog && !hasNavigatedRef.current) {
+    if (!invoice) return;
+
+    // Log thay đổi status
+    if (previousStatusRef.current !== invoice.status) {
+      console.log("📊 Invoice status changed:", {
+        previous: previousStatusRef.current,
+        current: invoice.status,
+        openQrDialog,
+        hasNavigated: hasNavigatedRef.current
+      });
+      previousStatusRef.current = invoice.status;
+    }
+
+    // Chỉ xử lý nếu đang mở QR dialog và chưa navigate
+    if (!openQrDialog || hasNavigatedRef.current) return;
+
+    // Xử lý các trạng thái khác nhau
+    switch (invoice.status) {
+      case "PAID":
         console.log("✅ Invoice PAID detected, navigating to success page");
         hasNavigatedRef.current = true;
-        
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-        
+        stopPolling();
         setOpenQrDialog(false);
         setPaymentUrl(null);
         navigate(`/client/payment/success?appointmentId=${appointmentId}`, { replace: true });
-      }
+        break;
+
+      case "CANCELLED":
+      case "FAILED":
+        console.log(`❌ Invoice ${invoice.status}, navigating to fail page`);
+        hasNavigatedRef.current = true;
+        stopPolling();
+        setOpenQrDialog(false);
+        setPaymentUrl(null);
+        navigate(`/client/payment/fail?appointmentId=${appointmentId}`, { replace: true });
+        break;
+
+      // Các trạng thái khác (PENDING, v.v.) không cần xử lý đặc biệt
     }
   }, [invoice, appointmentId, navigate, openQrDialog]);
 
+  // Dọn dẹp khi component unmount
   useEffect(() => {
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      stopPolling();
     };
   }, []);
 
@@ -99,77 +142,167 @@ export const ClientInvoiceView = () => {
   };
 
   const handleCloseQrDialog = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
+    // Dừng polling
+    stopPolling();
+
+    // Reset state
     setOpenQrDialog(false);
     setPaymentUrl(null);
     hasNavigatedRef.current = false;
+
+    // Refresh invoice data
+    if (appointmentId) {
+      getByAppointmentId(appointmentId);
+    }
   };
 
   const checkPaymentStatus = async () => {
-    if (!appointmentId) return;
-    
+    if (!appointmentId || isCheckingRef.current) return;
+
     try {
+      isCheckingRef.current = true;
       await getByAppointmentId(appointmentId);
+      // Reset retry count on successful fetch
+      retryCountRef.current = 0;
     } catch (error) {
       console.error("Error checking payment status:", error);
+
+      // Tăng số lần thử lại
+      retryCountRef.current += 1;
+
+      if (retryCountRef.current >= MAX_RETRY_ATTEMPTS) {
+        console.error(`Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached. Stopping polling.`);
+        stopPolling();
+        setOpenQrDialog(false);
+        alert("Không thể kiểm tra trạng thái thanh toán. Vui lòng kiểm tra kết nối mạng và thử lại.");
+        return;
+      }
+
+      // Thử lại sau 5s
+      console.log(`Retrying... (${retryCountRef.current}/${MAX_RETRY_ATTEMPTS})`);
+      setTimeout(() => {
+        if (!hasNavigatedRef.current) {
+          checkPaymentStatus();
+        }
+      }, 5000);
+    } finally {
+      isCheckingRef.current = false;
     }
   };
 
   const startPolling = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-    
+    // Dừng polling cũ nếu có
+    stopPolling();
+
+    // Reset trạng thái
+    hasNavigatedRef.current = false;
+    retryCountRef.current = 0;
+
+    // Bắt đầu polling mới
     const checkStatus = () => {
-      checkPaymentStatus();
+      if (!hasNavigatedRef.current) {
+        checkPaymentStatus();
+      }
     };
-    
-    pollingIntervalRef.current = setInterval(checkStatus, 1500);
+
+    // Thực hiện lần đầu tiên ngay lập tức
+    checkStatus();
+
+    // Sau đó lặp lại mỗi 3 giây
+    pollingIntervalRef.current = setInterval(checkStatus, 3000);
+
+    // Tự động dừng sau 10 phút (600,000ms)
+    pollingTimeoutRef.current = setTimeout(() => {
+      console.log("🛑 Polling stopped after 10 minutes");
+      if (!hasNavigatedRef.current) {
+        stopPolling();
+        setOpenQrDialog(false);
+        setPaymentUrl(null);
+        alert("Đã hết thời gian chờ thanh toán. Vui lòng thử lại nếu cần.");
+      }
+    }, 10 * 60 * 1000); // 10 phút
   };
 
   const handlePayment = async () => {
-    if (!invoice || !appointmentId) return;
-    
+    if (!invoice || !appointmentId || isCreatingPayment) return;
+
+    // Kiểm tra trạng thái invoice trước khi thanh toán
+    if (invoice.status !== "PENDING") {
+      const statusMessage = {
+        PAID: "Hóa đơn này đã được thanh toán.",
+        CANCELLED: "Hóa đơn này đã bị hủy.",
+        FAILED: "Thanh toán trước đó đã thất bại. Vui lòng thử lại.",
+        EXPIRED: "Hóa đơn này đã hết hạn thanh toán."
+      }[invoice.status] || "Không thể thực hiện thanh toán cho hóa đơn này.";
+
+      setSnackbar({
+        open: true,
+        message: statusMessage,
+        severity: invoice.status === 'PAID' ? 'info' : 'error'
+      });
+      return;
+    }
+
     switch (paymentMethod) {
       case "VNPAY":
         try {
-          hasNavigatedRef.current = false;
-          setOpenQrDialog(true);
-          handleClosePayDialog();
-          
+          setIsCreatingPayment(true);
+
+          // Tạo payment URL trước khi mở dialog
           const url = await createVnPayPayment(appointmentId, "client");
-          
+
+          // Đóng dialog thanh toán và mở QR dialog
+          handleClosePayDialog();
+          setOpenQrDialog(true);
+
           console.log("Payment URL received:", url);
-          
+
           if (url && url.trim() !== "") {
             setPaymentUrl(url);
             startPolling();
           } else {
             console.error("Payment URL is empty or invalid:", url);
-            alert("Không thể tạo URL thanh toán. Vui lòng thử lại.");
             setOpenQrDialog(false);
+            setSnackbar({
+              open: true,
+              message: "Không thể tạo URL thanh toán. Vui lòng thử lại.",
+              severity: 'error'
+            });
           }
         } catch (error) {
+          console.error("Error creating VNPay payment:", error);
           setOpenQrDialog(false);
-          hasNavigatedRef.current = false;
-          return;
+          // Sửa lỗi TypeScript khi truy cập response từ error
+          const errorMessage = (error as any)?.response?.data?.message || "Có lỗi xảy ra khi tạo giao dịch thanh toán. Vui lòng thử lại.";
+          setSnackbar({
+            open: true,
+            message: errorMessage,
+            severity: 'error'
+          });
+        } finally {
+          setIsCreatingPayment(false);
         }
         break;
-      
+
       case "CASH":
         if (!paidAmount || paidAmount <= 0) {
-          alert("Số tiền thanh toán không hợp lệ");
+          setSnackbar({
+            open: true,
+            message: "Số tiền thanh toán không hợp lệ",
+            severity: 'error'
+          });
           return;
         }
-        
+
         if (paidAmount < invoice.totalAmount) {
-          alert("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
+          setSnackbar({
+            open: true,
+            message: `Số tiền thanh toán phải bằng tổng tiền hóa đơn (${invoice.totalAmount.toLocaleString()} VNĐ)`,
+            severity: 'error'
+          });
           return;
         }
-        
+
         const success = await payCash(invoice.invoiceId, {
           paymentMethod,
           paidAmount,
@@ -184,7 +317,7 @@ export const ClientInvoiceView = () => {
           navigate(`/client/payment/success?appointmentId=${appointmentId}`, { replace: true });
         }
         break;
-      
+
       default:
         alert("Phương thức thanh toán không hợp lệ");
         break;
@@ -516,28 +649,40 @@ export const ClientInvoiceView = () => {
                           )}
                         </Box>
                         <Box sx={{ textAlign: "right" }}>
-                          {part.originalPrice && (
+                          {part.originalPrice ? (
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  textDecoration: "line-through",
+                                  color: "#9ca3af",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {formatCurrency(part.originalPrice)}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: "#10b981",
+                                }}
+                              >
+                                {formatCurrency(part.totalPrice)}
+                              </Typography>
+                            </Box>
+                          ) : (
                             <Typography
                               variant="body2"
                               sx={{
-                                textDecoration: "line-through",
-                                color: "#9ca3af",
-                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                color: "#10b981",
+                                fontSize: "0.875rem",
                               }}
                             >
-                              {formatCurrency(part.originalPrice)}
+                              Miễn phí
                             </Typography>
                           )}
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 600,
-                              color: "#10b981",
-                              fontSize: "0.875rem",
-                            }}
-                          >
-                            Miễn phí
-                          </Typography>
                         </Box>
                       </Box>
                     ))}
@@ -601,7 +746,7 @@ export const ClientInvoiceView = () => {
               <Alert severity="info">
                 Tổng tiền cần thanh toán: <strong>{formatCurrency(invoice.totalAmount)}</strong>
               </Alert>
-              
+
               <FormControl fullWidth>
                 <InputLabel>Phương thức thanh toán</InputLabel>
                 <Select
@@ -647,26 +792,21 @@ export const ClientInvoiceView = () => {
             </Button>
             <Button
               variant="contained"
+              color="primary"
               onClick={handlePayment}
-              disabled={paying || paidAmount <= 0}
-              startIcon={paying ? <CircularProgress size={20} /> : <Payment />}
-              sx={{
-                backgroundColor: "#3b82f6",
-                "&:hover": {
-                  backgroundColor: "#2563eb",
-                },
-              }}
+              disabled={paying || isCreatingPayment}
+              startIcon={(paying || isCreatingPayment) ? <CircularProgress size={20} /> : <Payment />}
             >
-              {paying ? "Đang xử lý..." : "Xác nhận thanh toán"}
+              {isCreatingPayment ? 'Đang tạo giao dịch...' : paying ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* QR Code Dialog */}
-        <Dialog 
-          open={openQrDialog} 
-          onClose={handleCloseQrDialog} 
-          maxWidth="sm" 
+        <Dialog
+          open={openQrDialog}
+          onClose={handleCloseQrDialog}
+          maxWidth="sm"
           fullWidth
           PaperProps={{
             sx: {
@@ -684,7 +824,7 @@ export const ClientInvoiceView = () => {
                 <br />
                 <strong>Lưu ý:</strong> Khi thanh toán thành công, cửa sổ này sẽ tự động đóng và chuyển đến trang thành công.
               </Alert>
-              
+
               {paymentUrl ? (
                 <Box
                   sx={{
@@ -747,8 +887,33 @@ export const ClientInvoiceView = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Notification Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          message={snackbar.message}
+          action={
+            <IconButton
+              aria-label="close"
+              color="inherit"
+              sx={{ p: 0.5 }}
+              onClick={() => setSnackbar(prev => ({ ...prev, open: false }))}
+            >
+              <Close fontSize="small" />
+            </IconButton>
+          }
+          sx={{
+            '& .MuiSnackbarContent-root': {
+              backgroundColor: snackbar.severity === 'error' ? '#d32f2f' :
+                snackbar.severity === 'success' ? '#2e7d32' :
+                  snackbar.severity === 'warning' ? '#ed6c02' : '#0288d1',
+            },
+            mb: 3
+          }}
+        />
       </Box>
     </Box>
   );
 };
-
