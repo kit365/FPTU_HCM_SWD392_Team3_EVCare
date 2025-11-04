@@ -5,6 +5,8 @@ import type {
   AppointmentApiResponse,
   AppointmentListApiResponse
 } from '../types/appointment.types';
+import type { MaintenanceManagementSummary } from '../types/invoice.types';
+import type { ApiResponse } from '../types/api';
 
 // Appointment Service
 export const appointmentService = {
@@ -49,6 +51,30 @@ export const appointmentService = {
     );
     console.log("UPDATE APPOINTMENT STATUS RESPONSE:", response);
     return response.data;
+  },
+
+  // Search warranty appointments - GET /api/v1/appointment/warranty
+  searchWarranty: async (params: { page: number; pageSize: number; keyword?: string }) => {
+    const queryParams = new URLSearchParams({
+      page: String(params.page),
+      pageSize: String(params.pageSize),
+      ...(params.keyword ? { keyword: params.keyword } : {}),
+    }).toString();
+    
+    const response = await apiClient.get<AppointmentListApiResponse>(
+      `/appointment/warranty?${queryParams}`
+    );
+    console.log("GET WARRANTY APPOINTMENTS RESPONSE:", response);
+    return response;
+  },
+
+  // Get maintenance details - GET /api/v1/appointment/{id}/maintenance-details
+  getMaintenanceDetails: async (id: string): Promise<MaintenanceManagementSummary[]> => {
+    const response = await apiClient.get<ApiResponse<MaintenanceManagementSummary[]>>(
+      `/appointment/${id}/maintenance-details`
+    );
+    console.log("GET MAINTENANCE DETAILS RESPONSE:", response);
+    return response.data.data;
   }
 };
 
