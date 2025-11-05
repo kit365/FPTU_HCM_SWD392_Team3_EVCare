@@ -19,7 +19,7 @@ export const ClientRoutes: RouteObject[] = [
     { path: "profile", element: <ProtectedRoute><ClientProfile/></ProtectedRoute> }, // /client/profile
     { path: "message", element: <ProtectedRoute><ClientMessagePage /></ProtectedRoute> }, // /client/message
     { path: "appointment-history", element: <ProtectedRoute><ClientAppointmentHistory /></ProtectedRoute> }, // /client/appointment-history
-    { path: "appointment/:appointmentId", element: <ProtectedRoute><AppointmentDetailPage /></ProtectedRoute> }, // /client/appointment/:appointmentId
-    { path: "invoice/:appointmentId", element: <ProtectedRoute><ClientInvoiceView /></ProtectedRoute> }, // /client/invoice/:appointmentId
+    { path: "appointment/:appointmentId", element: <AppointmentDetailPage /> }, // /client/appointment/:appointmentId (public - supports guest OTP verification)
+    { path: "invoice/:appointmentId", element: <ClientInvoiceView /> }, // /client/invoice/:appointmentId (public - supports guest access)
     { path: "payment/success", element: <ProtectedRoute><ClientPaymentSuccess /></ProtectedRoute> }, // /client/payment/success
 ];

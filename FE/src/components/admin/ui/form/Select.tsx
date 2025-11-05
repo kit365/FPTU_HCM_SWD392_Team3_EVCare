@@ -18,14 +18,25 @@ interface SelectAdminProps {
 }
 
 export const SelectAdmin = ({ name, id, options, placeholder, disabled, register, error, onChange }: SelectAdminProps) => {
+    // Merge register's onChange với custom onChange
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        // Gọi register's onChange trước (nếu có)
+        if (register?.onChange) {
+            register.onChange(e);
+        }
+        // Sau đó gọi custom onChange (nếu có)
+        if (onChange) {
+            onChange(e);
+        }
+    };
+
     return (
         <div className="relative">
             <select
-                {...register}
+                {...(register ? { ...register, onChange: handleChange } : { name, id })}
                 name={name}
                 id={id}
                 disabled={disabled || false}
-                onChange={onChange}
                 className={`
                     appearance-none border rounded-[0.64rem] text-admin-secondary font-[400] text-[1.3rem] 
                     py-[0.827rem] pr-[4.56rem] pl-[1.52rem] outline-none focus:outline-none w-full

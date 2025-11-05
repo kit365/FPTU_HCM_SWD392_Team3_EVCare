@@ -293,13 +293,46 @@ public class VnPayServiceImpl implements VnPayService {
             log.info("Invoice {} marked as PAID via VNPay", invoice.getInvoiceId());
             
             // Cập nhật appointment sang COMPLETED (giống cash payment)
-            appointment.setStatus(AppointmentStatusEnum.COMPLETED);
-            appointmentRepository.save(appointment);
-            log.info("Appointment {} marked as COMPLETED", appointment.getAppointmentId());
+            // Đảm bảo giữ nguyên isWarrantyAppointment và originalAppointment
+            Boolean isWarrantyAppointment = appointment.getIsWarrantyAppointment();
+            AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
             
-            // ✅ Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
-            // Để kỹ thuật viên thấy ca làm đã hoàn thành
-            updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+            appointment.setStatus(AppointmentStatusEnum.COMPLETED);
+            appointment.setIsWarrantyAppointment(isWarrantyAppointment); // Đảm bảo giữ nguyên giá trị
+            appointment.setOriginalAppointment(originalAppointment); // Đảm bảo giữ nguyên giá trị
+            
+            appointmentRepository.save(appointment);
+            appointmentRepository.flush(); // Flush để đảm bảo dữ liệu được ghi vào database ngay lập tức
+            
+            // Refresh appointment từ database để đảm bảo có dữ liệu mới nhất
+            UUID appointmentIdForRefresh = appointment.getAppointmentId();
+            appointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentIdForRefresh);
+            
+            if (appointment != null) {
+                log.info("Appointment {} marked as COMPLETED", appointment.getAppointmentId());
+                
+                // Debug: Log warranty appointment info sau khi refresh
+                if (Boolean.TRUE.equals(appointment.getIsWarrantyAppointment())) {
+                    log.info("✅ Warranty appointment marked as COMPLETED via VNPay - ID: {}, isWarranty: {}, Status: {}, OriginalAppt: {}", 
+                            appointment.getAppointmentId(),
+                            appointment.getIsWarrantyAppointment(),
+                            appointment.getStatus(),
+                            appointment.getOriginalAppointment() != null ? appointment.getOriginalAppointment().getAppointmentId() : "null");
+                } else {
+                    log.info("ℹ️ Regular appointment marked as COMPLETED via VNPay - ID: {}, isWarranty: {}, Status: {}", 
+                            appointment.getAppointmentId(),
+                            appointment.getIsWarrantyAppointment(),
+                            appointment.getStatus());
+                }
+                
+                // ✅ Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
+                // Để kỹ thuật viên thấy ca làm đã hoàn thành
+                updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+            } else {
+                log.warn("⚠️ Could not refresh appointment after VNPay payment: {}", appointmentIdForRefresh);
+                // Vẫn cập nhật shift status với appointmentId
+                updateShiftStatusWhenAppointmentCompleted(appointmentIdForRefresh);
+            }
             
             log.info("✅ Payment successful: transactionReference={}, invoiceId={}, amount={}", 
                     transactionReference, invoice.getInvoiceId(), paidAmount);

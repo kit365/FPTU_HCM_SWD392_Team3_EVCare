@@ -66,4 +66,8 @@ public class AppointmentResponse implements Serializable {
     String createdBy;
 
     String updatedBy;
+
+    Boolean isWarrantyAppointment;
+
+    AppointmentResponse originalAppointment; // Thông tin appointment gốc nếu đây là appointment bảo hành
 }

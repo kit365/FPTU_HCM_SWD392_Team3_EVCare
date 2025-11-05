@@ -1,37 +1,39 @@
 package com.fpt.evcare.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fpt.evcare.enums.ValidityPeriodUnitEnum;
+import com.fpt.evcare.enums.WarrantyDiscountTypeEnum;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Data
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class WarrantyPackageResponse implements Serializable {
+@Builder
+public class WarrantyPartResponse implements Serializable {
 
-    UUID warrantyPackageId;
+    UUID warrantyPartId;
 
-    String warrantyPackageName;
+    VehiclePartResponse vehiclePart;
 
-    String description;
+    WarrantyDiscountTypeEnum discountType;
 
-    Integer warrantyPeriodMonths;
+    BigDecimal discountValue;
 
-    LocalDateTime startDate;
+    Integer validityPeriod;
 
-    LocalDateTime endDate;
-
-    Boolean isActive;
+    ValidityPeriodUnitEnum validityPeriodUnit;
 
     Boolean isDeleted;
+
+    Boolean isActive;
 
     LocalDateTime createdAt;
 
@@ -40,8 +42,4 @@ public class WarrantyPackageResponse implements Serializable {
     String createdBy;
 
     String updatedBy;
-
-    // Optional: Danh sách phụ tùng trong gói bảo hành
-    List<WarrantyPackagePartResponse> warrantyPackageParts;
 }
-

@@ -476,7 +476,7 @@ export const InvoiceView = () => {
                           key={partIndex} 
                           sx={{ 
                             display: "grid", 
-                            gridTemplateColumns: part.isUnderWarranty ? "2fr 1fr 1fr 1fr 1.5fr" : "2fr 1fr 1fr 1fr", 
+                            gridTemplateColumns: "2fr 1fr 1fr 1fr", 
                             gap: 1, 
                             py: 0.75,
                             fontSize: "0.875rem",
@@ -485,151 +485,22 @@ export const InvoiceView = () => {
                             pb: partIndex < maintenance.partsUsed.length - 1 ? 0.75 : 0
                           }}
                         >
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Typography variant="body2">• {part.partName}</Typography>
-                            {part.isUnderWarranty && (
-                              <Chip 
-                                label="Bảo hành" 
-                                size="small" 
-                                sx={{ 
-                                  backgroundColor: "#dcfce7", 
-                                  color: "#166534",
-                                  fontSize: "0.7rem",
-                                  height: "20px",
-                                  fontWeight: 600
-                                }} 
-                                title={part.warrantyPackageName ? `Gói bảo hành: ${part.warrantyPackageName}` : "Phụ tùng được bảo hành"}
-                              />
-                            )}
-                          </Box>
+                          <Typography variant="body2">• {part.partName}</Typography>
                           <Typography variant="body2" sx={{ textAlign: "right" }}>
                             SL: {part.quantity}
                           </Typography>
                           <Typography variant="body2" sx={{ textAlign: "right" }}>
                             {formatCurrency(part.unitPrice)}
                           </Typography>
-                          <Box sx={{ textAlign: "right" }}>
-                            {part.isUnderWarranty && part.originalPrice ? (
-                              <Box>
-                                <Typography 
-                                  variant="body2" 
-                                  sx={{ 
-                                    textDecoration: "line-through", 
-                                    color: "#9ca3af",
-                                    fontSize: "0.75rem"
-                                  }}
-                                >
-                                  {formatCurrency(part.originalPrice)}
-                                </Typography>
-                                <Typography 
-                                  variant="body2" 
-                                  sx={{ 
-                                    fontWeight: 600, 
-                                    color: "#10b981"
-                                  }}
-                                >
-                                  {formatCurrency(part.totalPrice)}
-                                </Typography>
-                              </Box>
-                            ) : (
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {formatCurrency(part.totalPrice)}
-                              </Typography>
-                            )}
-                          </Box>
-                          {part.isUnderWarranty && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                textAlign: "right",
-                                color: "#10b981",
-                                fontWeight: 500,
-                                fontSize: "0.75rem"
-                              }}
-                            >
-                              {part.warrantyPackageName ? `Gói: ${part.warrantyPackageName}` : "Miễn phí"}
-                            </Typography>
-                          )}
+                          <Typography variant="body2" sx={{ fontWeight: 600, textAlign: "right" }}>
+                            {formatCurrency(part.totalPrice)}
+                          </Typography>
                         </Box>
                       ))}
                     </Box>
                   )}
                 </Box>
               ))}
-            </Box>
-          )}
-
-          {/* Warranty Summary - Show parts under warranty */}
-          {invoice.maintenanceDetails && invoice.maintenanceDetails.some(mm => 
-            mm.partsUsed && mm.partsUsed.some(p => p.isUnderWarranty)
-          ) && (
-            <Box sx={{ p: 3, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f0fdf4" }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.125rem", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-                <Chip 
-                  label="Bảo hành" 
-                  size="small" 
-                  sx={{ 
-                    backgroundColor: "#dcfce7", 
-                    color: "#166534",
-                    fontSize: "0.7rem",
-                    fontWeight: 600
-                  }} 
-                />
-                <span>Phụ tùng được bảo hành</span>
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {invoice.maintenanceDetails.flatMap(mm => 
-                  (mm.partsUsed || []).filter(p => p.isUnderWarranty).map((part, index) => (
-                    <Box 
-                      key={index}
-                      sx={{ 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        p: 1.5,
-                        backgroundColor: "white",
-                        borderRadius: 1,
-                        border: "1px solid #bbf7d0"
-                      }}
-                    >
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: "#166534" }}>
-                          {part.partName}
-                        </Typography>
-                        {part.warrantyPackageName && (
-                          <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.7rem" }}>
-                            Gói bảo hành: {part.warrantyPackageName}
-                          </Typography>
-                        )}
-                      </Box>
-                      <Box sx={{ textAlign: "right" }}>
-                        {part.originalPrice && (
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              textDecoration: "line-through", 
-                              color: "#9ca3af",
-                              fontSize: "0.75rem"
-                            }}
-                          >
-                            {formatCurrency(part.originalPrice)}
-                          </Typography>
-                        )}
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            fontWeight: 600, 
-                            color: "#10b981",
-                            fontSize: "0.875rem"
-                          }}
-                        >
-                          Miễn phí
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))
-                )}
-              </Box>
             </Box>
           )}
 

@@ -51,6 +51,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     VehiclePartCategoryRepository vehiclePartCategoryRepository;
     VehiclePartCategoryMapper vehiclePartCategoryMapper;
     ServiceTypeVehiclePartRepository serviceTypeVehiclePartRepository;
+    WarrantyPartRepository warrantyPartRepository;
 
     @Override
     public VehiclePartResponse getVehiclePart(UUID vehiclePartId) {
@@ -135,7 +136,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
 
         // Nếu không có kết quả, trả về page rỗng thay vì throw exception
         if(vehiclePartEntityPage == null || vehiclePartEntityPage.getTotalElements() == 0) {
-            log.info("No vehicle parts found - returning empty page");
+            log.info(VehiclePartConstants.LOG_INFO_NO_VEHICLE_PARTS_FOUND);
             return PageResponse.<VehiclePartResponse>builder()
                     .data(List.of())
                     .page(pageable.getPageNumber())
@@ -326,6 +327,7 @@ public class VehiclePartServiceImpl implements VehiclePartService {
     }
 
     @Override
+    @Transactional
     public boolean deleteVehiclePart(UUID id) {
         VehiclePartEntity vehiclePartEntity = vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(id);
         if(vehiclePartEntity == null) {
@@ -336,14 +338,24 @@ public class VehiclePartServiceImpl implements VehiclePartService {
         // Kiểm tra phụ thuộc trong appointment
         checkDependOnAppointmentByVehiclePartId(id);
 
+        // Xóa mềm vehicle part
         vehiclePartEntity.setIsDeleted(true);
-
         log.info(VehiclePartConstants.LOG_INFO_DELETING_VEHICLE_PART + id);
         vehiclePartRepository.save(vehiclePartEntity);
+
+        // Xóa mềm warranty part tương ứng (nếu có) để giữ lại lịch sử hóa đơn
+        warrantyPartRepository.findByVehiclePartVehiclePartIdAndIsDeletedFalse(id)
+                .ifPresent(warrantyPart -> {
+                    warrantyPart.setIsDeleted(true);
+                    warrantyPartRepository.save(warrantyPart);
+                    log.info("✅ Đã xóa mềm warranty part {} cho vehicle part {}", warrantyPart.getWarrantyPartId(), id);
+                });
+
         return true;
     }
 
     @Override
+    @Transactional
     public boolean restoreVehiclePart(UUID uuid) {
         VehiclePartEntity vehiclePartEntity = vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedTrue(uuid);
         if(vehiclePartEntity == null) {
@@ -351,10 +363,19 @@ public class VehiclePartServiceImpl implements VehiclePartService {
             throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_VEHICLE_PART_NOT_FOUND);
         }
 
+        // Restore vehicle part
         vehiclePartEntity.setIsDeleted(false);
-
         log.info(VehiclePartConstants.LOG_INFO_RESTORING_VEHICLE_PART + uuid);
         vehiclePartRepository.save(vehiclePartEntity);
+
+        // Restore warranty part tương ứng (nếu có và đã bị xóa mềm)
+        warrantyPartRepository.findByVehiclePartVehiclePartIdAndIsDeletedTrue(uuid)
+                .ifPresent(warrantyPart -> {
+                    warrantyPart.setIsDeleted(false);
+                    warrantyPartRepository.save(warrantyPart);
+                    log.info("✅ Đã khôi phục warranty part {} cho vehicle part {}", warrantyPart.getWarrantyPartId(), uuid);
+                });
+
         return true;
     }
 

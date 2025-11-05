@@ -1,19 +1,38 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card } from "@mui/material";
+import { Card, Chip } from "@mui/material";
 import { useAppointment } from "../../../hooks/useAppointment";
+import { appointmentService } from "../../../service/appointmentService";
+import type { MaintenanceManagementSummary } from "../../../types/invoice.types";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const AppointmentView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { detail, loading, getById } = useAppointment();
+  const [maintenanceDetails, setMaintenanceDetails] = useState<MaintenanceManagementSummary[]>([]);
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
 
   useEffect(() => {
     if (id) {
       getById(id);
+      fetchMaintenanceDetails();
     }
   }, [id, getById]);
+
+  const fetchMaintenanceDetails = async () => {
+    if (!id) return;
+    
+    setLoadingMaintenance(true);
+    try {
+      const details = await appointmentService.getMaintenanceDetails(id);
+      setMaintenanceDetails(details);
+    } catch (error: any) {
+      console.error("Error fetching maintenance details:", error);
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  };
 
   const getStatusLabel = (status: string) => {
     const statusMap: { [key: string]: { label: string; color: string } } = {
@@ -215,6 +234,94 @@ const AppointmentView = () => {
                     >
                       {service.serviceName}
                     </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Phụ tùng đã sử dụng */}
+            {maintenanceDetails && maintenanceDetails.length > 0 && (
+              <div className="bg-gray-50 p-[2rem] rounded-[0.8rem]">
+                <h3 className="text-[1.5rem] font-[600] text-gray-800 mb-[1.6rem]">
+                  Phụ tùng đã sử dụng
+                </h3>
+                <div className="space-y-[2rem]">
+                  {maintenanceDetails.map((maintenance, index) => (
+                    <div
+                      key={index}
+                      className="bg-white p-[1.6rem] rounded-[0.8rem] border border-gray-200"
+                    >
+                      <h4 className="text-[1.4rem] font-[600] text-gray-800 mb-[1.2rem]">
+                        {maintenance.serviceName}
+                      </h4>
+                      {maintenance.partsUsed && maintenance.partsUsed.length > 0 && (
+                        <div className="space-y-[1rem]">
+                          {maintenance.partsUsed.map((part, partIndex) => (
+                            <div
+                              key={partIndex}
+                              className={`grid gap-3 py-2 border-b ${
+                                partIndex < maintenance.partsUsed.length - 1
+                                  ? "border-gray-200"
+                                  : "border-0"
+                              }`}
+                              style={{
+                                gridTemplateColumns: part.isUnderWarranty
+                                  ? "2fr 1fr 1fr 1fr 1.5fr"
+                                  : "2fr 1fr 1fr 1fr",
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-[1.3rem] text-gray-800">• {part.partName}</span>
+                                {part.isUnderWarranty && (
+                                  <Chip
+                                    label="Bảo hành"
+                                    size="small"
+                                    sx={{
+                                      backgroundColor: "#dcfce7",
+                                      color: "#166534",
+                                      fontSize: "0.7rem",
+                                      height: "20px",
+                                      fontWeight: 600,
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              <div className="text-right text-[1.3rem] text-gray-700">
+                                SL: {part.quantity}
+                              </div>
+                              <div className="text-right text-[1.3rem] text-gray-700">
+                                {formatCurrency(part.unitPrice)}
+                              </div>
+                              <div className="text-right">
+                                {part.isUnderWarranty && part.originalPrice ? (
+                                  <div>
+                                    <div className="text-[1.1rem] text-gray-400 line-through">
+                                      {formatCurrency(part.originalPrice)}
+                                    </div>
+                                    <div className="text-[1.3rem] font-[600] text-green-600">
+                                      {formatCurrency(part.totalPrice)}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-[1.3rem] font-[600] text-gray-800">
+                                    {formatCurrency(part.totalPrice)}
+                                  </div>
+                                )}
+                              </div>
+                              {part.isUnderWarranty && (
+                                <div className="text-right text-[1.1rem] text-green-600 font-[500]">
+                                  {part.warrantyDiscountType === "FREE"
+                                    ? "Miễn phí"
+                                    : part.warrantyDiscountValue
+                                    ? `Giảm ${part.warrantyDiscountValue}%`
+                                    : "Bảo hành"}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

@@ -17,8 +17,8 @@ import { shiftService } from "../../../service/shiftService";
 
 type FormData = {
   assigneeId: string;
-  staffId?: string;
-  technicianIds: string[];
+  staffId: string; // Bắt buộc
+  technicianIds: string[]; // Bắt buộc
   appointmentId?: string; // OPTIONAL - cho shifts không liên quan appointment
   shiftType?: string;
   startTime: string;
@@ -90,6 +90,20 @@ export const ShiftCreate = () => {
   // Watch startTime và endTime để load available technicians
   const startTimeValue = watch("startTime");
   const endTimeValue = watch("endTime");
+  
+  // Watch form values để disable button
+  const staffIdValue = watch("staffId");
+  const technicianIdsValue = watch("technicianIds");
+  
+  // Check if form is valid for submission
+  const isFormValid = !!(
+    currentUser?.userId &&
+    startTimeValue &&
+    staffIdValue &&
+    staffIdValue.trim() !== "" &&
+    technicianIdsValue &&
+    technicianIdsValue.length > 0
+  );
 
   useEffect(() => {
     console.log("", { 
@@ -188,14 +202,25 @@ export const ShiftCreate = () => {
       return;
     }
 
+    // Validation: Bắt buộc phải có nhân viên và kỹ thuật viên
+    if (!data.staffId || data.staffId.trim() === "") {
+      toast.error("Vui lòng chọn nhân viên hỗ trợ!");
+      return;
+    }
+
+    if (!data.technicianIds || data.technicianIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một kỹ thuật viên!");
+      return;
+    }
+
     // Convert datetime format from "YYYY-MM-DDTHH:mm" to "YYYY-MM-DDTHH:mm:ss"
     const formattedStartTime = data.startTime ? `${data.startTime}:00` : undefined;
     const formattedEndTime = data.endTime ? `${data.endTime}:00` : undefined;
 
     const payload: CreationShiftRequest = {
       assigneeId: data.assigneeId,
-      staffId: data.staffId && data.staffId.trim() !== "" ? data.staffId : undefined,
-      technicianIds: data.technicianIds && data.technicianIds.length > 0 ? data.technicianIds : undefined,
+      staffId: data.staffId, // Bắt buộc
+      technicianIds: data.technicianIds, // Bắt buộc
       appointmentId: data.appointmentId && data.appointmentId.trim() !== "" ? data.appointmentId : undefined, // OPTIONAL
       // Set default to APPOINTMENT if not selected
       shiftType: (data.shiftType && data.shiftType.trim() !== "" ? data.shiftType : "APPOINTMENT") as ShiftTypeEnum,
@@ -379,13 +404,15 @@ export const ShiftCreate = () => {
 
             {/* Staff - Nhân viên hỗ trợ */}
             <div>
-              <LabelAdmin htmlFor="staffId" content="Nhân viên hỗ trợ (Tùy chọn)" />
+              <LabelAdmin htmlFor="staffId" content="Nhân viên hỗ trợ *" />
               <SelectAdmin
                 id="staffId"
                 name="staffId"
                 placeholder="-- Chọn nhân viên hỗ trợ --"
                 options={staffOptions}
-                register={register("staffId")}
+                register={register("staffId", {
+                  required: "Nhân viên hỗ trợ không được để trống!",
+                })}
                 error={errors.staffId?.message}
                 onChange={(e) => setValue("staffId", e.target.value)}
               />
@@ -393,10 +420,14 @@ export const ShiftCreate = () => {
 
             {/* Technicians - Kỹ thuật viên (Multi-select) */}
             <div>
-              <LabelAdmin htmlFor="technicianIds" content="Kỹ thuật viên (Có thể chọn nhiều)" />
+              <LabelAdmin htmlFor="technicianIds" content="Kỹ thuật viên * (Có thể chọn nhiều)" />
             <Controller
               name="technicianIds"
               control={control}
+              rules={{
+                required: "Vui lòng chọn ít nhất một kỹ thuật viên!",
+                validate: (value) => value && value.length > 0 || "Vui lòng chọn ít nhất một kỹ thuật viên!",
+              }}
               render={({ field }) => (
                 <Autocomplete
                   multiple
@@ -451,6 +482,9 @@ export const ShiftCreate = () => {
                 />
               )}
             />
+              {errors.technicianIds && (
+                <p className="text-[1.2rem] text-red-500 mt-1">{errors.technicianIds.message}</p>
+              )}
             {startTimeValue && endTimeValue && technicianOptions.length === 0 && !loadingTechnicians && (
               <p style={{ color: "#f44336", fontSize: "1.2rem", marginTop: "0.5rem" }}>
                 ⚠️ Không có kỹ thuật viên nào available trong thời gian này
@@ -536,7 +570,7 @@ export const ShiftCreate = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading || !appointmentList || appointmentList.length === 0 || !currentUser?.userId}
+                disabled={loading || !isFormValid}
                 className="px-[2rem] py-[1rem] text-[1.3rem] font-[500] text-white bg-[#22c55e] rounded-[0.64rem] hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Đang tạo..." : "Tạo ca làm việc"}

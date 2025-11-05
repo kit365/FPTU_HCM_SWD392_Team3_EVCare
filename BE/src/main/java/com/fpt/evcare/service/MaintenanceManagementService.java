@@ -23,4 +23,5 @@ public interface MaintenanceManagementService {
     boolean updateStartEndStartMaintenanceManagement(UUID id, UpdationMaintenanceManagementRequest updationMaintenanceManagementRequest);
     boolean updateNotesMaintenanceManagement(UUID id, String notes);
     boolean updateMaintenanceManagementStatus(UUID id, String status);
+    boolean deleteMaintenanceManagement(UUID id);
 }

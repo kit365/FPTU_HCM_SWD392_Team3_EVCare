@@ -3,9 +3,11 @@ package com.fpt.evcare.controller;
 import com.fpt.evcare.base.ApiResponse;
 import com.fpt.evcare.constants.MaintenanceManagementConstants;
 import com.fpt.evcare.constants.PaginationConstants;
+import com.fpt.evcare.dto.request.maintenance_management.CreationMaintenanceManagementRequest;
 import com.fpt.evcare.dto.response.MaintenanceManagementResponse;
 import com.fpt.evcare.dto.response.PageResponse;
 import com.fpt.evcare.service.MaintenanceManagementService;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Nullable;
 import lombok.AccessLevel;
@@ -238,6 +240,36 @@ public class MaintenanceManagementController {
                 ApiResponse.<List<String>>builder()
                         .success(result)
                         .message(MaintenanceManagementConstants.MESSAGE_SUCCESS_UPDATING_MAINTENANCE_MANAGEMENT_STATUS)
+                        .build()
+        );
+    }
+
+    @PostMapping("/")
+    @Operation(summary = "Tạo maintenance management mới", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Tạo maintenance management mới cho appointment")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
+    public ResponseEntity<ApiResponse<String>> createMaintenanceManagement(@Valid @RequestBody CreationMaintenanceManagementRequest request) {
+        maintenanceManagementService.addMaintenanceManagement(request);
+
+        log.info(MaintenanceManagementConstants.LOG_INFO_CREATING_MAINTENANCE_MANAGEMENT);
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .success(true)
+                        .message("Tạo quản lý bảo dưỡng thành công")
+                        .build()
+        );
+    }
+
+    @DeleteMapping("/{id}/")
+    @Operation(summary = "Xóa maintenance management", description = "🔧 **Roles:** ADMIN, STAFF, TECHNICIAN - Xóa maintenance management (soft delete)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'TECHNICIAN')")
+    public ResponseEntity<ApiResponse<String>> deleteMaintenanceManagement(@PathVariable("id") UUID id) {
+        boolean result = maintenanceManagementService.deleteMaintenanceManagement(id);
+
+        log.info("Xóa maintenance management thành công: {}", id);
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .success(result)
+                        .message("Xóa quản lý bảo dưỡng thành công")
                         .build()
         );
     }

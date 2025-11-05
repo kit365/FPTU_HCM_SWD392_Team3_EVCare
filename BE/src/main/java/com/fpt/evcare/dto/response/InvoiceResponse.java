@@ -59,8 +59,10 @@ public class InvoiceResponse {
         Integer quantity;
         BigDecimal unitPrice;
         BigDecimal totalPrice;
-        Boolean isUnderWarranty; // Phụ tùng có bảo hành hay không
-        String warrantyPackageName; // Tên gói bảo hành (nếu có)
-        BigDecimal originalPrice; // Giá gốc của phụ tùng (trước khi áp dụng bảo hành)
+        BigDecimal originalPrice; // Giá gốc của phụ tùng (trước giảm giá)
+        Boolean isUnderWarranty; // Phụ tùng có được bảo hành không
+        String warrantyDiscountType; // PERCENTAGE hoặc FREE
+        BigDecimal warrantyDiscountValue; // Giá trị giảm giá (% hoặc null nếu FREE)
+        BigDecimal warrantyDiscountAmount; // Số tiền được giảm
     }
 }

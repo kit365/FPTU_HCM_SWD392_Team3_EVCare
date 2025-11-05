@@ -23,6 +23,7 @@ public class MaintenanceManagementConstants {
     public static final String MESSAGE_ERR_CANCEL_INITIALIZING_MAINTENANCE_MANAGEMENT_FOR_THIS_SERVICE_BECAUSE_OF_PART_NOT_ENOUGH = "Bỏ qua việc tạo MaintenanceManagement cho dịch vụ cha vì kho không đủ phụ tùng.";
     public static final String MESSAGE_ERR_NOT_ALL_RECORDS_APPROVED_BY_USER = "Không thể chuyển trạng thái sang COMPLETED vì cần tất cả phiếu bảo dưỡng phải được đồng ý bời khách hàng";
     public static final String MESSAGE_ERR_INVALID_STATUS_TRANSITION = "Không thể chuyển từ trạng thái hiện tại sang trạng thái mới.";
+    public static final String MESSAGE_ERR_DUPLICATE_MAINTENANCE_MANAGEMENT = "Đã tồn tại quản lý bảo dưỡng cho cuộc hẹn này với loại dịch vụ này. Không thể tạo trùng lặp.";
 
     // ============================
     // ℹ️ Info logs
@@ -51,6 +52,7 @@ public class MaintenanceManagementConstants {
     public static final String LOG_ERR_CUSTOMER_EMAIL_NULL_OR_EMPTY = "Customer email is null or empty, cannot send completion email";
     public static final String LOG_ERR_FAILED_SEND_COMPLETION_EMAIL = "Failed to send completion email: {}";
     public static final String LOG_INFO_INVOICE_ALREADY_EXISTS = "Invoice already exists for appointment: {}";
+    public static final String LOG_ERR_DUPLICATE_MAINTENANCE_MANAGEMENT = "Đã tồn tại quản lý bảo dưỡng cho appointmentId: {} với serviceTypeId: {}";
 
     // ============================
     // ✅ Success logs
@@ -64,6 +66,18 @@ public class MaintenanceManagementConstants {
     public static final String LOG_SUCCESS_CREATION_MAINTENANCE_MANAGEMENT_BY_APPOINTMENT = "Đã tạo MaintenanceManagement cho dịch vụ cha [{}] thuộc cuộc hẹn [{}]";
     public static final String LOG_INFO_AUTO_CREATED_INVOICE_FOR_APPOINTMENT = "Auto-created invoice for appointment: {}";
     public static final String LOG_INFO_SENT_COMPLETION_EMAIL = "Sent completion email to customer: {}";
+    
+    // Additional log messages
+    public static final String LOG_INFO_SEARCHING_MAINTENANCE_FOR_TECHNICIAN = "Searching maintenance for technician {} with filters - keyword: {}, date: {}, status: {}, appointmentId: {}";
+    public static final String LOG_WARN_TECHNICIAN_NOT_FOUND_BY_USERNAME = "Technician not found with username: {}";
+    public static final String MESSAGE_ERR_TECHNICIAN_NOT_FOUND = "Không tìm thấy kỹ thuật viên";
+    public static final String LOG_WARN_USER_NOT_TECHNICIAN = "User {} is not a technician";
+    public static final String MESSAGE_ERR_USER_NOT_TECHNICIAN = "Người dùng không phải kỹ thuật viên";
+    public static final String LOG_WARN_INVALID_DATE_FORMAT = "Invalid date format: {}";
+    public static final String MESSAGE_ERR_INVALID_DATE_FORMAT = "Định dạng ngày không hợp lệ. Sử dụng yyyy-MM-dd";
+    public static final String LOG_INFO_FOUND_TASKS_FOR_TECHNICIAN = "Found {} tasks for technician {} on date {}";
+    public static final String LOG_INFO_AUTO_SET_START_TIME = "Auto-set startTime for maintenance management: {}";
+    public static final String LOG_INFO_AUTO_SET_END_TIME = "Auto-set endTime for maintenance management: {}";
 
     // ============================
     // 📧 Email Content

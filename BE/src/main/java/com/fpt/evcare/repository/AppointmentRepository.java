@@ -88,6 +88,25 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             @Param("customerId") UUID customerId,
             Pageable pageable);
 
+    // Query để tìm kiếm appointments của một customer cụ thể theo customer_id và keyword (email/phone)
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.customer_id = :customerId
+          AND (
+              LOWER(a.customer_email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              OR LOWER(a.customer_phone_number) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              OR LOWER(a.search) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          )
+        ORDER BY a.scheduled_at DESC
+        """, nativeQuery = true)
+    Page<AppointmentEntity> findByCustomerIdAndKeyword(
+            @Param("customerId") UUID customerId,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
     // Query để tìm kiếm theo email hoặc phone cho khách vãng lai (không có customer)
     @Query(value = """
         SELECT a.* 
@@ -138,6 +157,23 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
         ORDER BY EXTRACT(MONTH FROM a.scheduled_at)
         """, nativeQuery = true)
     List<Object[]> countAppointmentsByMonth();
+
+    // Query để lấy danh sách warranty appointments (COMPLETED và isWarrantyAppointment = true)
+    // Sử dụng native query với cách so sánh boolean và enum đúng
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.is_warranty_appointment = TRUE
+          AND a.status = :status
+          AND (:keyword IS NULL OR :keyword = '' OR LOWER(a.search) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY a.scheduled_at DESC
+        """, nativeQuery = true)
+    Page<AppointmentEntity> findWarrantyAppointments(
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            Pageable pageable);
 
     @Query(value = """
         SELECT st.service_name as serviceName, COUNT(ast.appointment_id) as count

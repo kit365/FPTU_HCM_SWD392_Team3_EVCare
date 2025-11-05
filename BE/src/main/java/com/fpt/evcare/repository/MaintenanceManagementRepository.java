@@ -19,6 +19,9 @@ public interface MaintenanceManagementRepository extends JpaRepository<Maintenan
     @Query("SELECT m FROM MaintenanceManagementEntity m WHERE m.appointment.appointmentId = :appointmentId AND m.isDeleted = false")
     List<MaintenanceManagementEntity> findByAppointmentIdAndIsDeletedFalse(@Param("appointmentId") UUID appointmentId);
 
+    @Query("SELECT m FROM MaintenanceManagementEntity m WHERE m.appointment.appointmentId = :appointmentId AND m.serviceType.serviceTypeId = :serviceTypeId AND m.isDeleted = false")
+    MaintenanceManagementEntity findByAppointmentIdAndServiceTypeIdAndIsDeletedFalse(@Param("appointmentId") UUID appointmentId, @Param("serviceTypeId") UUID serviceTypeId);
+
     @Query("""
         SELECT mm
         FROM MaintenanceManagementEntity mm

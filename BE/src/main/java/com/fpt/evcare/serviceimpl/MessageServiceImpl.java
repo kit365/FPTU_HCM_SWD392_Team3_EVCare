@@ -66,7 +66,7 @@ public class MessageServiceImpl implements MessageService {
         
         // Không thể gửi tin nhắn cho chính mình
         if (senderId.equals(request.getReceiverId())) {
-            log.warn("User {} tried to send message to themselves", senderId);
+            log.warn(MessageConstants.LOG_WARN_USER_SEND_MESSAGE_TO_SELF, senderId);
             throw new IllegalArgumentException(MessageConstants.MESSAGE_ERR_SEND_TO_SELF);
         }
         
@@ -121,7 +121,7 @@ public class MessageServiceImpl implements MessageService {
         
         // Kiểm tra customer có được phép chat với staff này không
         if (!assignment.get().getAssignedStaff().getUserId().equals(staffId)) {
-            log.warn("Customer {} tried to chat with unassigned staff {}", customerId, staffId);
+            log.warn(MessageConstants.LOG_WARN_CUSTOMER_CHAT_UNASSIGNED_STAFF, customerId, staffId);
             throw new UnauthorizedException(MessageConstants.MESSAGE_ERR_NO_ASSIGNMENT);
         }
     }
@@ -324,7 +324,7 @@ public class MessageServiceImpl implements MessageService {
         
         message.setIsDeleted(true);
         messageRepository.save(message);
-        log.info("Deleted message: {}", messageId);
+        log.info(MessageConstants.LOG_INFO_DELETED_MESSAGE, messageId);
     }
 }
 

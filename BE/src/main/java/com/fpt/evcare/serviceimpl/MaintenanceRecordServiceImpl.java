@@ -44,6 +44,7 @@ public class MaintenanceRecordServiceImpl implements MaintenanceRecordService {
     MaintenanceCostService maintenanceCostService;
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<MaintenanceRecordResponse> searchMaintenanceRecordByMaintenanceManagement(UUID maintenanceManagementId, String keyword, Pageable pageable) {
         MaintenanceManagementEntity maintenanceManagement = maintenanceManagementRepository.findByMaintenanceManagementIdAndIsDeletedFalse(maintenanceManagementId);
         if(maintenanceManagement == null){
@@ -63,17 +64,36 @@ public class MaintenanceRecordServiceImpl implements MaintenanceRecordService {
             throw new ResourceNotFoundException(MaintenanceRecordConstants.MESSAGE_ERR_NO_MAINTENANCE_RECORD_FOUND_FOR_MANAGEMENT);
         }
 
+        // Flush tất cả pending changes trước khi query để đảm bảo có dữ liệu mới nhất
+        vehiclePartRepository.flush();
+        
         List<MaintenanceRecordResponse> maintenanceRecordResponses = maintenanceRecordEntityPage.map(
                 maintenanceRecordEntity -> {
                     MaintenanceRecordResponse maintenanceRecordResponse = maintenanceRecordMapper.toResponse(maintenanceRecordEntity);
                     VehiclePartEntity vehiclePartEntity = maintenanceRecordEntity.getVehiclePart();
                     if(vehiclePartEntity != null){
+                        // Lấy lại vehicle part từ database để đảm bảo có currentQuantity mới nhất
+                        // (tránh cache hoặc stale data từ persistence context)
+                        VehiclePartEntity refreshedVehiclePart = vehiclePartRepository
+                                .findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(vehiclePartEntity.getVehiclePartId());
+                        
+                        if (refreshedVehiclePart == null) {
+                            log.warn("Vehicle part not found when refreshing: {}", vehiclePartEntity.getVehiclePartId());
+                            // Fallback to original entity if refresh fails
+                            refreshedVehiclePart = vehiclePartEntity;
+                        }
+                        
+                        // Log để debug (có thể remove sau)
+                        log.debug("Vehicle part {} - Current quantity: {} (from database)", 
+                                refreshedVehiclePart.getVehiclePartName(), 
+                                refreshedVehiclePart.getCurrentQuantity());
 
-                        // Set thông tin phụ tùng
+                        // Set thông tin phụ tùng với dữ liệu mới nhất từ database
                         VehiclePartResponse vehiclePartResponse = VehiclePartResponse.builder()
-                                .vehiclePartId(vehiclePartEntity.getVehiclePartId())
-                                .vehiclePartName(vehiclePartEntity.getVehiclePartName())
-                                .unitPrice(vehiclePartEntity.getUnitPrice())
+                                .vehiclePartId(refreshedVehiclePart.getVehiclePartId())
+                                .vehiclePartName(refreshedVehiclePart.getVehiclePartName())
+                                .unitPrice(refreshedVehiclePart.getUnitPrice())
+                                .currentQuantity(refreshedVehiclePart.getCurrentQuantity())
                                 .build();
                         maintenanceRecordResponse.setVehiclePartResponse(vehiclePartResponse);
                     }
@@ -224,20 +244,47 @@ public class MaintenanceRecordServiceImpl implements MaintenanceRecordService {
             throw new ResourceNotFoundException(MaintenanceRecordConstants.MESSAGE_ERR_VEHICLE_PART_NOT_FOUND);
         }
 
-        // Nếu có phụ tùng cũ thì hoàn lại số lượng cũ vào kho
-        if (oldPart != null) {
-            vehiclePartService.restoreQuantity(oldPart.getVehiclePartId(), oldQuantity);
-        }
-
-        // Kiểm tra phụ tùng mới còn đủ hàng không
         Integer newQuantity = updationMaintenanceRecordRequest.getQuantityUsed();
-        if (newPart.getCurrentQuantity() < newQuantity) {
-            log.warn(VehiclePartConstants.LOG_ERR_INSUFFICIENT_VEHICLE_PART_STOCK + newPart.getVehiclePartName());
-            throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_INSUFFICIENT_VEHICLE_PART_STOCK);
+        
+        // Kiểm tra xem có phải cùng một phụ tùng không
+        boolean isSamePart = oldPart != null && oldPart.getVehiclePartId().equals(newPart.getVehiclePartId());
+        
+        if (isSamePart) {
+            // Nếu cùng một phụ tùng, tính toán số lượng chênh lệch
+            int quantityDifference = newQuantity - oldQuantity;
+            
+            if (quantityDifference > 0) {
+                // Nếu số lượng mới lớn hơn số lượng cũ, cần kiểm tra tồn kho có đủ không
+                if (newPart.getCurrentQuantity() < quantityDifference) {
+                    log.warn(VehiclePartConstants.LOG_ERR_INSUFFICIENT_VEHICLE_PART_STOCK + newPart.getVehiclePartName());
+                    throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_INSUFFICIENT_VEHICLE_PART_STOCK);
+                }
+                // Trừ phần chênh lệch
+                vehiclePartService.subtractQuantity(newPart.getVehiclePartId(), quantityDifference);
+            } else if (quantityDifference < 0) {
+                // Nếu số lượng mới nhỏ hơn số lượng cũ, hoàn lại phần chênh lệch
+                vehiclePartService.restoreQuantity(newPart.getVehiclePartId(), Math.abs(quantityDifference));
+            }
+            // Nếu quantityDifference == 0, không cần làm gì
+        } else {
+            // Nếu khác phụ tùng, hoàn lại số lượng cũ và trừ số lượng mới
+            if (oldPart != null) {
+                vehiclePartService.restoreQuantity(oldPart.getVehiclePartId(), oldQuantity);
+            }
+            
+            // Kiểm tra phụ tùng mới còn đủ hàng không (sau khi đã hoàn lại số lượng cũ)
+            // Refresh entity để lấy giá trị mới nhất
+            vehiclePartRepository.flush();
+            newPart = vehiclePartRepository.findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(vehiclePartInventoryId);
+            
+            if (newPart.getCurrentQuantity() < newQuantity) {
+                log.warn(VehiclePartConstants.LOG_ERR_INSUFFICIENT_VEHICLE_PART_STOCK + newPart.getVehiclePartName());
+                throw new ResourceNotFoundException(VehiclePartConstants.MESSAGE_ERR_INSUFFICIENT_VEHICLE_PART_STOCK);
+            }
+            
+            // Trừ lượng tồn kho của phụ tùng mới
+            vehiclePartService.subtractQuantity(newPart.getVehiclePartId(), newQuantity);
         }
-
-        // Trừ lượng tồn kho của phụ tùng mới
-        vehiclePartService.subtractQuantity(newPart.getVehiclePartId(), newQuantity);
 
         // Cập nhật lại record
         maintenanceRecordEntity.setVehiclePart(newPart);
@@ -245,6 +292,15 @@ public class MaintenanceRecordServiceImpl implements MaintenanceRecordService {
 
         maintenanceRecordMapper.toUpdate(maintenanceRecordEntity, updationMaintenanceRecordRequest);
         maintenanceRecordRepository.save(maintenanceRecordEntity);
+
+        // Refresh vehicle part entity để đảm bảo có currentQuantity mới nhất
+        // (sau khi update quantity, cần refresh để lấy giá trị mới từ database)
+        vehiclePartRepository.flush();
+        VehiclePartEntity refreshedPart = vehiclePartRepository
+                .findVehiclePartEntityByVehiclePartIdAndIsDeletedFalse(newPart.getVehiclePartId());
+        if (refreshedPart != null) {
+            maintenanceRecordEntity.setVehiclePart(refreshedPart);
+        }
 
         // Cập nhật lại tổng chi phí
         MaintenanceManagementEntity maintenanceManagementEntity = maintenanceRecordEntity.getMaintenanceManagement();

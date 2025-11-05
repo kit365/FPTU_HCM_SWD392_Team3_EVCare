@@ -37,9 +37,11 @@ export interface PartUsed {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  isUnderWarranty?: boolean; // Phụ tùng có bảo hành hay không
-  warrantyPackageName?: string; // Tên gói bảo hành (nếu có)
-  originalPrice?: number; // Giá gốc của phụ tùng (trước khi áp dụng bảo hành)
+  originalPrice?: number; // Giá gốc của phụ tùng (trước giảm giá)
+  isUnderWarranty?: boolean; // Phụ tùng có được bảo hành không
+  warrantyDiscountType?: string; // PERCENTAGE hoặc FREE
+  warrantyDiscountValue?: number; // Giá trị giảm giá (% hoặc null nếu FREE)
+  warrantyDiscountAmount?: number; // Số tiền được giảm
 }
 
 export interface PaymentRequest {

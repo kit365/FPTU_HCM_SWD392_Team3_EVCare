@@ -3,23 +3,31 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { message } from "antd";
 import { bookingService } from "../../../service/bookingService";
+import { appointmentService } from "../../../service/appointmentService";
 import type { UserAppointment } from "../../../types/booking.types";
-import { Card } from "@mui/material";
+import type { MaintenanceManagementSummary } from "../../../types/invoice.types";
+import { Card, Chip, Box } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useAuthContext } from "../../../context/useAuthContext";
 
 const AppointmentDetailPage: React.FC = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const [appointment, setAppointment] = useState<UserAppointment | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
+  const [maintenanceDetails, setMaintenanceDetails] = useState<MaintenanceManagementSummary[]>([]);
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
 
   useEffect(() => {
     if (appointmentId) {
       fetchAppointmentDetail();
+      fetchMaintenanceDetails();
     }
-  }, [appointmentId]);
+  }, [appointmentId, user?.userId]);
 
   const fetchAppointmentDetail = async () => {
     if (!appointmentId) return;
@@ -28,11 +36,103 @@ const AppointmentDetailPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await bookingService.getAppointmentById(appointmentId);
-      if (response.data.success && response.data.data) {
-        setAppointment(response.data.data);
+      // Nếu user đã đăng nhập, dùng API bình thường
+      if (user) {
+        const response = await bookingService.getAppointmentById(appointmentId);
+        if (response.data.success && response.data.data) {
+          setAppointment(response.data.data);
+          setIsGuest(false);
+        } else {
+          setError(response.data.message || "Không thể tải thông tin cuộc hẹn");
+        }
       } else {
-        setError(response.data.message || "Không thể tải thông tin cuộc hẹn");
+        // Nếu là guest, kiểm tra sessionStorage
+        const guestDataStr = sessionStorage.getItem(`guestAppointment_${appointmentId}`);
+        if (guestDataStr) {
+          try {
+            const guestData = JSON.parse(guestDataStr);
+            if (guestData.appointment && guestData.appointment.appointmentId === appointmentId) {
+              setAppointment(guestData.appointment);
+              setIsGuest(true);
+              console.log("✅ Loaded appointment from sessionStorage for guest");
+            } else {
+              setError("Thông tin cuộc hẹn không hợp lệ");
+            }
+          } catch (parseError) {
+            console.error("Error parsing guest data:", parseError);
+            setError("Không thể tải thông tin cuộc hẹn");
+          }
+        } else {
+          // Nếu không có dữ liệu trong sessionStorage, thử fetch với OTP nếu có
+          const guestOtpInfoStr = sessionStorage.getItem("guestAppointmentEdit");
+          if (guestOtpInfoStr) {
+            try {
+              const guestOtpInfo = JSON.parse(guestOtpInfoStr);
+              // Thử fetch lại bằng OTP
+              const appointmentResponse = await bookingService.verifyOtpForGuestAppointment(
+                appointmentId,
+                guestOtpInfo.email,
+                guestOtpInfo.otp
+              );
+              
+              if (appointmentResponse && appointmentResponse.appointmentId) {
+                // Convert to UserAppointment format
+                const quotePrice = appointmentResponse.quotePrice != null ? Number(appointmentResponse.quotePrice) : 0;
+                const userAppointment: UserAppointment = {
+                  appointmentId: appointmentResponse.appointmentId,
+                  customerFullName: appointmentResponse.customerFullName,
+                  customerPhoneNumber: appointmentResponse.customerPhoneNumber,
+                  customerEmail: appointmentResponse.customerEmail,
+                  vehicleNumberPlate: appointmentResponse.vehicleNumberPlate,
+                  vehicleKmDistances: appointmentResponse.vehicleKmDistances || "",
+                  userAddress: appointmentResponse.userAddress || "",
+                  serviceMode: appointmentResponse.serviceMode,
+                  status: appointmentResponse.status,
+                  scheduledAt: appointmentResponse.scheduledAt,
+                  quotePrice: quotePrice,
+                  notes: appointmentResponse.notes || "",
+                  vehicleTypeResponse: appointmentResponse.vehicleTypeResponse || {
+                    vehicleTypeId: "",
+                    vehicleTypeName: "",
+                    manufacturer: "",
+                    modelYear: 0,
+                  },
+                  serviceTypeResponses: appointmentResponse.serviceTypeResponses || [],
+                  technicianResponses: appointmentResponse.technicianResponses || [],
+                  isWarrantyAppointment: appointmentResponse.isWarrantyAppointment || false,
+                  originalAppointment: appointmentResponse.originalAppointment || undefined,
+                };
+                
+                setAppointment(userAppointment);
+                setIsGuest(true);
+                
+                // Lưu lại vào sessionStorage
+                sessionStorage.setItem(`guestAppointment_${appointmentId}`, JSON.stringify({
+                  appointment: userAppointment,
+                  email: guestOtpInfo.email,
+                  verifiedAt: new Date().toISOString()
+                }));
+                
+                console.log("✅ Fetched appointment using OTP and saved to sessionStorage");
+              } else {
+                setError("Không thể tải thông tin cuộc hẹn");
+              }
+            } catch (otpError: any) {
+              console.error("Error fetching with OTP:", otpError);
+              setError("Phiên xác thực đã hết hạn. Vui lòng xác thực lại.");
+              // Redirect về trang lookup sau 2 giây
+              setTimeout(() => {
+                navigate("/client/lookup");
+              }, 2000);
+            }
+          } else {
+            setError("Vui lòng xác thực để xem chi tiết cuộc hẹn");
+            // Redirect về trang lookup sau 2 giây
+            setTimeout(() => {
+              navigate("/client/lookup");
+            }, 2000);
+          }
+        }
       }
     } catch (error: any) {
       console.error("Error fetching appointment:", error);
@@ -111,8 +211,29 @@ const AppointmentDetailPage: React.FC = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
 
+  const fetchMaintenanceDetails = async () => {
+    if (!appointmentId) return;
+    
+    setLoadingMaintenance(true);
+    try {
+      const details = await appointmentService.getMaintenanceDetails(appointmentId);
+      setMaintenanceDetails(details);
+    } catch (error: any) {
+      console.error("Error fetching maintenance details:", error);
+      // Không hiển thị error vì có thể appointment chưa có maintenance records
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  };
+
   const handleBack = () => {
-    navigate('/client/appointment-history');
+    // Nếu là guest, quay về trang lookup
+    // Nếu đã đăng nhập, quay về trang appointment history
+    if (isGuest) {
+      navigate('/client/lookup');
+    } else {
+      navigate('/client/appointment-history');
+    }
   };
 
   if (loading) {
@@ -376,6 +497,94 @@ const AppointmentDetailPage: React.FC = () => {
                                 <p className="text-[1.2rem] text-gray-600 mt-2 ml-2">
                                   {childService.description}
                                 </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Phụ tùng đã sử dụng */}
+            {maintenanceDetails && maintenanceDetails.length > 0 && (
+              <div className="bg-gray-50 p-[2rem] rounded-[0.8rem]">
+                <h3 className="text-[1.5rem] font-[600] text-gray-800 mb-[1.6rem]">
+                  Phụ tùng đã sử dụng
+                </h3>
+                <div className="space-y-[2rem]">
+                  {maintenanceDetails.map((maintenance, index) => (
+                    <div
+                      key={index}
+                      className="bg-white p-[1.6rem] rounded-[0.8rem] border border-gray-200"
+                    >
+                      <h4 className="text-[1.4rem] font-[600] text-gray-800 mb-[1.2rem]">
+                        {maintenance.serviceName}
+                      </h4>
+                      {maintenance.partsUsed && maintenance.partsUsed.length > 0 && (
+                        <div className="space-y-[1rem]">
+                          {maintenance.partsUsed.map((part, partIndex) => (
+                            <div
+                              key={partIndex}
+                              className={`grid gap-3 py-2 border-b ${
+                                partIndex < maintenance.partsUsed.length - 1
+                                  ? "border-gray-200"
+                                  : "border-0"
+                              }`}
+                              style={{
+                                gridTemplateColumns: part.isUnderWarranty
+                                  ? "2fr 1fr 1fr 1fr 1.5fr"
+                                  : "2fr 1fr 1fr 1fr",
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-[1.3rem] text-gray-800">• {part.partName}</span>
+                                {part.isUnderWarranty && (
+                                  <Chip
+                                    label="Bảo hành"
+                                    size="small"
+                                    sx={{
+                                      backgroundColor: "#dcfce7",
+                                      color: "#166534",
+                                      fontSize: "0.7rem",
+                                      height: "20px",
+                                      fontWeight: 600,
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              <div className="text-right text-[1.3rem] text-gray-700">
+                                SL: {part.quantity}
+                              </div>
+                              <div className="text-right text-[1.3rem] text-gray-700">
+                                {formatCurrency(part.unitPrice)}
+                              </div>
+                              <div className="text-right">
+                                {part.isUnderWarranty && part.originalPrice ? (
+                                  <div>
+                                    <div className="text-[1.1rem] text-gray-400 line-through">
+                                      {formatCurrency(part.originalPrice)}
+                                    </div>
+                                    <div className="text-[1.3rem] font-[600] text-green-600">
+                                      {formatCurrency(part.totalPrice)}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-[1.3rem] font-[600] text-gray-800">
+                                    {formatCurrency(part.totalPrice)}
+                                  </div>
+                                )}
+                              </div>
+                              {part.isUnderWarranty && (
+                                <div className="text-right text-[1.1rem] text-green-600 font-[500]">
+                                  {part.warrantyDiscountType === "FREE"
+                                    ? "Miễn phí"
+                                    : part.warrantyDiscountValue
+                                    ? `Giảm ${part.warrantyDiscountValue}%`
+                                    : "Bảo hành"}
+                                </div>
                               )}
                             </div>
                           ))}

@@ -5,9 +5,7 @@ import com.fpt.evcare.entity.MaintenanceManagementEntity;
 import com.fpt.evcare.entity.MaintenanceRecordEntity;
 import com.fpt.evcare.exception.ResourceNotFoundException;
 import com.fpt.evcare.repository.MaintenanceManagementRepository;
-import com.fpt.evcare.repository.VehicleRepository;
 import com.fpt.evcare.service.MaintenanceCostService;
-import com.fpt.evcare.service.WarrantyPackageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,8 +24,6 @@ import java.util.UUID;
 public class MaintenanceCostServiceImpl implements MaintenanceCostService {
 
     MaintenanceManagementRepository maintenanceManagementRepository;
-    WarrantyPackageService warrantyPackageService;
-    VehicleRepository vehicleRepository;
 
     @Override
     @Transactional
@@ -53,39 +49,11 @@ public class MaintenanceCostServiceImpl implements MaintenanceCostService {
             return;
         }
 
-        // Lấy vehicleId từ appointment (nếu có)
-        UUID vehicleId = null;
-        if (maintenanceManagementEntity.getAppointment() != null 
-                && maintenanceManagementEntity.getAppointment().getVehicleNumberPlate() != null) {
-            try {
-                var vehicle = vehicleRepository.findByPlateNumberAndIsDeletedFalse(
-                        maintenanceManagementEntity.getAppointment().getVehicleNumberPlate()
-                );
-                if (vehicle != null) {
-                    vehicleId = vehicle.getVehicleId();
-                }
-            } catch (Exception e) {
-                // If vehicle not found, use null for general warranty check
-                log.debug("Vehicle not found by plate number: {}", 
-                        maintenanceManagementEntity.getAppointment().getVehicleNumberPlate());
-                vehicleId = null;
-            }
-        }
-
-        final UUID finalVehicleId = vehicleId; // Final variable for lambda
-        
         BigDecimal totalCost = records.stream()
                 .filter(record ->
                         Boolean.TRUE.equals(record.getApprovedByUser()) &&
                                 record.getVehiclePart() != null &&
                                 record.getQuantityUsed() != null)
-                .filter(record -> {
-                    // Kiểm tra xem phụ tùng có bảo hành còn hiệu lực không
-                    UUID partId = record.getVehiclePart().getVehiclePartId();
-                    boolean underWarranty = warrantyPackageService.isVehiclePartUnderWarranty(finalVehicleId, partId);
-                    // Chỉ tính tiền nếu KHÔNG có bảo hành
-                    return !underWarranty;
-                })
                 .map(record ->
                         record.getVehiclePart().getUnitPrice()
                                 .multiply(BigDecimal.valueOf(record.getQuantityUsed())))

@@ -68,7 +68,8 @@ public class AppointmentConstants {
     // Info Logs
     public static final String LOG_INFO_SHOWING_APPOINTMENT = "Đang lấy lịch hẹn với id: {}";
     public static final String LOG_INFO_SHOWING_APPOINTMENT_LIST = "Đang lấy danh sách lịch hẹn: {}";
-    public static final String LOG_INFO_CREATING_APPOINTMENT = "Đang tạo lịch hẹn: {}";
+    public static final String LOG_INFO_SHOWING_WARRANTY_APPOINTMENT_LIST = "Đang lấy danh sách lịch hẹn bảo hành";
+    public static final String MESSAGE_SUCCESS_SHOWING_WARRANTY_APPOINTMENT_LIST = "Lấy danh sách lịch hẹn bảo hành thành công";
     public static final String LOG_INFO_UPDATING_APPOINTMENT = "Đang cập nhật lịch hẹn: {}";
     public static final String LOG_INFO_SHOWING_USER_APPOINTMENT = "Lấy thành công danh sách cuộc hẹn của người dùng: {}";
     public static final String LOG_INFO_CALCULATING_QUOTE_PRICE = "Đang tính giá tạm tính cho cuộc hẹn: {}";
@@ -180,6 +181,7 @@ public class AppointmentConstants {
 
     // Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/appointment";
+    public static final String WARRANTY_APPOINTMENTS = "/warranty";
     public static final String APPOINTMENT_LIST = "/";
     public static final String APPOINTMENT = "/{id}";
     public static final String SEARCH_BY_CUSTOMER = "/search/customer/";
@@ -205,6 +207,7 @@ public class AppointmentConstants {
     public static final String APPOINTMENT_GUEST_VERIFY_OTP = "/guest/{id}/verify-otp";
     public static final String APPOINTMENT_GUEST_GET = "/guest/{id}";
     public static final String APPOINTMENT_GUEST_UPDATE = "/guest/{id}";
+    public static final String APPOINTMENT_MAINTENANCE_DETAILS = "/{id}/maintenance-details";
     
     // OTP messages
     public static final String MESSAGE_SUCCESS_SEND_OTP_FOR_GUEST = "Đã gửi mã OTP đến email của bạn";
@@ -214,4 +217,33 @@ public class AppointmentConstants {
     public static final String LOG_SUCCESS_SEND_OTP_FOR_GUEST = "Sent OTP for guest appointment: {}";
     public static final String LOG_SUCCESS_VERIFY_OTP_FOR_GUEST = "Verified OTP for guest appointment: {}";
     public static final String LOG_ERR_OTP_INVALID = "Invalid OTP for appointment: {}";
+    
+    // Additional log messages
+    public static final String LOG_WARN_CUSTOMER_ACCESS_OTHER_APPOINTMENT = "Customer {} attempted to access appointment {} that doesn't belong to them";
+    public static final String LOG_INFO_NO_APPOINTMENTS_FOUND_FOR_USER = "No appointments found for user {} - returning empty page";
+    public static final String LOG_INFO_NO_APPOINTMENTS_FOUND = "No appointments found - returning empty page";
+    public static final String LOG_INFO_FETCHING_APPOINTMENTS_FOR_USER = "🔍 Fetching appointments for authenticated user with customerId: {}";
+    public static final String LOG_INFO_SEARCHING_APPOINTMENTS_FOR_USER_WITH_KEYWORD = "🔍 Searching appointments for authenticated user with customerId: {} and keyword: {}";
+    public static final String LOG_INFO_NO_KEYWORD_OR_USER_ID = "No keyword or userId provided, returning empty result";
+    public static final String LOG_INFO_SEARCHING_APPOINTMENTS_BY_KEYWORD = "🔍 Searching appointments by keyword: {}";
+    public static final String LOG_INFO_NO_APPOINTMENTS_FOUND_FOR_CUSTOMER = "No appointments found for customer - userId: {}, keyword: {}";
+    public static final String LOG_INFO_NO_APPOINTMENTS_FOUND_FOR_GUEST = "No appointments found for guest with keyword: {}";
+    public static final String LOG_INFO_CREATING_APPOINTMENT = "🔍 Creating appointment with customerId: {}";
+    public static final String LOG_INFO_FOUND_CUSTOMER = "👤 Found customer: {}";
+    public static final String LOG_INFO_SAVED_APPOINTMENT = "✅ Saved appointment with ID: {} and customer_id: {}";
+    public static final String LOG_INFO_APPOINTMENT_AUTO_CONFIRMED = "Appointment {} automatically changed to CONFIRMED after assignment";
+    public static final String LOG_WARN_FAILED_RELOAD_APPOINTMENT = "Failed to reload appointment after status update: {}";
+    public static final String LOG_WARN_CANNOT_TRANSITION_TO_CONFIRMED = "Cannot transition to CONFIRMED from status: {}";
+    public static final String MESSAGE_ERR_CAN_ONLY_TRANSITION_TO_CONFIRMED_FROM_PENDING = "Chỉ có thể chuyển sang CONFIRMED từ trạng thái PENDING";
+    public static final String LOG_WARN_SERVICE_NOT_CONFIGURED_PARTS = "⚠️ Service '{}' chưa được cấu hình phụ tùng trong service_type_vehicle_part. Skip tạo MaintenanceManagement cho dịch vụ này!";
+    public static final String LOG_WARN_NO_INVOICE_FOUND = "No invoice found for appointment: {}";
+    public static final String LOG_DEBUG_NO_SHIFTS_FOUND_TO_UPDATE = "No shifts found for appointment {} to update";
+    public static final String LOG_INFO_AUTO_UPDATED_SHIFT_STATUS = "✅ Auto-updated shift {} status to IN_PROGRESS when appointment {} changed to IN_PROGRESS";
+    public static final String LOG_INFO_UPDATED_SHIFTS_TO_IN_PROGRESS = "✅ Updated {} shift(s) to IN_PROGRESS for appointment {}";
+    public static final String LOG_DEBUG_NO_SHIFTS_NEEDED_UPDATE = "No shifts needed status update for appointment {} (all shifts are already IN_PROGRESS or other status)";
+    public static final String LOG_ERR_FAILED_UPDATE_SHIFT_STATUS = "⚠️ Failed to update shift status when appointment {} changed to IN_PROGRESS: {}";
+    public static final String LOG_WARN_EMAIL_NOT_MATCH_APPOINTMENT = "Email {} does not match appointment {} email {}";
+    public static final String LOG_INFO_DELETED_OLD_OTP = "Đã xóa mã OTP cũ cho appointment {} và email {}";
+    public static final String LOG_ERR_FAILED_SEND_OTP_EMAIL = "Failed to send OTP email for appointment {}: {}";
+    public static final String MESSAGE_ERR_CANNOT_SEND_OTP_EMAIL = "Không thể gửi email OTP. Vui lòng thử lại sau.";
 }

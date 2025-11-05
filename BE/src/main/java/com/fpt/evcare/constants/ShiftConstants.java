@@ -96,6 +96,26 @@ public class ShiftConstants {
     public static final String SHIFT_ASSIGN = "/{id}/assign";
     public static final String SHIFT_CHECK_AVAILABILITY = "/check-availability";
     public static final String SHIFT_GET_AVAILABLE_TECHNICIANS = "/available-technicians";
+    
+    // Additional log and exception messages
+    public static final String LOG_INFO_SHOWING_SHIFT_LIST_FOR_TECHNICIAN = "Showing shift list for technician: {}";
+    public static final String LOG_WARN_CANNOT_UPDATE_SHIFT_COMPLETED_OR_CANCELLED = "Cannot update shift that is already COMPLETED or CANCELLED: {}";
+    public static final String MESSAGE_ERR_CANNOT_UPDATE_SHIFT_COMPLETED_OR_CANCELLED = "Không thể cập nhật ca làm việc đã hoàn thành hoặc đã hủy";
+    public static final String LOG_WARN_CANNOT_TRANSITION_TO_IN_PROGRESS = "Cannot transition to IN_PROGRESS from status: {}";
+    public static final String MESSAGE_ERR_CAN_ONLY_START_FROM_SCHEDULED = "Chỉ có thể bắt đầu ca làm việc từ trạng thái SCHEDULED (Đã lên lịch)";
+    public static final String LOG_INFO_AUTO_UPDATED_APPOINTMENT_TO_IN_PROGRESS = "✅ Auto-updated appointment {} to IN_PROGRESS when shift {} started";
+    public static final String LOG_WARN_FAILED_AUTO_UPDATE_APPOINTMENT = "⚠️ Failed to auto-update appointment to IN_PROGRESS when shift started: {}";
+    public static final String LOG_WARN_CANNOT_TRANSITION_BACKWARD = "Cannot transition backward from IN_PROGRESS to {}";
+    public static final String MESSAGE_ERR_CANNOT_TRANSITION_BACKWARD = "Không thể quay ngược trạng thái từ Đang thực hiện";
+    public static final String LOG_INFO_SHIFT_STATUS_UPDATED = "Shift {} status updated from {} to {}";
+    public static final String LOG_WARN_INVALID_SHIFT_STATUS = "Invalid shift status: {}";
+    public static final String MESSAGE_ERR_INVALID_SHIFT_STATUS = "Trạng thái không hợp lệ: %s";
+    
+    // Validation messages
+    public static final String LOG_ERR_STAFF_REQUIRED = "Staff is required for shift";
+    public static final String MESSAGE_ERR_STAFF_REQUIRED = "Ca làm việc phải có ít nhất một nhân viên";
+    public static final String LOG_ERR_TECHNICIAN_REQUIRED = "Technician is required for shift";
+    public static final String MESSAGE_ERR_TECHNICIAN_REQUIRED = "Ca làm việc phải có ít nhất một kỹ thuật viên";
 }
 
 

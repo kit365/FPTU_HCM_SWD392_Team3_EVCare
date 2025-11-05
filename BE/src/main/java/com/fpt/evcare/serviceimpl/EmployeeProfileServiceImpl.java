@@ -45,7 +45,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
     public void addEmployeeProfile(CreationEmployeeProfileRequest request) {
         UserEntity userEntity = userRepository.findByUserIdAndIsDeletedFalse(request.getUserId());
         if (userEntity == null) {
-            log.error("User not found with id: {}", request.getUserId());
+            log.error(EmployeeProfileConstants.LOG_ERR_USER_NOT_FOUND, request.getUserId());
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
         EmployeeProfileEntity employeeProfileEntity = employeeProfileMapper.toEmployeeProfile(request);
@@ -95,8 +95,8 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
     public EmployeeProfileResponse getEmployeeProfileById(UUID employeeProfileId) {
         EmployeeProfileEntity employeeProfileEntity = employeeProfileRepository.findByEmployeeProfileIdAndIsDeletedFalse(employeeProfileId);
         if (employeeProfileEntity == null) {
-            log.error("Employee profile not found with id: {}", employeeProfileId);
-            throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
+            log.error(EmployeeProfileConstants.LOG_ERR_EMPLOYEE_PROFILE_NOT_FOUND_BY_ID, employeeProfileId);
+            throw new ResourceNotFoundException(EmployeeProfileConstants.MESSAGE_ERROR_EMPLOYEE_PROFILE_NOT_FOUND);
         }
         return convertToResponse(employeeProfileEntity);
     }
@@ -106,8 +106,8 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
     public EmployeeProfileResponse getEmployeeProfileByUserId(UUID userId) {
         EmployeeProfileEntity employeeProfileEntity = employeeProfileRepository.findByUserUserIdAndIsDeletedFalse(userId);
         if (employeeProfileEntity == null) {
-            log.error("Employee profile not found for user id: {}", userId);
-            throw new ResourceNotFoundException("Không tìm thấy hồ sơ nhân viên cho người dùng này");
+            log.error(EmployeeProfileConstants.LOG_ERR_EMPLOYEE_PROFILE_NOT_FOUND_BY_USER_ID, userId);
+            throw new ResourceNotFoundException(EmployeeProfileConstants.MESSAGE_ERR_EMPLOYEE_PROFILE_NOT_FOUND_FOR_USER);
         }
         return convertToResponse(employeeProfileEntity);
     }
@@ -124,7 +124,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
                 );
                 response.setCertifications(certifications);
             } catch (Exception e) {
-                log.error("Error parsing certifications JSON: {}", e.getMessage());
+                log.error(EmployeeProfileConstants.LOG_ERR_PARSING_CERTIFICATIONS_JSON, e.getMessage());
                 response.setCertifications(new java.util.ArrayList<>());
             }
         } else {
@@ -147,7 +147,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
                 pageSize = pageable.getPageSize();
             }
         } catch (Exception e) {
-            log.warn("Error getting pageable info: {}", e.getMessage());
+            log.warn(EmployeeProfileConstants.LOG_WARN_ERROR_GETTING_PAGEABLE_INFO, e.getMessage());
         }
         
         PageResponse<EmployeeProfileResponse> emptyResponse = PageResponse.<EmployeeProfileResponse>builder()
@@ -170,7 +170,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
             
             // Nếu không có kết quả, trả về page rỗng thay vì throw exception
             if (employeeProfileEntityPage == null || employeeProfileEntityPage.getTotalElements() == 0) {
-                log.info("No employee profiles found - returning empty page");
+                log.info(EmployeeProfileConstants.LOG_INFO_NO_EMPLOYEE_PROFILES_FOUND);
                 return emptyResponse;
             }
             
@@ -188,7 +188,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
                                 );
                                 response.setCertifications(certifications);
                             } catch (Exception e) {
-                                log.error("Error parsing certifications JSON: {}", e.getMessage());
+                                log.error(EmployeeProfileConstants.LOG_ERR_PARSING_CERTIFICATIONS_JSON, e.getMessage());
                                 response.setCertifications(new java.util.ArrayList<>());
                             }
                         } else {
@@ -198,7 +198,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
                     })
                     .collect(java.util.stream.Collectors.toList());
             
-            log.info("Searching employee profiles with keyword: {}", keyword);
+            log.info(EmployeeProfileConstants.LOG_INFO_SEARCHING_EMPLOYEE_PROFILES, keyword);
             return PageResponse.<EmployeeProfileResponse>builder()
                     .data(employeeProfileResponseList)
                     .page(employeeProfileEntityPage.getNumber())
@@ -210,7 +210,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
             
         } catch (Throwable t) {
             // Catch cả Error, không chỉ Exception - đảm bảo luôn trả về response hợp lệ
-            log.error("Error searching employee profiles: {}", t.getMessage(), t);
+            log.error(EmployeeProfileConstants.LOG_ERR_SEARCHING_EMPLOYEE_PROFILES, t.getMessage(), t);
             return emptyResponse;
         }
     }
@@ -220,7 +220,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
     public void updateEmployeeProfile(UUID id, UpdationEmployeeProfileRequest request) {
         EmployeeProfileEntity employeeProfileEntity = employeeProfileRepository.findByEmployeeProfileIdAndIsDeletedFalse(id);
         if (employeeProfileEntity == null) {
-            log.error("Employee profile not found with id: {}", id);
+            log.error(EmployeeProfileConstants.LOG_ERR_EMPLOYEE_PROFILE_NOT_FOUND_BY_ID, id);
             throw new ResourceNotFoundException(EmployeeProfileConstants.MESSAGE_ERROR_EMPLOYEE_PROFILE_NOT_FOUND);
         }
         
@@ -233,7 +233,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
                 String certificationsJson = objectMapper.writeValueAsString(certificationsToSave);
                 employeeProfileEntity.setCertifications(certificationsJson);
             } catch (Exception e) {
-                log.error("Error converting certifications to JSON: {}", e.getMessage());
+                log.error(EmployeeProfileConstants.LOG_ERR_CONVERTING_CERTIFICATIONS_JSON, e.getMessage());
             }
             // Clear certifications from request to avoid mapper trying to map it as String
             request.setCertifications(null);
@@ -259,7 +259,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
                         .filter(name -> name != null && !name.isEmpty())
                         .collect(java.util.stream.Collectors.joining(" "));
             } catch (Exception e) {
-                log.error("Error parsing certifications for search: {}", e.getMessage());
+                log.error(EmployeeProfileConstants.LOG_ERR_PARSING_CERTIFICATIONS_FOR_SEARCH, e.getMessage());
             }
         }
         
@@ -280,7 +280,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
     public void deleteEmployeeProfile(UUID employeeProfileId) {
         EmployeeProfileEntity employeeProfileEntity = employeeProfileRepository.findByEmployeeProfileIdAndIsDeletedFalse(employeeProfileId);
         if (employeeProfileEntity == null) {
-            log.error("Employee profile not found with id: {}", employeeProfileId);
+            log.error(EmployeeProfileConstants.LOG_ERR_EMPLOYEE_PROFILE_NOT_FOUND_BY_ID, employeeProfileId);
             throw new ResourceNotFoundException(EmployeeProfileConstants.MESSAGE_ERROR_EMPLOYEE_PROFILE_NOT_FOUND);
         }
         employeeProfileEntity.setIsDeleted(true);
@@ -293,7 +293,7 @@ public class EmployeeProfileServiceImpl implements EmployeeProfileService {
     public void restoreEmployeeProfile(UUID employeeProfileId) {
         EmployeeProfileEntity employeeProfileEntity = employeeProfileRepository.findByEmployeeProfileIdAndIsDeletedTrue(employeeProfileId);
         if (employeeProfileEntity == null) {
-            log.error("Employee profile not found with id: {}", employeeProfileId);
+            log.error(EmployeeProfileConstants.LOG_ERR_EMPLOYEE_PROFILE_NOT_FOUND_BY_ID, employeeProfileId);
             throw new ResourceNotFoundException(EmployeeProfileConstants.MESSAGE_ERROR_EMPLOYEE_PROFILE_NOT_FOUND);
         }
         employeeProfileEntity.setIsDeleted(false);

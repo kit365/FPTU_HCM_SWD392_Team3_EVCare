@@ -66,7 +66,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
         if (customer.getRole().getRoleName() != RoleEnum.CUSTOMER) {
-            throw new UserValidationException("User không phải là customer");
+            throw new UserValidationException(MessageConstants.MESSAGE_ERR_USER_NOT_CUSTOMER);
         }
         
         // Validate staff
@@ -96,7 +96,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             
             // Nếu assign cho cùng 1 staff -> UPDATE assignment hiện có (set isActive = true)
             if (existing.getAssignedStaff().getUserId().equals(request.getStaffId())) {
-                log.info("Customer {} already assigned to staff {}, updating assignment", 
+                log.info(MessageConstants.LOG_INFO_CUSTOMER_ALREADY_ASSIGNED, 
                     request.getCustomerId(), request.getStaffId());
                 
                 existing.setIsActive(true);
@@ -256,7 +256,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
         assignment.setUpdatedBy(admin.getFullName());
         assignmentRepository.save(assignment);
         
-        log.info("Deactivated assignment: {}", assignmentId);
+        log.info(MessageConstants.LOG_INFO_DEACTIVATED_ASSIGNMENT, assignmentId);
     }
     
     @Override
@@ -280,14 +280,14 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             throw new ResourceNotFoundException(UserConstants.MESSAGE_ERR_USER_NOT_FOUND);
         }
         if (customer.getRole().getRoleName() != RoleEnum.CUSTOMER) {
-            throw new UserValidationException("User không phải là customer");
+            throw new UserValidationException(MessageConstants.MESSAGE_ERR_USER_NOT_CUSTOMER);
         }
         
         // Find online staff with least customers (load balancing)
         UserEntity selectedStaff = findOnlineStaffWithLeastCustomers();
         
         if (selectedStaff == null) {
-            throw new ResourceNotFoundException("Không tìm thấy staff online khả dụng");
+            throw new ResourceNotFoundException(MessageConstants.MESSAGE_ERR_NO_AVAILABLE_ONLINE_STAFF);
         }
         
         // Check if customer already has assignment (bất kể is_active)
@@ -307,7 +307,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             // Check if current staff is still online/active and same staff
             if (currentStaff.getIsActive() != null && currentStaff.getIsActive() 
                     && currentStaff.getUserId().equals(selectedStaff.getUserId())) {
-                log.info("✅ Customer {} already assigned to ONLINE staff {}, keeping assignment", 
+                log.info(MessageConstants.LOG_INFO_CUSTOMER_ALREADY_ASSIGNED_TO_ONLINE_STAFF, 
                         customerId, currentStaff.getUserId());
                 MessageAssignmentResponse response = assignmentMapper.toResponse(existing);
                 enrichAssignmentResponse(response);
@@ -315,7 +315,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             }
             
             // Current staff is OFFLINE or different -> UPDATE assignment hiện có (không INSERT mới)
-            log.warn("⚠️ Current staff {} is OFFLINE or different, reassigning customer {} to online staff {}", 
+            log.warn(MessageConstants.LOG_WARN_CURRENT_STAFF_OFFLINE, 
                     currentStaff.getUserId(), customerId, selectedStaff.getUserId());
             
             oldAssignment = existing; // Lưu để check sau
@@ -329,7 +329,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
             // assignedAt không thể update (updatable = false), giữ nguyên thời gian tạo ban đầu
             
             savedAssignment = assignmentRepository.save(existing);
-            log.info("✅ Updated existing assignment for customer {} to online staff {}", 
+            log.info(MessageConstants.LOG_INFO_UPDATED_EXISTING_ASSIGNMENT, 
                     customerId, selectedStaff.getUserId());
         } else {
             // Chưa có assignment -> tạo mới
@@ -343,12 +343,12 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
                     .build();
             
             savedAssignment = assignmentRepository.save(assignment);
-            log.info("✅ Created new assignment for customer {} to online staff {}", 
+            log.info(MessageConstants.LOG_INFO_CREATED_NEW_ASSIGNMENT, 
                     customerId, selectedStaff.getUserId());
         }
         
         String action = existingAny.isPresent() ? "reassigned" : "assigned";
-        log.info("✅ Auto-{} customer {} to online staff {} (least loaded)", 
+        log.info(MessageConstants.LOG_INFO_AUTO_ASSIGN_CUSTOMER, 
                 action, customerId, selectedStaff.getUserId());
         
         // Tạo tin nhắn tự động chào mừng từ staff mới đến customer
@@ -375,7 +375,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
                 shouldSendWelcomeMessage = true;
                 welcomeMessage = "Cảm ơn bạn đã liên hệ với EVCare! Chúng tôi rất vui được hỗ trợ bạn. Vui lòng cho chúng tôi biết bạn cần hỗ trợ gì?";
             } else {
-                log.debug("⏭️ Skipping welcome message (already sent recently from staff {} to customer {})", 
+                log.debug(MessageConstants.LOG_DEBUG_SKIP_WELCOME_MESSAGE_ALREADY_SENT, 
                         selectedStaff.getUserId(), customerId);
             }
         } else if (!oldStaffId.equals(selectedStaff.getUserId())) {
@@ -392,7 +392,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
                 shouldSendWelcomeMessage = true;
                 welcomeMessage = "Cảm ơn bạn đã liên hệ! Chúng tôi đã chuyển bạn sang nhân viên khác để được hỗ trợ tốt hơn. Chúng tôi sẵn sàng hỗ trợ bạn!";
             } else {
-                log.debug("⏭️ Skipping welcome message (already sent recently from new staff {} to customer {})", 
+                log.debug(MessageConstants.LOG_DEBUG_SKIP_WELCOME_MESSAGE_ALREADY_SENT_NEW_STAFF, 
                         selectedStaff.getUserId(), customerId);
             }
         }
@@ -410,19 +410,19 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
                     .build();
             
             MessageEntity savedWelcomeMsg = messageRepository.save(welcomeMsg);
-            log.info("✅ Created welcome message from staff {} to customer {}", selectedStaff.getUserId(), customerId);
+            log.info(MessageConstants.LOG_INFO_CREATED_WELCOME_MESSAGE, selectedStaff.getUserId(), customerId);
             
             // Gửi tin nhắn chào mừng qua WebSocket
             try {
                 com.fpt.evcare.dto.response.MessageResponse welcomeMsgResponse = messageMapper.toResponse(savedWelcomeMsg);
                 eventPublisher.publishEvent(new MessageCreatedEvent(this, welcomeMsgResponse));
-                log.info("✅ Published welcome message event to WebSocket");
+                log.info(MessageConstants.LOG_INFO_PUBLISHED_WELCOME_MESSAGE_EVENT);
             } catch (Exception e) {
-                log.error("❌ Failed to publish welcome message event: {}", e.getMessage());
+                log.error(MessageConstants.LOG_ERR_FAILED_PUBLISH_WELCOME_MESSAGE, e.getMessage());
                 // Không throw exception, vì assignment đã thành công
             }
         } else {
-            log.debug("⏭️ Skipping welcome message (same staff or not needed)");
+            log.debug(MessageConstants.LOG_DEBUG_SKIP_WELCOME_MESSAGE_NOT_NEEDED);
         }
         
         // Force initialization of lazy-loaded relationships
@@ -452,24 +452,24 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
                     boolean hasActiveSession = simpUser != null && !simpUser.getSessions().isEmpty();
                     
                     if (!hasActiveSession) {
-                        log.debug("   ⏭️ Staff {} ({} {}) has NO active WebSocket session - skipping", 
+                        log.debug(MessageConstants.LOG_DEBUG_STAFF_NO_WEBSOCKET_SESSION, 
                                 staff.getUserId(), staff.getFullName(), staff.getRole().getRoleName());
                         return false;
                     }
                     
                     // Có active WebSocket session -> OK
-                    log.debug("   ✅ Staff {} ({} {}) has active WebSocket session", 
+                    log.debug(MessageConstants.LOG_DEBUG_STAFF_HAS_WEBSOCKET_SESSION, 
                             staff.getUserId(), staff.getFullName(), staff.getRole().getRoleName());
                     return true;
                 })
                 .collect(java.util.stream.Collectors.toList());
         
         if (onlineStaff.isEmpty()) {
-            log.warn("⚠️ No STAFF with active WebSocket session found (admin is excluded)");
+            log.warn(MessageConstants.LOG_WARN_NO_STAFF_WITH_WEBSOCKET_SESSION);
             return null;
         }
         
-        log.info("📊 Found {} STAFF with active WebSocket sessions", onlineStaff.size());
+        log.info(MessageConstants.LOG_INFO_FOUND_STAFF_WITH_WEBSOCKET_SESSIONS, onlineStaff.size());
         
         // Find STAFF with active WebSocket session and minimum customer count (load balancing)
         UserEntity selectedStaff = null;
@@ -477,7 +477,7 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
         
         for (UserEntity staff : onlineStaff) {
             long customerCount = assignmentRepository.countActiveByStaffId(staff.getUserId());
-            log.info("   Staff {} ({} {}) (WebSocket ACTIVE) has {} active customers", 
+            log.info(MessageConstants.LOG_INFO_STAFF_WITH_ACTIVE_CUSTOMERS, 
                     staff.getUserId(), staff.getFullName(), staff.getRole().getRoleName(), customerCount);
             
             if (customerCount < minCustomers) {
@@ -487,11 +487,11 @@ public class MessageAssignmentServiceImpl implements MessageAssignmentService {
         }
         
         if (selectedStaff != null) {
-            log.info("✅ Selected STAFF {} ({} {}) with active WebSocket session and {} customers (least loaded)", 
+            log.info(MessageConstants.LOG_INFO_SELECTED_STAFF_LEAST_LOADED, 
                     selectedStaff.getUserId(), selectedStaff.getFullName(), 
                     selectedStaff.getRole().getRoleName(), minCustomers);
         } else {
-            log.error("❌ No STAFF selected (should not happen)");
+            log.error(MessageConstants.LOG_ERR_NO_STAFF_SELECTED);
         }
         
         return selectedStaff;

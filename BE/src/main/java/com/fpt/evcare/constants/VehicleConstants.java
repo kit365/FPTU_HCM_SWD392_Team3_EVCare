@@ -20,6 +20,10 @@ public class VehicleConstants {
     public static final String MESSAGE_ERROR_PLATE_NUMBER_EXISTED = "Biển số xe đã tồn tại";
     public static final String MESSAGE_ERR_VEHICLE_NOT_FOUND = "Không tìm thấy hồ sơ xe";
 
+    // Log messages
+    public static final String LOG_INFO_SEARCHING_VEHICLES = "Searching vehicles with keyword: {}, vehicleTypeId: {}";
+    public static final String LOG_WARN_NO_VEHICLES_FOUND_FOR_USER = "No vehicles found for user id: {}";
+    public static final String LOG_INFO_FOUND_VEHICLES_FOR_USER = "Found {} vehicles for user id: {}";
 
     // Endpoint
     public static final String BASE_URL = EndpointConstants.V1.API + "/vehicle-profile";
