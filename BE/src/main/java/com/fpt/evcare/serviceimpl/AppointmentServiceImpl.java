@@ -2019,7 +2019,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         
         // Force initialization of lazy-loaded relationships within transaction
-        appointmentEntityPage.getContent().forEach(this::initializeAppointmentRelations);
+        appointmentEntityPage.getContent().forEach(this::initializeWarrantyAppointmentRelations);
         
         List<AppointmentResponse> appointmentResponseList = appointmentEntityPage.map(appointmentEntity -> {
             AppointmentResponse appointmentResponse = appointmentMapper.toResponse(appointmentEntity);
@@ -2096,6 +2096,29 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         if (appointment.getVehicleTypeEntity() != null) {
             appointment.getVehicleTypeEntity().getVehicleTypeId(); // Access to trigger loading
+        }
+    }
+
+    /**
+     * Helper method to force initialization of lazy-loaded warranty appointment relationships
+     * Includes originalAppointment which needs to be initialized recursively
+     * This must be called within an active transaction
+     */
+    private void initializeWarrantyAppointmentRelations(AppointmentEntity appointment) {
+        if (appointment == null) {
+            return;
+        }
+        
+        // Initialize all standard appointment relationships
+        initializeAppointmentRelations(appointment);
+        
+        // Initialize originalAppointment if exists (for warranty appointments)
+        if (appointment.getOriginalAppointment() != null) {
+            AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
+            // Recursively initialize original appointment relationships
+            initializeAppointmentRelations(originalAppointment);
+            // Access to ensure it's loaded
+            originalAppointment.getAppointmentId();
         }
     }
 

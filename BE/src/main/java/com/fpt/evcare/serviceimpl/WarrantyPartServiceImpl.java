@@ -42,6 +42,7 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
     VehiclePartMapper vehiclePartMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public WarrantyPartResponse getWarrantyPart(UUID warrantyPartId) {
         log.info(WarrantyPartConstants.LOG_INFO_SHOWING_WARRANTY_PART, warrantyPartId);
         
@@ -50,6 +51,9 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
                     log.warn(WarrantyPartConstants.LOG_ERR_WARRANTY_PART_NOT_FOUND, warrantyPartId);
                     return new ResourceNotFoundException(WarrantyPartConstants.MESSAGE_ERR_WARRANTY_PART_NOT_FOUND);
                 });
+
+        // Force initialization of lazy-loaded relationships within transaction
+        initializeWarrantyPartRelations(entity);
 
         WarrantyPartResponse response = warrantyPartMapper.toResponse(entity);
         
@@ -64,6 +68,7 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<WarrantyPartResponse> searchWarrantyPart(String keyword, Pageable pageable) {
         log.info(WarrantyPartConstants.LOG_INFO_SHOWING_WARRANTY_PART_LIST);
         
@@ -86,6 +91,9 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
                     .last(true)
                     .build();
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        entityPage.getContent().forEach(this::initializeWarrantyPartRelations);
 
         List<WarrantyPartResponse> responseList = entityPage.getContent().stream()
                 .map(entity -> {
@@ -110,6 +118,7 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<WarrantyPartResponse> getWarrantyPartsByVehiclePartId(UUID vehiclePartId, Pageable pageable) {
         log.info("Đang lấy danh sách bảo hành phụ tùng theo vehiclePartId: {}", vehiclePartId);
         
@@ -127,6 +136,9 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
                     .last(true)
                     .build();
         }
+
+        // Force initialization of lazy-loaded relationships within transaction
+        entityPage.getContent().forEach(this::initializeWarrantyPartRelations);
 
         List<WarrantyPartResponse> responseList = entityPage.getContent().stream()
                 .map(entity -> {
@@ -288,6 +300,28 @@ public class WarrantyPartServiceImpl implements WarrantyPartService {
         
         log.info(WarrantyPartConstants.LOG_SUCCESS_RESTORING_WARRANTY_PART, id);
         return true;
+    }
+
+    /**
+     * Helper method to force initialization of lazy-loaded warranty part relationships
+     * This must be called within an active transaction
+     */
+    private void initializeWarrantyPartRelations(WarrantyPartEntity warrantyPart) {
+        if (warrantyPart == null) {
+            return;
+        }
+        
+        // Initialize vehiclePart relationship
+        if (warrantyPart.getVehiclePart() != null) {
+            warrantyPart.getVehiclePart().getVehiclePartId(); // Access to trigger loading
+            // Also initialize vehiclePart's relationships if needed
+            if (warrantyPart.getVehiclePart().getVehicleType() != null) {
+                warrantyPart.getVehiclePart().getVehicleType().getVehicleTypeId(); // Load vehicle type
+            }
+            if (warrantyPart.getVehiclePart().getVehiclePartCategories() != null) {
+                warrantyPart.getVehiclePart().getVehiclePartCategories().getVehiclePartCategoryId(); // Load category
+            }
+        }
     }
 
     private void validateDiscountValue(WarrantyDiscountTypeEnum discountType, BigDecimal discountValue) {
