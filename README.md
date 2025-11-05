@@ -22,7 +22,6 @@
 - [💻 Công nghệ](#-công-nghệ)
 - [👥 Tài khoản khởi tạo mặc định](#-tài-khoản-khởi-tạo-mặc-định)
 - [🛠️ Cài đặt Local](#️-cài-đặt-local)
-- [🚀 Deploy Production](#-deploy-production)
 - [📚 API Documentation](#-api-documentation)
 - [📂 Branch Strategy](#-branch-strategy)
 - [⚡ Development Workflow](#-development-workflow)
