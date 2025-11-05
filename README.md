@@ -443,6 +443,10 @@ npm install
 npm run dev
 ```
 
+```env
+VITE_BACKEND_URL=http://localhost:8080
+```
+
 Frontend sẽ chạy trên `http://localhost:5000`
 
 ### 6. Truy cập ứng dụng
