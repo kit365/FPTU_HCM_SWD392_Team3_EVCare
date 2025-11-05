@@ -1,4 +1,4 @@
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/72550177-1a70-4f80-84db-8b919e23eab8" />
+
 
 # ⭐ 🚗 SWD392_Team3 - Hệ thống Quản lý Dịch vụ Bảo trì Xe Điện (EVCare) ⭐
 
@@ -56,7 +56,9 @@
 Hệ thống được xây dựng theo mô hình **MVC (Model-View-Controller)** với các thành phần:
 
 <div align="center">
-  <img src="FE/src/assets/kientruc.jpg" alt="Kiến trúc hệ thống EVCare" width="800" />
+![Uploading kientruc.jpg…]()
+
+
 </div>
 
 ### Backend (Spring Boot - Java)
