@@ -56,7 +56,8 @@
 Hệ thống được xây dựng theo mô hình **MVC (Model-View-Controller)** với các thành phần:
 
 <div align="center">
-![Uploading kientruc.jpg…]()
+
+![kientruc](https://github.com/user-attachments/assets/904ee7c9-952a-4b6b-bc83-d5ed2c9761aa)
 
 
 </div>
