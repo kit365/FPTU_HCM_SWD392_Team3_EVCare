@@ -1419,7 +1419,6 @@ const LookupAppointmentsPage: React.FC = () => {
                         serviceTypeResponses: appointmentData.serviceTypeResponses || [],
                         technicianResponses: appointmentData.technicianResponses || [],
                         isWarrantyAppointment: appointmentData.isWarrantyAppointment || false,
-                        originalAppointment: appointmentData.originalAppointment || undefined,
                       };
                       
                       // Debug: log để kiểm tra quotePrice trước khi lưu

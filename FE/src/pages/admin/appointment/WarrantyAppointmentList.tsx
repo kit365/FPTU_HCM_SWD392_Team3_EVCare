@@ -173,16 +173,7 @@ const WarrantyAppointmentList = () => {
                             </span>
                           </td>
                           <td className="p-[1.2rem]">
-                            {item.originalAppointment ? (
-                              <Link
-                                to={`/admin/appointment/view/${item.originalAppointment.appointmentId}`}
-                                className="text-blue-600 hover:text-blue-800 underline text-[1.35rem]"
-                              >
-                                {item.originalAppointment.appointmentId.substring(0, 8).toUpperCase()}
-                              </Link>
-                            ) : (
-                              "N/A"
-                            )}
+                            N/A
                           </td>
                           <td className="p-[1.2rem]">
                             <Chip

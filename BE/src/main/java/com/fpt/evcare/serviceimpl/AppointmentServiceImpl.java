@@ -167,21 +167,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
         }
 
-        // ✅ Tìm original appointment nếu đây là warranty appointment
-        if (Boolean.TRUE.equals(appointmentEntity.getIsWarrantyAppointment())) {
-            AppointmentEntity originalAppointment = findOriginalAppointmentForWarranty(appointmentEntity);
-            if (originalAppointment != null) {
-                AppointmentResponse originalResponse = appointmentMapper.toResponse(originalAppointment);
-                originalResponse.setAppointmentId(originalAppointment.getAppointmentId());
-                originalResponse.setCustomerFullName(originalAppointment.getCustomerFullName());
-                originalResponse.setCustomerEmail(originalAppointment.getCustomerEmail());
-                originalResponse.setCustomerPhoneNumber(originalAppointment.getCustomerPhoneNumber());
-                originalResponse.setScheduledAt(originalAppointment.getScheduledAt());
-                originalResponse.setStatus(originalAppointment.getStatus());
-                appointmentResponse.setOriginalAppointment(originalResponse);
-            }
-        }
-
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT + id);
         return appointmentResponse;
     }
@@ -1984,21 +1969,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
             }
             
-            // ✅ Tìm original appointment nếu đây là warranty appointment
-            if (Boolean.TRUE.equals(appointmentEntity.getIsWarrantyAppointment())) {
-                AppointmentEntity originalAppointment = findOriginalAppointmentForWarranty(appointmentEntity);
-                if (originalAppointment != null) {
-                    AppointmentResponse originalResponse = appointmentMapper.toResponse(originalAppointment);
-                    originalResponse.setAppointmentId(originalAppointment.getAppointmentId());
-                    originalResponse.setCustomerFullName(originalAppointment.getCustomerFullName());
-                    originalResponse.setCustomerEmail(originalAppointment.getCustomerEmail());
-                    originalResponse.setCustomerPhoneNumber(originalAppointment.getCustomerPhoneNumber());
-                    originalResponse.setScheduledAt(originalAppointment.getScheduledAt());
-                    originalResponse.setStatus(originalAppointment.getStatus());
-                    appointmentResponse.setOriginalAppointment(originalResponse);
-                }
-            }
-            
             return appointmentResponse;
         }).getContent();
         
@@ -2010,75 +1980,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .build();
     }
 
-    /**
-     * Tìm original appointment cho warranty appointment
-     * Logic: Tìm CustomerWarrantyPart với cùng customer và vehicle parts, lấy appointment gốc
-     */
-    private AppointmentEntity findOriginalAppointmentForWarranty(AppointmentEntity warrantyAppointment) {
-        try {
-            // Lấy thông tin customer
-            UUID customerId = warrantyAppointment.getCustomer() != null ? warrantyAppointment.getCustomer().getUserId() : null;
-            String customerEmail = warrantyAppointment.getCustomerEmail();
-            String customerPhoneNumber = warrantyAppointment.getCustomerPhoneNumber();
-            
-            // Lấy maintenance records của warranty appointment để biết vehicle parts nào được sử dụng
-            List<MaintenanceManagementEntity> maintenanceManagements = maintenanceManagementRepository
-                    .findByAppointmentIdAndIsDeletedFalse(warrantyAppointment.getAppointmentId());
-            
-            if (maintenanceManagements == null || maintenanceManagements.isEmpty()) {
-                log.debug("⚠️ No maintenance managements found for warranty appointment: {}", warrantyAppointment.getAppointmentId());
-                return null;
-            }
-            
-            // Lấy danh sách vehicle part IDs từ maintenance records
-            Set<UUID> vehiclePartIds = new HashSet<>();
-            for (MaintenanceManagementEntity mm : maintenanceManagements) {
-                for (MaintenanceRecordEntity record : mm.getMaintenanceRecords()) {
-                    if (record.getVehiclePart() != null && record.getVehiclePart().getVehiclePartId() != null) {
-                        vehiclePartIds.add(record.getVehiclePart().getVehiclePartId());
-                    }
-                }
-            }
-            
-            if (vehiclePartIds.isEmpty()) {
-                log.debug("⚠️ No vehicle parts found in maintenance records for warranty appointment: {}", warrantyAppointment.getAppointmentId());
-                return null;
-            }
-            
-            // Tìm CustomerWarrantyPart với cùng customer và một trong các vehicle parts
-            // Lấy appointment gốc từ CustomerWarrantyPart đầu tiên tìm được
-            for (UUID vehiclePartId : vehiclePartIds) {
-                Optional<CustomerWarrantyPartEntity> customerWarrantyOpt = customerWarrantyPartRepository
-                        .findActiveWarrantyByCustomerAndVehiclePart(
-                                customerId,
-                                customerEmail,
-                                customerPhoneNumber,
-                                vehiclePartId,
-                                LocalDateTime.now()
-                        );
-                
-                if (customerWarrantyOpt.isPresent()) {
-                    CustomerWarrantyPartEntity customerWarranty = customerWarrantyOpt.get();
-                    if (customerWarranty.getAppointment() != null && 
-                        !customerWarranty.getAppointment().getAppointmentId().equals(warrantyAppointment.getAppointmentId())) {
-                        // Đây là appointment gốc
-                        AppointmentEntity originalAppointment = customerWarranty.getAppointment();
-                        initializeAppointmentRelations(originalAppointment);
-                        log.info("✅ Found original appointment {} for warranty appointment {}", 
-                                originalAppointment.getAppointmentId(), warrantyAppointment.getAppointmentId());
-                        return originalAppointment;
-                    }
-                }
-            }
-            
-            log.debug("⚠️ No original appointment found for warranty appointment: {}", warrantyAppointment.getAppointmentId());
-            return null;
-        } catch (Exception e) {
-            log.error("❌ Error finding original appointment for warranty appointment {}: {}", 
-                    warrantyAppointment.getAppointmentId(), e.getMessage(), e);
-            return null;
-        }
-    }
 
     /**
      * Helper method to force initialization of lazy-loaded appointment relationships
@@ -2110,7 +2011,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     /**
      * Helper method to force initialization of lazy-loaded warranty appointment relationships
-     * Includes originalAppointment which needs to be initialized recursively
      * This must be called within an active transaction
      */
     private void initializeWarrantyAppointmentRelations(AppointmentEntity appointment) {
@@ -2120,15 +2020,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         
         // Initialize all standard appointment relationships
         initializeAppointmentRelations(appointment);
-        
-        // Initialize originalAppointment if exists (for warranty appointments)
-        if (appointment.getOriginalAppointment() != null) {
-            AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
-            // Recursively initialize original appointment relationships
-            initializeAppointmentRelations(originalAppointment);
-            // Access to ensure it's loaded
-            originalAppointment.getAppointmentId();
-        }
     }
 
     private String generateOtp() {

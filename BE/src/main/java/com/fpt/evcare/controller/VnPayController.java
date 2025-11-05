@@ -116,23 +116,46 @@ public class VnPayController {
                 }
             } else {
                 // Failed: redirect về frontend fail page
+                // Lấy appointmentId từ transaction để redirect đúng (giống success)
+                String appointmentIdStr = vnPayService.getAppointmentIdFromTransaction(transactionReference);
+                
                 if ("admin".equals(source)) {
                     // Redirect về trang thông báo đơn giản cho khách
                     return ResponseEntity.status(HttpStatus.FOUND)
                             .location(URI.create(frontendUrl + "/payment/fail-message"))
                             .build();
                 } else {
+                    // Redirect với appointmentId để frontend có thể hiển thị nút "Thử lại thanh toán"
+                    String redirectUrl = frontendUrl + "/client/payment/fail";
+                    if (appointmentIdStr != null) {
+                        redirectUrl += "?appointmentId=" + appointmentIdStr;
+                    }
                     return ResponseEntity.status(HttpStatus.FOUND)
-                            .location(URI.create(frontendUrl + "/client/payment/fail"))
+                            .location(URI.create(redirectUrl))
                             .build();
                 }
             }
         } catch (Exception e) {
             log.error("Error processing VNPay callback: {}", e.getMessage(), e);
             // Default to client page on error
+            // Try to get appointmentId from transaction if possible
+            String appointmentIdStr = null;
+            try {
+                String transactionReference = params.get("vnp_TxnRef");
+                if (transactionReference != null) {
+                    appointmentIdStr = vnPayService.getAppointmentIdFromTransaction(transactionReference);
+                }
+            } catch (Exception ex) {
+                log.warn("Could not get appointmentId from transaction: {}", ex.getMessage());
+            }
+            
+            String redirectUrl = frontendUrl + "/client/payment/fail?error=" + 
+                    URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            if (appointmentIdStr != null) {
+                redirectUrl += "&appointmentId=" + appointmentIdStr;
+            }
             return ResponseEntity.status(HttpStatus.FOUND)
-                    .location(URI.create(frontendUrl + "/client/payment/fail?error=" + 
-                            URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8)))
+                    .location(URI.create(redirectUrl))
                     .build();
         }
     }

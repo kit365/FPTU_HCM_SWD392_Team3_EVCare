@@ -57,8 +57,6 @@ public class AppointmentResponse implements Serializable {
 
     Boolean isWarrantyAppointment;
 
-    AppointmentResponse originalAppointment; // Appointment gốc nếu đây là warranty appointment
-
     Boolean isActive;
 
     Boolean isDeleted;

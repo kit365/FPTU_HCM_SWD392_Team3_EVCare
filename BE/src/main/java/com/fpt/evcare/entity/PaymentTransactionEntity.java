@@ -37,7 +37,7 @@ public class PaymentTransactionEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     PaymentGatewayEnum gateway;
 
-    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     BigDecimal amount;
 
     @Column(name = "currency", length = 3)

@@ -1203,7 +1203,22 @@ export const ServiceBookingPage: React.FC = () => {
                         <Form.Item
                             label="Thời gian hẹn"
                             name="dateTime"
-                            rules={[{ required: true, message: "Vui lòng chọn thời gian" }]}
+                            rules={[
+                                { required: true, message: "Vui lòng chọn thời gian" },
+                                {
+                                    validator: (_, value) => {
+                                        if (!value) {
+                                            return Promise.resolve();
+                                        }
+                                        const selectedDate = isDayjs(value) ? value as Dayjs : dayjs(value);
+                                        const now = dayjs();
+                                        if (selectedDate.isBefore(now, 'minute')) {
+                                            return Promise.reject(new Error("Không thể chọn thời gian trong quá khứ"));
+                                        }
+                                        return Promise.resolve();
+                                    }
+                                }
+                            ]}
                         >
                             <DatePicker
                                 showTime
@@ -1211,6 +1226,47 @@ export const ServiceBookingPage: React.FC = () => {
                                 className="w-full"
                                 placeholder="Chọn ngày và giờ"
                                 style={{ height: '48px' }}
+                                disabledDate={(current) => {
+                                    // Disable tất cả các ngày trước ngày hôm nay
+                                    return current && current.isBefore(dayjs().startOf('day'));
+                                }}
+                                disabledTime={(date) => {
+                                    // Nếu chọn ngày hôm nay, disable các giờ/phút đã qua
+                                    if (date && date.isSame(dayjs(), 'day')) {
+                                        const now = dayjs();
+                                        const currentHour = now.hour();
+                                        const currentMinute = now.minute();
+                                        
+                                        return {
+                                            disabledHours: () => {
+                                                // Disable tất cả các giờ trước giờ hiện tại
+                                                const hours: number[] = [];
+                                                for (let i = 0; i < currentHour; i++) {
+                                                    hours.push(i);
+                                                }
+                                                return hours;
+                                            },
+                                            disabledMinutes: (selectedHour: number) => {
+                                                // Nếu chọn đúng giờ hiện tại, disable các phút đã qua
+                                                if (selectedHour === currentHour) {
+                                                    const minutes: number[] = [];
+                                                    for (let i = 0; i <= currentMinute; i++) {
+                                                        minutes.push(i);
+                                                    }
+                                                    return minutes;
+                                                }
+                                                return [];
+                                            },
+                                            disabledSeconds: () => []
+                                        };
+                                    }
+                                    // Nếu chọn ngày tương lai, cho phép chọn tất cả giờ/phút
+                                    return {
+                                        disabledHours: () => [],
+                                        disabledMinutes: () => [],
+                                        disabledSeconds: () => []
+                                    };
+                                }}
                             />
                         </Form.Item>
                     </div>

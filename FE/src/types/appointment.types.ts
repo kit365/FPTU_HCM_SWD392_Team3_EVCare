@@ -173,7 +173,6 @@ export interface AppointmentResponse {
   technicianResponses: UserResponse[];
   serviceTypeResponses: ServiceTypeResponse[];
   isWarrantyAppointment?: boolean;
-  originalAppointment?: AppointmentResponse; // Nested appointment gốc nếu đây là appointment bảo hành
 }
 
 // Search Request

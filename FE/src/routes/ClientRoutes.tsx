@@ -9,6 +9,7 @@ import LookupAppointmentsPage from "../pages/client/LookupAppointments";
 import ClientAppointmentHistory from "../pages/client/ClientAppointmentHistory";
 import { ClientInvoiceView } from "../pages/client/payment/ClientInvoiceView";
 import { ClientPaymentSuccess } from "../pages/client/payment/PaymentSuccess";
+import { ClientPaymentFail } from "../pages/client/payment/PaymentFail";
 import AppointmentDetailPage from "../pages/client/appointment/AppointmentDetailPage";
 export const ClientRoutes: RouteObject[] = [
     { path: "", element: <HomePage /> }, 
@@ -22,4 +23,5 @@ export const ClientRoutes: RouteObject[] = [
     { path: "appointment/:appointmentId", element: <AppointmentDetailPage /> }, // /client/appointment/:appointmentId (public - supports guest OTP verification)
     { path: "invoice/:appointmentId", element: <ClientInvoiceView /> }, // /client/invoice/:appointmentId (public - supports guest access)
     { path: "payment/success", element: <ProtectedRoute><ClientPaymentSuccess /></ProtectedRoute> }, // /client/payment/success
+    { path: "payment/fail", element: <ClientPaymentFail /> }, // /client/payment/fail (public - no need to protect)
 ];

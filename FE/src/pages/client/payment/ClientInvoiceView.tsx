@@ -27,12 +27,10 @@ import moment from "moment";
 export const ClientInvoiceView = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
-  const { invoice, loading, paying, getByAppointmentId, payCash, createVnPayPayment } = useInvoice();
+  const { invoice, loading, paying, getByAppointmentId, createVnPayPayment } = useInvoice();
   
   const [openPayDialog, setOpenPayDialog] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("VNPAY");
-  const [paidAmount, setPaidAmount] = useState<number>(0);
-  const [notes, setNotes] = useState("");
+  const [paymentMethod] = useState("VNPAY"); // Client chỉ được thanh toán qua VNPay
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [openQrDialog, setOpenQrDialog] = useState(false);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,11 +42,6 @@ export const ClientInvoiceView = () => {
     }
   }, [appointmentId]);
 
-  useEffect(() => {
-    if (invoice) {
-      setPaidAmount(invoice.totalAmount);
-    }
-  }, [invoice]);
 
   const previousStatusRef = useRef<string | undefined>(undefined);
   
@@ -94,8 +87,6 @@ export const ClientInvoiceView = () => {
 
   const handleClosePayDialog = () => {
     setOpenPayDialog(false);
-    setPaymentMethod("VNPAY");
-    setNotes("");
   };
 
   const handleCloseQrDialog = () => {
@@ -133,61 +124,33 @@ export const ClientInvoiceView = () => {
   const handlePayment = async () => {
     if (!invoice || !appointmentId) return;
     
-    switch (paymentMethod) {
-      case "VNPAY":
-        try {
-          hasNavigatedRef.current = false;
-          setOpenQrDialog(true);
-          handleClosePayDialog();
-          
-          const url = await createVnPayPayment(appointmentId, "client");
-          
-          console.log("Payment URL received:", url);
-          
-          if (url && url.trim() !== "") {
-            setPaymentUrl(url);
-            startPolling();
-          } else {
-            console.error("Payment URL is empty or invalid:", url);
-            alert("Không thể tạo URL thanh toán. Vui lòng thử lại.");
-            setOpenQrDialog(false);
-          }
-        } catch (error) {
-          setOpenQrDialog(false);
-          hasNavigatedRef.current = false;
-          return;
-        }
-        break;
+    // Client chỉ được thanh toán qua VNPay
+    if (paymentMethod !== "VNPAY") {
+      alert("Chỉ hỗ trợ thanh toán qua VNPay");
+      return;
+    }
+    
+    try {
+      hasNavigatedRef.current = false;
+      setOpenQrDialog(true);
+      handleClosePayDialog();
       
-      case "CASH":
-        if (!paidAmount || paidAmount <= 0) {
-          alert("Số tiền thanh toán không hợp lệ");
-          return;
-        }
-        
-        if (paidAmount < invoice.totalAmount) {
-          alert("Số tiền thanh toán phải bằng tổng tiền hóa đơn");
-          return;
-        }
-        
-        const success = await payCash(invoice.invoiceId, {
-          paymentMethod,
-          paidAmount,
-          notes
-        });
-
-        if (success) {
-          handleClosePayDialog();
-          if (appointmentId) {
-            await getByAppointmentId(appointmentId);
-          }
-          navigate(`/client/payment/success?appointmentId=${appointmentId}`, { replace: true });
-        }
-        break;
+      const url = await createVnPayPayment(appointmentId, "client");
       
-      default:
-        alert("Phương thức thanh toán không hợp lệ");
-        break;
+      console.log("Payment URL received:", url);
+      
+      if (url && url.trim() !== "") {
+        setPaymentUrl(url);
+        startPolling();
+      } else {
+        console.error("Payment URL is empty or invalid:", url);
+        alert("Không thể tạo URL thanh toán. Vui lòng thử lại.");
+        setOpenQrDialog(false);
+      }
+    } catch (error) {
+      setOpenQrDialog(false);
+      hasNavigatedRef.current = false;
+      return;
     }
   };
 
@@ -651,37 +614,11 @@ export const ClientInvoiceView = () => {
                   value={paymentMethod}
                   label="Phương thức thanh toán"
                   onChange={(e) => setPaymentMethod(e.target.value)}
+                  disabled
                 >
                   <MenuItem value="VNPAY">Thanh toán qua VNPay</MenuItem>
-                  <MenuItem value="CASH">Tiền mặt (CASH)</MenuItem>
                 </Select>
               </FormControl>
-
-              {paymentMethod === "CASH" && (
-                <>
-                  <TextField
-                    label="Số tiền thanh toán"
-                    type="number"
-                    value={paidAmount}
-                    disabled
-                    fullWidth
-                    InputProps={{
-                      endAdornment: <Typography sx={{ color: "#6b7280" }}>₫</Typography>,
-                    }}
-                    helperText="Thanh toán đủ số tiền hóa đơn"
-                  />
-
-                  <TextField
-                    label="Ghi chú (tùy chọn)"
-                    multiline
-                    rows={3}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    fullWidth
-                    placeholder="Nhập ghi chú về thanh toán..."
-                  />
-                </>
-              )}
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
@@ -691,7 +628,7 @@ export const ClientInvoiceView = () => {
             <Button
               variant="contained"
               onClick={handlePayment}
-              disabled={paying || paidAmount <= 0}
+              disabled={paying}
               startIcon={paying ? <CircularProgress size={20} /> : <Payment />}
               sx={{
                 backgroundColor: "#3b82f6",

@@ -100,7 +100,6 @@ const AppointmentDetailPage: React.FC = () => {
                   serviceTypeResponses: appointmentResponse.serviceTypeResponses || [],
                   technicianResponses: appointmentResponse.technicianResponses || [],
                   isWarrantyAppointment: appointmentResponse.isWarrantyAppointment || false,
-                  originalAppointment: appointmentResponse.originalAppointment || undefined,
                 };
                 
                 setAppointment(userAppointment);
