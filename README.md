@@ -197,7 +197,146 @@ Hệ thống tự động khởi tạo các dữ liệu mẫu sau khi database �
 Tất cả dữ liệu được khởi tạo thông qua các class `CommandLineRunner` trong package `com.fpt.evcare.initializer`.
 
 ---
+# 🔄 Luồng nghiệp vụ - EVCare
 
+## 1. Luồng đặt lịch hẹn và xử lý (Appointment Flow)
+
+### **Bước 1: Khách hàng đặt lịch**
+- Khách hàng điền form đặt lịch (thông tin xe, dịch vụ, thời gian)
+- Hệ thống tự động tính giá tạm tính (`quotePrice`) dựa trên dịch vụ và phụ tùng
+- Tạo appointment với trạng thái **`PENDING`**
+- Tự động tạo **Shift** (ca làm việc) cho appointment với trạng thái `PENDING_ASSIGNMENT`
+
+### **Bước 2: Nhân viên xác nhận**
+- Staff xem danh sách appointment `PENDING`
+- Staff xác nhận appointment → chuyển sang trạng thái **`CONFIRMED`**
+
+### **Bước 3: Phân công và bắt đầu**
+- Staff phân công kỹ thuật viên (technician) cho appointment
+- Staff cập nhật trạng thái appointment sang **`IN_PROGRESS`**
+- Hệ thống tự động tạo các bản ghi **MaintenanceManagement** (phiếu bảo dưỡng) cho từng dịch vụ
+- Mỗi MaintenanceManagement có trạng thái `PENDING` và được gán cho technician tương ứng
+
+### **Bước 4: Kỹ thuật viên thực hiện**
+- Technician xem danh sách MaintenanceManagement được gán
+- Technician cập nhật trạng thái từ `PENDING` → `IN_PROGRESS` khi bắt đầu
+- Technician hoàn thành công việc → cập nhật trạng thái `IN_PROGRESS` → `COMPLETED`
+- Khi tất cả MaintenanceManagement đã `COMPLETED`, appointment tự động chuyển sang **`PENDING_PAYMENT`**
+- Hệ thống tự động tạo **Invoice** (hóa đơn) với tổng tiền dựa trên dịch vụ và phụ tùng đã sử dụng
+
+### **Bước 5: Thanh toán**
+- Khách hàng xem hóa đơn và thanh toán qua VNPay hoặc tiền mặt
+- Sau khi thanh toán thành công:
+  - Invoice chuyển sang trạng thái `PAID`
+  - Appointment chuyển sang trạng thái **`COMPLETED`**
+  - Shift tự động chuyển sang `COMPLETED`
+  - Hệ thống reset warranty date cho các phụ tùng đã thay thế
+
+**Trạng thái Appointment:**
+```
+PENDING → CONFIRMED → IN_PROGRESS → PENDING_PAYMENT → COMPLETED
+    ↓
+CANCELLED (chỉ có thể hủy khi chưa confirmed - chưa phân công)
+```
+
+---
+
+## 2. Luồng thanh toán (Payment Flow)
+
+### **Thanh toán VNPay**
+1. Khách hàng chọn "Thanh toán qua VNPay" trên trang hóa đơn
+2. Hệ thống tạo payment URL và redirect đến VNPay
+3. Khách hàng thanh toán trên VNPay (QR code hoặc thẻ ngân hàng)
+4. VNPay callback về backend với kết quả thanh toán
+5. Backend xác thực secure hash và cập nhật:
+   - `PaymentTransaction` với trạng thái `SUCCESS`
+   - `Invoice` chuyển sang `PAID`
+   - `Appointment` chuyển sang `COMPLETED`
+6. Redirect về frontend (trang thành công hoặc thất bại)
+
+### **Thanh toán tiền mặt (Cash)**
+- Chỉ Staff/Admin mới có quyền xử lý thanh toán tiền mặt
+- Staff nhập số tiền đã nhận và xác nhận
+- Hệ thống tự động cập nhật invoice và appointment tương tự như VNPay
+
+---
+
+## 3. Luồng bảo hành (Warranty Flow)
+
+### **Tạo cuộc hẹn bảo hành**
+- Khách hàng có thể tạo appointment bảo hành từ appointment đã `COMPLETED`
+- Hệ thống tự động:
+  - Kiểm tra phụ tùng còn trong thời gian bảo hành
+  - Áp dụng giảm giá bảo hành (miễn phí hoặc giảm giá theo chính sách)
+  - Tạo appointment mới với flag `isWarrantyAppointment = true`
+
+### **Xử lý bảo hành**
+- Luồng xử lý tương tự appointment thường
+- Khi thanh toán, hệ thống tự động áp dụng giảm giá bảo hành vào invoice
+
+---
+
+## 4. Luồng chat real-time (Message Flow)
+
+### **Khách hàng gửi tin nhắn**
+1. Khách hàng truy cập trang chat
+2. Hệ thống tự động tạo `MessageAssignment` (phân công nhân viên chat)
+3. Nếu chưa có nhân viên được phân công, hệ thống tự động phân công (auto-assign)
+4. Khách hàng gửi tin nhắn qua WebSocket
+5. Nhân viên nhận tin nhắn real-time và trả lời
+
+### **Trạng thái tin nhắn**
+- `SENT`: Tin nhắn đã gửi
+- `DELIVERED`: Tin nhắn đã được gửi đến server
+- `READ`: Tin nhắn đã được đọc
+
+---
+
+## 5. Sơ đồ luồng tổng quan
+
+### **Appointment Lifecycle**
+```
+┌─────────────┐
+│  CUSTOMER   │
+│   BOOKING   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│  PENDING         │ ── Tạo Appointment + Shift
+│  (Chờ xác nhận)  │
+└──────┬───────────┘
+       │
+       │ Staff xác nhận
+       ▼
+┌─────────────────┐
+│  CONFIRMED       │
+│  (Đã xác nhận)   │
+└──────┬───────────┘
+       │
+       │ Staff phân công technician
+       │ + Bắt đầu làm việc
+       ▼
+┌─────────────────┐
+│  IN_PROGRESS     │ ── Tạo MaintenanceManagement
+│  (Đang xử lý)    │    cho từng service type
+└──────┬───────────┘
+       │
+       │ Technician hoàn thành
+       │ tất cả MaintenanceManagement
+       ▼
+┌─────────────────┐
+│  PENDING_PAYMENT │ ── Tạo Invoice
+│  (Chờ thanh toán)│
+└──────┬───────────┘
+       │
+       │ Customer thanh toán
+       ▼
+┌─────────────────┐
+│  COMPLETED       │ ── Cập nhật Shift
+│  (Hoàn thành)   │    Reset warranty date
+└─────────────────┘
+```
 ---
 
 ## 🛠️ Cài đặt Local
@@ -236,14 +375,36 @@ docker-compose ps
 Tạo file `.env` trong thư mục `BE/` (hoặc copy từ `.env.example` nếu có):
 
 ```env
+# Database
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/evcare
+SPRING_DATASOURCE_USERNAME=myuser
+SPRING_DATASOURCE_PASSWORD=mypassword
 POSTGRES_DB=evcare
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-SPRING_BACKEND_URL=http://localhost:8080
-FRONTEND_URL=http://localhost:5000
+POSTGRES_USER=myuser
+POSTGRES_PASSWORD=mypassword
+# Redis
 REDIS_HOST=localhost
 REDIS_PORT=6380
-JWT_SECRET=your_jwt_secret_key_here
+REDIS_PASSWORD=
+SERVER_PORT=8080
+REDIS_SSL_ENABLED=false
+# Mail
+SPRING_MAIL_HOST=smtp.gmail.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=emailsudung
+SPRING_MAIL_PASSWORD=passwordsudung
+SPRING_MAIL_SMTP_AUTH=true
+SPRING_MAIL_SMTP_STARTTLS=true
+SPRING_MAIL_DEBUG=true
+JWT_SIGNER_KEY=DoOZxQzxYyrQly6TMyrQ5qKfkUg35aJnQ7dbKWTEJxBs7DqZMZWOwKWpGlU3zoH6
+# App ports
+APP_PORT=8080
+VNPAY_TMN_CODE=matmncua ban
+VNPAY_HASH_SECRET=mahash
+VNPAY_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:8080/api/vnpay/payment-return
+# Local
+FRONTEND_URL=http://localhost:5000
 ```
 
 Cấu hình database trong `application-dev.yml` hoặc `application.yml`:
@@ -304,59 +465,6 @@ docker-compose down
 docker-compose down -v
 ```
 
----
-
-## 🚀 Deploy Production
-
-### Frontend (Vercel)
-
-1. **Kết nối repository với Vercel**
-   - Đăng nhập Vercel
-   - Import project từ Git repository
-   - Chọn root directory: `FE`
-
-2. **Cấu hình Environment Variables**
-   ```
-   VITE_API_BASE_URL=https://your-backend-url.com
-   ```
-
-3. **Deploy**
-   ```bash
-   cd FE
-   vercel --prod
-   ```
-
-### Backend (VPS/Cloud)
-
-1. **Build JAR file**
-   ```bash
-   cd BE
-   mvn clean package -DskipTests
-   ```
-
-2. **Tạo file `.env` trên server**
-   ```env
-   POSTGRES_DB=evcare
-   POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=your_secure_password
-   SPRING_BACKEND_URL=https://your-backend-url.com
-   FRONTEND_URL=https://your-frontend-url.com
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
-   JWT_SECRET=your_secure_jwt_secret
-   ```
-
-3. **Chạy ứng dụng**
-   ```bash
-   java -jar target/EVCare-0.0.1-SNAPSHOT.jar
-   ```
-
-Hoặc sử dụng Docker:
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
----
 
 ## 📚 API Documentation
 
