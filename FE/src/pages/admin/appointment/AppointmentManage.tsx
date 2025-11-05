@@ -351,7 +351,16 @@ const AppointmentManage = () => {
                           <td className="p-[1.2rem]">
                             {(currentPage - 1) * pageSize + index + 1}
                           </td>
-                          <td className="p-[1.2rem]">{item.customerFullName}</td>
+                          <td className="p-[1.2rem]">
+                            <div className="flex items-center gap-2">
+                              <span>{item.customerFullName}</span>
+                              {item.isWarrantyAppointment && (
+                                <span className="px-2 py-0.5 rounded-full text-[0.85rem] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-400 whitespace-nowrap">
+                                  🔧 Yêu cầu bảo hành
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-[1.2rem]">{item.customerPhoneNumber}</td>
                           <td className="p-[1.2rem]">{item.customerEmail}</td>
                           <td className="p-[1.2rem]">{item.vehicleNumberPlate}</td>
@@ -366,8 +375,8 @@ const AppointmentManage = () => {
                           </td>
                           <td className="p-[1.2rem]">
                             {item.isWarrantyAppointment ? (
-                              <span className="px-2 py-1 rounded-full text-[1rem] font-medium bg-yellow-100 text-yellow-700 border border-yellow-300">
-                                Yêu cầu bảo hành
+                              <span className="px-2 py-1 rounded-full text-[1rem] font-semibold bg-yellow-100 text-yellow-800 border border-yellow-400">
+                                🔧 Yêu cầu bảo hành
                               </span>
                             ) : (
                               <span className="text-gray-400">-</span>
