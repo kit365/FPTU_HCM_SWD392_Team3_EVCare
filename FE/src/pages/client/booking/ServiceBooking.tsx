@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     Button,
     DatePicker,
@@ -8,6 +8,10 @@ import {
     TreeSelect,
     message,
     Modal,
+    Alert,
+    Card,
+    List,
+    Tag,
 } from "antd";
 import type { FormProps } from "antd";
 import { Dayjs, isDayjs } from "dayjs";
@@ -16,6 +20,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { bookingService } from "../../../service/bookingService";
 import { useAuthContext } from "../../../context/useAuthContext";
 import type { VehicleType, ServiceType } from "../../../types/booking.types";
+import type { WarrantyEligibilityResponse } from "../../../types/appointment.types";
 import ViewOldDataModal, { type VehicleProfileData } from "./ViewOldDataModal";
 
 const { TextArea } = Input;
@@ -37,24 +42,36 @@ export const ServiceBookingPage: React.FC = () => {
     
     // Edit mode states
     const [isEditMode, setIsEditMode] = useState(false);
+    const [isWarrantyMode, setIsWarrantyMode] = useState(false);
     const [isGuestMode, setIsGuestMode] = useState(false);
     const [appointmentId, setAppointmentId] = useState<string | null>(null);
     const [loadingAppointment, setLoadingAppointment] = useState(false);
     const [guestOtpInfo, setGuestOtpInfo] = useState<{ email: string; otp: string } | null>(null);
     const [pendingAppointmentServices, setPendingAppointmentServices] = useState<string[] | null>(null);
     const [originalAppointmentData, setOriginalAppointmentData] = useState<any>(null); // Store original appointment data for price calculation
+    const [originalServiceIds, setOriginalServiceIds] = useState<string[]>([]); // Store original service IDs for warranty coloring
 
     // Confirmation modal states
     const [confirmModalVisible, setConfirmModalVisible] = useState(false);
     const [pendingAppointmentData, setPendingAppointmentData] = useState<any>(null);
 
+    // Warranty eligibility states
+    const [warrantyInfo, setWarrantyInfo] = useState<WarrantyEligibilityResponse | null>(null);
+    const [checkingWarranty, setCheckingWarranty] = useState(false);
+    const [warrantyChecked, setWarrantyChecked] = useState(false);
+
     // Watch form value để hiển thị đúng input khi serviceType thay đổi
     const formServiceType = Form.useWatch('serviceType', form);
+    
+    // Watch customer info for warranty check
+    const customerName = Form.useWatch('customerName', form);
+    const customerEmail = Form.useWatch('email', form);
+    const customerPhone = Form.useWatch('phone', form);
 
     // Lấy thông tin user từ AuthContext
     const { user } = useAuthContext();
 
-    // Check URL params for edit mode
+    // Check URL params for edit mode and warranty mode
     useEffect(() => {
         const appointmentIdParam = searchParams.get("appointmentId");
         const mode = searchParams.get("mode");
@@ -62,6 +79,7 @@ export const ServiceBookingPage: React.FC = () => {
         
         if (appointmentIdParam && mode === "edit") {
             setIsEditMode(true);
+            setIsWarrantyMode(false);
             setAppointmentId(appointmentIdParam);
             setIsGuestMode(guest);
             
@@ -82,6 +100,14 @@ export const ServiceBookingPage: React.FC = () => {
             
             // Load appointment data - pass guest mode and OTP info directly
             loadAppointmentForEdit(appointmentIdParam, guest, otpInfo);
+        } else if (appointmentIdParam && mode === "warranty") {
+            setIsWarrantyMode(true);
+            setIsEditMode(false);
+            setAppointmentId(appointmentIdParam);
+            setIsGuestMode(guest);
+            
+            // Load warranty appointment data
+            loadWarrantyAppointmentData(appointmentIdParam, guest);
         }
     }, [searchParams]);
 
@@ -101,16 +127,86 @@ export const ServiceBookingPage: React.FC = () => {
         }
     }, [selectedVehicleTypeId]);
 
-    // Set services into form when serviceTypes are loaded and we have pending services (edit mode)
+    // Set services into form when serviceTypes are loaded and we have pending services (edit mode or warranty mode)
     useEffect(() => {
-        if (isEditMode && pendingAppointmentServices !== null && serviceTypes.length > 0) {
+        if ((isEditMode || isWarrantyMode) && pendingAppointmentServices !== null && serviceTypes.length > 0) {
             console.log("📋 Setting services from appointment:", pendingAppointmentServices);
             form.setFieldsValue({
                 services: pendingAppointmentServices.length > 0 ? pendingAppointmentServices : undefined,
             });
             setPendingAppointmentServices(null); // Clear after setting
         }
-    }, [serviceTypes, isEditMode, pendingAppointmentServices]);
+    }, [serviceTypes, isEditMode, isWarrantyMode, pendingAppointmentServices]);
+
+    // Check warranty eligibility when customer info changes (only in create mode)
+    useEffect(() => {
+        // Only check in create mode, not edit mode or warranty mode
+        if (isEditMode || isWarrantyMode) {
+            setWarrantyInfo(null);
+            setWarrantyChecked(false);
+            return;
+        }
+
+        // Need at least email or phone or fullName to check
+        if (!customerEmail && !customerPhone && !customerName) {
+            setWarrantyInfo(null);
+            setWarrantyChecked(false);
+            return;
+        }
+
+        // Debounce: wait 1 second after user stops typing
+        const timeoutId = setTimeout(async () => {
+            try {
+                setCheckingWarranty(true);
+                const requestData: any = {};
+                
+                // Add customerId if user is logged in
+                if (user?.userId) {
+                    requestData.customerId = user.userId;
+                }
+                
+                // Add email, phone, fullName if available
+                if (customerEmail) {
+                    requestData.customerEmail = customerEmail;
+                }
+                if (customerPhone) {
+                    requestData.customerPhoneNumber = customerPhone;
+                }
+                if (customerName) {
+                    requestData.customerFullName = customerName;
+                }
+
+                // Only check if we have at least one identifier
+                if (Object.keys(requestData).length === 0) {
+                    setCheckingWarranty(false);
+                    return;
+                }
+
+                const response = await bookingService.checkWarrantyEligibility(requestData);
+                
+                if (response.data?.success && response.data?.data) {
+                    setWarrantyInfo(response.data.data);
+                    setWarrantyChecked(true);
+                    
+                    if (response.data.data.hasWarrantyEligibleAppointments) {
+                        console.log("✅ Found warranty appointments:", response.data.data.totalWarrantyEligibleAppointments);
+                    }
+                } else {
+                    setWarrantyInfo(null);
+                    setWarrantyChecked(true);
+                }
+            } catch (error: any) {
+                console.error("Error checking warranty eligibility:", error);
+                // Don't show error to user, just silently fail
+                setWarrantyInfo(null);
+                setWarrantyChecked(true);
+            } finally {
+                setCheckingWarranty(false);
+            }
+        }, 1000); // 1 second debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [customerEmail, customerPhone, customerName, user?.userId, isEditMode, isWarrantyMode]);
 
     const handleOldData = () => {
         setIsUseOldData(true);
@@ -257,6 +353,101 @@ export const ServiceBookingPage: React.FC = () => {
         return serviceIds;
     };
 
+    // Load warranty appointment data
+    const loadWarrantyAppointmentData = async (id: string, guestMode: boolean = false) => {
+        setLoadingAppointment(true);
+        try {
+            let appointmentData;
+            if (guestMode) {
+                // For guest, try to get from sessionStorage (from OTP verification)
+                try {
+                    const guestDataKey = `guestAppointment_${id}`;
+                    const guestData = sessionStorage.getItem(guestDataKey);
+                    if (guestData) {
+                        const parsed = JSON.parse(guestData);
+                        appointmentData = parsed.appointment;
+                    } else {
+                        // Try verifyOtpForGuestAppointment if we have OTP info
+                        const guestEditInfo = sessionStorage.getItem("guestAppointmentEdit");
+                        if (guestEditInfo) {
+                            const parsed = JSON.parse(guestEditInfo);
+                            appointmentData = await bookingService.verifyOtpForGuestAppointment(id, parsed.email, parsed.otp);
+                            // Store in sessionStorage for future use
+                            const guestDataKey = `guestAppointment_${id}`;
+                            sessionStorage.setItem(guestDataKey, JSON.stringify({
+                                appointment: appointmentData,
+                                email: parsed.email,
+                                verifiedAt: new Date().toISOString()
+                            }));
+                        } else {
+                            throw new Error("Không tìm thấy thông tin cuộc hẹn. Vui lòng xác thực lại.");
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error getting guest appointment data:", e);
+                    throw e;
+                }
+            } else {
+                // For authenticated users, use regular getById API
+                const response = await bookingService.getAppointmentById(id);
+                appointmentData = response.data.data;
+            }
+            
+            if (appointmentData) {
+                // Store original appointment data
+                setOriginalAppointmentData(appointmentData);
+                
+                // Extract original service IDs for warranty coloring
+                const serviceIds = extractServiceIdsFromAppointment(appointmentData.serviceTypeResponses);
+                setOriginalServiceIds(serviceIds);
+                
+                // Fill basic form fields
+                form.setFieldsValue({
+                    customerName: appointmentData.customerFullName,
+                    phone: appointmentData.customerPhoneNumber,
+                    email: appointmentData.customerEmail,
+                    vehicleType: appointmentData.vehicleTypeResponse?.vehicleTypeId,
+                    licensePlate: appointmentData.vehicleNumberPlate,
+                    mileage: appointmentData.vehicleKmDistances,
+                    userAddress: appointmentData.userAddress || "",
+                    location: appointmentData.userAddress || "",
+                    serviceType: appointmentData.serviceMode,
+                    dateTime: dayjs().add(1, 'day'), // Default to tomorrow
+                    notes: `Yêu cầu bảo hành cho appointment ${id}`,
+                });
+                
+                // Set vehicle type to load services
+                if (appointmentData.vehicleTypeResponse?.vehicleTypeId) {
+                    setSelectedVehicleTypeId(appointmentData.vehicleTypeResponse.vehicleTypeId);
+                    // Fetch service types first, then set services via useEffect
+                    await fetchServiceTypes(appointmentData.vehicleTypeResponse.vehicleTypeId);
+                    // Store service IDs to be set after serviceTypes are loaded
+                    setPendingAppointmentServices(serviceIds.length > 0 ? serviceIds : null);
+                } else {
+                    // If no vehicle type, just set services directly
+                    form.setFieldsValue({
+                        services: serviceIds.length > 0 ? serviceIds : undefined,
+                    });
+                }
+                
+                if (appointmentData.serviceMode) {
+                    setServiceType(appointmentData.serviceMode);
+                }
+            }
+        } catch (error: any) {
+            console.error("Error loading warranty appointment data:", error);
+            message.error(error?.response?.data?.message || "Không thể tải thông tin cuộc hẹn. Vui lòng thử lại.");
+            // Redirect back if failed
+            if (guestMode) {
+                navigate("/client/lookup");
+            } else {
+                navigate("/client/lookup");
+            }
+        } finally {
+            setLoadingAppointment(false);
+        }
+    };
+
     // Load appointment data for edit mode
     const loadAppointmentForEdit = async (id: string, guestMode: boolean = false, otpInfo: { email: string; otp: string } | null = null) => {
         setLoadingAppointment(true);
@@ -366,20 +557,42 @@ export const ServiceBookingPage: React.FC = () => {
         label: `${vt.vehicleTypeName} - ${vt.manufacturer} (${vt.modelYear})`,
     }));
 
-    // Convert API response to TreeSelect format
+    // Convert API response to TreeSelect format with warranty coloring
     const buildServiceTree = (services: ServiceType[]) => {
-        return services.map((service) => ({
-            title: service.serviceName,
-            value: service.serviceTypeId,
-            key: service.serviceTypeId,
-            children: service.children && service.children.length > 0
-                ? service.children.map((child) => ({
-                    title: child.serviceName,
-                    value: child.serviceTypeId,
-                    key: child.serviceTypeId,
-                }))
-                : undefined,
-        }));
+        return services.map((service) => {
+            const isInOriginal = originalServiceIds.includes(service.serviceTypeId);
+            return {
+                title: isWarrantyMode ? (
+                    <span style={{ 
+                        color: isInOriginal ? "#10b981" : "#9ca3af",
+                        fontWeight: isInOriginal ? 600 : 400,
+                    }}>
+                        {service.serviceName}
+                        {isInOriginal && <span style={{ marginLeft: 8, fontSize: "0.9em" }}>✓ (Bảo hành)</span>}
+                    </span>
+                ) : service.serviceName,
+                value: service.serviceTypeId,
+                key: service.serviceTypeId,
+                children: service.children && service.children.length > 0
+                    ? service.children.map((child) => {
+                        const childIsInOriginal = originalServiceIds.includes(child.serviceTypeId);
+                        return {
+                            title: isWarrantyMode ? (
+                                <span style={{ 
+                                    color: childIsInOriginal ? "#10b981" : "#9ca3af",
+                                    fontWeight: childIsInOriginal ? 600 : 400,
+                                }}>
+                                    {child.serviceName}
+                                    {childIsInOriginal && <span style={{ marginLeft: 8, fontSize: "0.9em" }}>✓ (Bảo hành)</span>}
+                                </span>
+                            ) : child.serviceName,
+                            value: child.serviceTypeId,
+                            key: child.serviceTypeId,
+                        };
+                    })
+                    : undefined,
+            };
+        });
     };
 
     const serviceTreeData = buildServiceTree(serviceTypes);
@@ -566,6 +779,7 @@ export const ServiceBookingPage: React.FC = () => {
             scheduledAt: formattedDate,
             notes: values.notes || "",
             serviceTypeIds: processedServiceIds,
+            isWarrantyAppointment: isWarrantyMode, // Set to true if warranty mode
             // Store form values for display in modal
             _formValues: values,
             _formattedDate: formattedDate,
@@ -675,11 +889,16 @@ export const ServiceBookingPage: React.FC = () => {
                         appointmentId: response.data.data,
                         message: response.data.message
                     });
-                    message.success(response.data.message || "Đặt lịch hẹn thành công!");
+                    message.success(response.data.message || (isWarrantyMode ? "Tạo yêu cầu bảo hành thành công!" : "Đặt lịch hẹn thành công!"));
                     setConfirmModalVisible(false);
                     form.resetFields();
                     setSelectedVehicleTypeId("");
                     setServiceType("");
+                    setOriginalServiceIds([]);
+                    // Navigate after successful creation
+                    if (isWarrantyMode) {
+                        navigate("/client/lookup");
+                    }
                 } else {
                     console.log("APPOINTMENT CREATION FAILED:", {
                         appointmentData: cleanAppointmentData,
@@ -703,7 +922,7 @@ export const ServiceBookingPage: React.FC = () => {
 
     return (
         <>
-            {!isEditMode && (
+            {!isEditMode && !isWarrantyMode && (
                 <div className="w-full h-[560px]">
                     <iframe
                         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.610010397031!2d106.809883!3d10.841127599999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752731176b07b1%3A0xb752b24b379bae5e!2sFPT%20University%20HCMC!5e0!3m2!1sen!2s!4v1761944376322!5m2!1sen!2s"
@@ -715,10 +934,12 @@ export const ServiceBookingPage: React.FC = () => {
             )}
             <div className="w-[1170px] mx-auto mt-[50px] mb-[100px]">
                 <h2 className="text-[#333] text-[3rem] uppercase font-[300] text-center relative booking-title">
-                    {isEditMode ? "Chỉnh sửa lịch hẹn" : "Đặt lịch dịch vụ"}
+                    {isWarrantyMode ? "Yêu cầu bảo hành cuộc hẹn" : isEditMode ? "Chỉnh sửa lịch hẹn" : "Đặt lịch dịch vụ"}
                 </h2>
                 <p className="mt-[34px] mb-[50px] text-[1.8rem] font-[300] text-center text-[#777777]">
-                    {isEditMode 
+                    {isWarrantyMode 
+                        ? "Vui lòng kiểm tra và chỉnh sửa thông tin. Dịch vụ có màu xanh là những dịch vụ đã sử dụng trong cuộc hẹn trước và sẽ được bảo hành."
+                        : isEditMode 
                         ? "Vui lòng cập nhật thông tin lịch hẹn của bạn. Thay đổi sẽ được gửi đến hệ thống để xử lý."
                         : "Chúng tôi là một trong những cửa hàng sửa chữa ô tô hàng đầu phục vụ khách hàng. Tất cả các dịch vụ sửa chữa đều được thực hiện bởi đội ngũ thợ máy có trình độ cao."
                     }
@@ -817,11 +1038,88 @@ export const ServiceBookingPage: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Warranty Information Alert - only show in create mode, not warranty or edit mode */}
+                    {!isEditMode && !isWarrantyMode && warrantyChecked && warrantyInfo && warrantyInfo.hasWarrantyEligibleAppointments && (
+                        <div className="mt-[30px]">
+                            <Alert
+                                message={
+                                    <div>
+                                        <strong className="text-[#52c41a]">Bạn có thể được hưởng chính sách bảo hành!</strong>
+                                        <p className="mt-2 mb-0">
+                                            Chúng tôi đã tìm thấy {warrantyInfo.totalWarrantyEligibleAppointments} cuộc hẹn đã hoàn thành của bạn. 
+                                            Khi sử dụng lại dịch vụ tương tự, bạn sẽ được giảm giá hoặc miễn phí phụ tùng theo chính sách bảo hành.
+                                        </p>
+                                    </div>
+                                }
+                                type="success"
+                                showIcon
+                                closable
+                                className="mb-4"
+                            />
+                            {warrantyInfo.warrantyAppointments && warrantyInfo.warrantyAppointments.length > 0 && (
+                                <Card 
+                                    title="Danh sách cuộc hẹn bảo hành" 
+                                    size="small"
+                                    className="mt-2"
+                                >
+                                    <List
+                                        dataSource={warrantyInfo.warrantyAppointments.slice(0, 3)} // Chỉ hiển thị 3 cái đầu tiên
+                                        renderItem={(item) => (
+                                            <List.Item>
+                                                <div className="w-full">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <strong>{item.customerFullName}</strong>
+                                                        <Tag color="green">Đã hoàn thành</Tag>
+                                                    </div>
+                                                    <div className="text-sm text-gray-600">
+                                                        <p className="mb-1">
+                                                            <strong>Biển số:</strong> {item.vehicleNumberPlate} | 
+                                                            <strong> Ngày:</strong> {item.scheduledAt ? new Date(item.scheduledAt).toLocaleDateString('vi-VN') : 'N/A'}
+                                                        </p>
+                                                        {item.serviceNames && item.serviceNames.length > 0 && (
+                                                            <p className="mb-0">
+                                                                <strong>Dịch vụ:</strong> {item.serviceNames.join(', ')}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </List.Item>
+                                        )}
+                                    />
+                                    {warrantyInfo.totalWarrantyEligibleAppointments > 3 && (
+                                        <p className="text-sm text-gray-500 mt-2 mb-0 text-center">
+                                            Và {warrantyInfo.totalWarrantyEligibleAppointments - 3} cuộc hẹn bảo hành khác...
+                                        </p>
+                                    )}
+                                </Card>
+                            )}
+                        </div>
+                    )}
+
                     {/* Dịch vụ và Loại hình dịch vụ ngang hàng */}
                     <div className="flex gap-[30px] mt-[30px]">
                         {/* Dịch vụ */}
                         <div className="w-[570px]">
                             <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]">Dịch vụ</div>
+                            {isWarrantyMode && (
+                                <Alert
+                                    message={
+                                        <div style={{ fontSize: "1.3rem" }}>
+                                            <div style={{ marginBottom: "8px" }}>
+                                                <span style={{ color: "#10b981", fontWeight: 600 }}>●</span>{" "}
+                                                <strong style={{ color: "#10b981" }}>Màu xanh:</strong> Dịch vụ đang được bảo hành
+                                            </div>
+                                            <div>
+                                                <span style={{ color: "#9ca3af", fontWeight: 600 }}>●</span>{" "}
+                                                <strong style={{ color: "#9ca3af" }}>Màu xám:</strong> Dịch vụ không được bảo hành
+                                            </div>
+                                        </div>
+                                    }
+                                    type="info"
+                                    showIcon={false}
+                                    style={{ marginBottom: "16px", fontSize: "1.3rem" }}
+                                />
+                            )}
                             <Form.Item
                                 name="services"
                                 rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
@@ -1023,7 +1321,7 @@ export const ServiceBookingPage: React.FC = () => {
                                 size="large"
                                 className="bg-white border-2 border-white text-blue-700 font-semibold px-8 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:bg-gray-50"
                             >
-                                {isEditMode ? "Cập nhật cuộc hẹn" : "Đặt lịch hẹn"}
+                                {isWarrantyMode ? "Tạo yêu cầu bảo hành" : isEditMode ? "Cập nhật cuộc hẹn" : "Đặt lịch hẹn"}
                             </Button>
                             {isEditMode && (
                                 <Button
@@ -1058,12 +1356,12 @@ export const ServiceBookingPage: React.FC = () => {
 
                 {/* Confirmation Modal */}
                 <Modal
-                    title={isEditMode ? "Xác nhận cập nhật cuộc hẹn" : "Xác nhận đặt lịch hẹn"}
+                    title={isWarrantyMode ? "Xác nhận yêu cầu bảo hành" : isEditMode ? "Xác nhận cập nhật cuộc hẹn" : "Xác nhận đặt lịch hẹn"}
                     open={confirmModalVisible}
                     onCancel={() => setConfirmModalVisible(false)}
                     onOk={handleConfirmAppointment}
                     confirmLoading={loadingAppointment}
-                    okText={isEditMode ? "Xác nhận cập nhật" : "Xác nhận đặt lịch"}
+                    okText={isWarrantyMode ? "Xác nhận yêu cầu bảo hành" : isEditMode ? "Xác nhận cập nhật" : "Xác nhận đặt lịch"}
                     cancelText="Hủy"
                     width={900}
                     okButtonProps={{

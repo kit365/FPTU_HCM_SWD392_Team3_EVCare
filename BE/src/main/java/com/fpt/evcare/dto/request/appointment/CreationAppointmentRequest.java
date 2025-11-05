@@ -48,7 +48,5 @@ public class CreationAppointmentRequest {
     @NotNull(message = "Loại dịch vụ không được để trống")
     List<UUID> serviceTypeIds;
 
-    Boolean isWarrantyAppointment; // true nếu đây là appointment bảo hành
-
-    UUID originalAppointmentId; // ID của appointment gốc nếu đây là appointment bảo hành
+    Boolean isWarrantyAppointment;
 }

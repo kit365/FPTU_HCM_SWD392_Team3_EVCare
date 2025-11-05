@@ -45,6 +45,10 @@ public class VnPayServiceImpl implements VnPayService {
     private final PaymentMethodRepository paymentMethodRepository;
     private final VnPayConfig vnPayConfig;
     private final com.fpt.evcare.repository.ShiftRepository shiftRepository;
+    private final com.fpt.evcare.repository.MaintenanceManagementRepository maintenanceManagementRepository;
+    private final com.fpt.evcare.repository.WarrantyPartRepository warrantyPartRepository;
+    private final com.fpt.evcare.repository.CustomerWarrantyPartRepository customerWarrantyPartRepository;
+    private final com.fpt.evcare.repository.MaintenanceRecordRepository maintenanceRecordRepository;
 
 
     @Override
@@ -265,6 +269,62 @@ public class VnPayServiceImpl implements VnPayService {
             paymentTransaction.setStatus(PaymentTransactionStatusEnum.SUCCESS);
             paymentTransactionRepository.save(paymentTransaction);
             
+            // ✅ Nếu totalAmount = 0, tự động thanh toán và completed appointment (không cần VNPay callback)
+            if (invoice.getTotalAmount().compareTo(BigDecimal.ZERO) == 0) {
+                log.info("💰 Invoice totalAmount is 0 - Auto-completing payment and appointment via VNPay callback");
+                
+                // Tìm payment method VNPAY (hoặc tạo mới nếu chưa có)
+                PaymentMethodEntity vnpayPaymentMethod = paymentMethodRepository
+                        .findByMethodTypeAndIsDeletedFalse(MethodTypeEnum.MOBILE_WALLET)
+                        .orElseGet(() -> {
+                            PaymentMethodEntity newVnpay = new PaymentMethodEntity();
+                            newVnpay.setMethodType(MethodTypeEnum.MOBILE_WALLET);
+                            newVnpay.setProvider("VNPay");
+                            newVnpay.setIsActive(true);
+                            newVnpay.setIsDeleted(false);
+                            return paymentMethodRepository.save(newVnpay);
+                        });
+                
+                // Cập nhật invoice
+                invoice.setPaymentMethod(vnpayPaymentMethod);
+                invoice.setPaidAmount(BigDecimal.ZERO);
+                invoice.setStatus(InvoiceStatusEnum.PAID);
+                invoiceRepository.save(invoice);
+                log.info("✅ Invoice {} auto-marked as PAID via VNPay (totalAmount = 0)", invoice.getInvoiceId());
+                
+                // Cập nhật appointment sang COMPLETED
+                appointment.setStatus(AppointmentStatusEnum.COMPLETED);
+                appointmentRepository.save(appointment);
+                appointmentRepository.flush();
+                
+                // Refresh appointment từ database
+                UUID appointmentIdForRefresh = appointment.getAppointmentId();
+                appointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentIdForRefresh);
+                
+                if (appointment != null) {
+                    log.info("✅ Appointment {} auto-marked as COMPLETED via VNPay (invoice totalAmount = 0)", appointment.getAppointmentId());
+                    
+                    // Tự động cập nhật shift status sang COMPLETED
+                    updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+                    
+                    // Reset warranty date cho các phụ tùng được sử dụng trong appointment
+                    resetWarrantyDateForAppointment(appointment);
+                } else {
+                    log.warn("⚠️ Could not refresh appointment after VNPay auto-payment: {}", appointmentIdForRefresh);
+                    updateShiftStatusWhenAppointmentCompleted(appointmentIdForRefresh);
+                    
+                    AppointmentEntity reloadedAppointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentIdForRefresh);
+                    if (reloadedAppointment != null) {
+                        resetWarrantyDateForAppointment(reloadedAppointment);
+                    }
+                }
+                
+                log.info("✅ Auto-payment successful via VNPay: transactionReference={}, invoiceId={}, amount=0", 
+                        transactionReference, invoice.getInvoiceId());
+                
+                return transactionReference;
+            }
+            
             // Validate amount phải bằng totalAmount (giống cash payment - không cho partial)
             BigDecimal paidAmount = BigDecimal.valueOf(Long.parseLong(vnp_Amount)).divide(BigDecimal.valueOf(100));
             if (paidAmount.compareTo(invoice.getTotalAmount()) < 0) {
@@ -292,15 +352,8 @@ public class VnPayServiceImpl implements VnPayService {
             invoiceRepository.save(invoice);
             log.info("Invoice {} marked as PAID via VNPay", invoice.getInvoiceId());
             
-            // Cập nhật appointment sang COMPLETED (giống cash payment)
-            // Đảm bảo giữ nguyên isWarrantyAppointment và originalAppointment
-            Boolean isWarrantyAppointment = appointment.getIsWarrantyAppointment();
-            AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
-            
+            // Cập nhật appointment sang COMPLETED
             appointment.setStatus(AppointmentStatusEnum.COMPLETED);
-            appointment.setIsWarrantyAppointment(isWarrantyAppointment); // Đảm bảo giữ nguyên giá trị
-            appointment.setOriginalAppointment(originalAppointment); // Đảm bảo giữ nguyên giá trị
-            
             appointmentRepository.save(appointment);
             appointmentRepository.flush(); // Flush để đảm bảo dữ liệu được ghi vào database ngay lập tức
             
@@ -311,27 +364,27 @@ public class VnPayServiceImpl implements VnPayService {
             if (appointment != null) {
                 log.info("Appointment {} marked as COMPLETED", appointment.getAppointmentId());
                 
-                // Debug: Log warranty appointment info sau khi refresh
-                if (Boolean.TRUE.equals(appointment.getIsWarrantyAppointment())) {
-                    log.info("✅ Warranty appointment marked as COMPLETED via VNPay - ID: {}, isWarranty: {}, Status: {}, OriginalAppt: {}", 
-                            appointment.getAppointmentId(),
-                            appointment.getIsWarrantyAppointment(),
-                            appointment.getStatus(),
-                            appointment.getOriginalAppointment() != null ? appointment.getOriginalAppointment().getAppointmentId() : "null");
-                } else {
-                    log.info("ℹ️ Regular appointment marked as COMPLETED via VNPay - ID: {}, isWarranty: {}, Status: {}", 
-                            appointment.getAppointmentId(),
-                            appointment.getIsWarrantyAppointment(),
-                            appointment.getStatus());
-                }
+                // Log appointment completed
+                log.info("✅ Appointment marked as COMPLETED via VNPay - ID: {}, Status: {}", 
+                        appointment.getAppointmentId(),
+                        appointment.getStatus());
                 
                 // ✅ Tự động cập nhật shift status sang COMPLETED khi appointment chuyển sang COMPLETED sau khi thanh toán
                 // Để kỹ thuật viên thấy ca làm đã hoàn thành
                 updateShiftStatusWhenAppointmentCompleted(appointment.getAppointmentId());
+                
+                // ✅ Reset warranty date cho các phụ tùng được sử dụng trong appointment
+                resetWarrantyDateForAppointment(appointment);
             } else {
                 log.warn("⚠️ Could not refresh appointment after VNPay payment: {}", appointmentIdForRefresh);
                 // Vẫn cập nhật shift status với appointmentId
                 updateShiftStatusWhenAppointmentCompleted(appointmentIdForRefresh);
+                
+                // Reload appointment để reset warranty
+                AppointmentEntity reloadedAppointment = appointmentRepository.findByAppointmentIdAndIsDeletedFalse(appointmentIdForRefresh);
+                if (reloadedAppointment != null) {
+                    resetWarrantyDateForAppointment(reloadedAppointment);
+                }
             }
             
             log.info("✅ Payment successful: transactionReference={}, invoiceId={}, amount={}", 
@@ -470,6 +523,139 @@ public class VnPayServiceImpl implements VnPayService {
                     appointmentId, e.getMessage());
             // Không throw exception để không block việc payment
         }
+    }
+
+    /**
+     * Reset warranty date cho các phụ tùng được sử dụng trong appointment khi thanh toán thành công
+     * Tạo hoặc cập nhật CustomerWarrantyPart với warranty_start_date = ngày thanh toán
+     */
+    private void resetWarrantyDateForAppointment(AppointmentEntity appointment) {
+        try {
+            log.info("🔄 Resetting warranty date for appointment via VNPay: {}", appointment.getAppointmentId());
+            
+            // Lấy tất cả maintenance managements của appointment
+            java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> maintenanceManagements = 
+                    maintenanceManagementRepository.findByAppointmentIdAndIsDeletedFalse(appointment.getAppointmentId());
+            
+            if (maintenanceManagements == null || maintenanceManagements.isEmpty()) {
+                log.debug("No maintenance managements found for appointment: {}", appointment.getAppointmentId());
+                return;
+            }
+            
+            LocalDateTime warrantyStartDate = LocalDateTime.now(); // Ngày bắt đầu bảo hành = ngày thanh toán
+            UUID customerId = appointment.getCustomer() != null ? appointment.getCustomer().getUserId() : null;
+            String customerEmail = appointment.getCustomerEmail();
+            String customerPhoneNumber = appointment.getCustomerPhoneNumber();
+            String customerFullName = appointment.getCustomerFullName();
+            
+            int resetCount = 0;
+            
+            // Duyệt qua tất cả maintenance managements
+            for (com.fpt.evcare.entity.MaintenanceManagementEntity mm : maintenanceManagements) {
+                if (mm.getMaintenanceRecords() == null || mm.getMaintenanceRecords().isEmpty()) {
+                    continue;
+                }
+                
+                // Duyệt qua tất cả maintenance records đã approved
+                for (com.fpt.evcare.entity.MaintenanceRecordEntity record : mm.getMaintenanceRecords()) {
+                    if (Boolean.TRUE.equals(record.getApprovedByUser()) && 
+                        record.getVehiclePart() != null && 
+                        !record.getIsDeleted()) {
+                        
+                        UUID vehiclePartId = record.getVehiclePart().getVehiclePartId();
+                        
+                        // Kiểm tra phụ tùng này có warranty không
+                        com.fpt.evcare.entity.WarrantyPartEntity warrantyPart = warrantyPartRepository
+                                .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                                .orElse(null);
+                        
+                        if (warrantyPart != null) {
+                            // Tính warranty_end_date
+                            LocalDateTime warrantyEndDate = calculateWarrantyEndDate(
+                                    warrantyStartDate, 
+                                    warrantyPart.getValidityPeriod(), 
+                                    warrantyPart.getValidityPeriodUnit());
+                            
+                            // Tìm hoặc tạo CustomerWarrantyPart
+                            com.fpt.evcare.entity.CustomerWarrantyPartEntity existingWarranty = customerWarrantyPartRepository
+                                    .findActiveWarrantyByCustomerAndVehiclePart(
+                                            customerId,
+                                            customerEmail,
+                                            customerPhoneNumber,
+                                            vehiclePartId,
+                                            LocalDateTime.now()
+                                    )
+                                    .orElse(null);
+                            
+                            if (existingWarranty != null) {
+                                // Update warranty date
+                                existingWarranty.setWarrantyStartDate(warrantyStartDate);
+                                existingWarranty.setWarrantyEndDate(warrantyEndDate);
+                                existingWarranty.setAppointment(appointment);
+                                existingWarranty.setQuantity(record.getQuantityUsed());
+                                customerWarrantyPartRepository.save(existingWarranty);
+                                log.info("✅ Updated warranty date for part {} via VNPay - Customer: {}, Start: {}, End: {}", 
+                                        record.getVehiclePart().getVehiclePartName(),
+                                        customerId != null ? customerId : customerEmail,
+                                        warrantyStartDate,
+                                        warrantyEndDate);
+                            } else {
+                                // Tạo mới CustomerWarrantyPart
+                                com.fpt.evcare.entity.CustomerWarrantyPartEntity newWarranty = 
+                                        com.fpt.evcare.entity.CustomerWarrantyPartEntity.builder()
+                                        .customer(customerId != null ? appointment.getCustomer() : null)
+                                        .customerEmail(customerEmail)
+                                        .customerPhoneNumber(customerPhoneNumber)
+                                        .customerFullName(customerFullName)
+                                        .vehiclePart(record.getVehiclePart())
+                                        .appointment(appointment)
+                                        .warrantyStartDate(warrantyStartDate)
+                                        .warrantyEndDate(warrantyEndDate)
+                                        .quantity(record.getQuantityUsed())
+                                        .build();
+                                newWarranty.setIsActive(true);
+                                newWarranty.setIsDeleted(false);
+                                
+                                customerWarrantyPartRepository.save(newWarranty);
+                                log.info("✅ Created warranty for part {} via VNPay - Customer: {}, Start: {}, End: {}", 
+                                        record.getVehiclePart().getVehiclePartName(),
+                                        customerId != null ? customerId : customerEmail,
+                                        warrantyStartDate,
+                                        warrantyEndDate);
+                            }
+                            
+                            resetCount++;
+                        }
+                    }
+                }
+            }
+            
+            if (resetCount > 0) {
+                log.info("✅ Reset warranty date for {} part(s) in appointment via VNPay: {}", resetCount, appointment.getAppointmentId());
+            } else {
+                log.debug("No warranty parts found to reset for appointment via VNPay: {}", appointment.getAppointmentId());
+            }
+        } catch (Exception e) {
+            log.error("⚠️ Failed to reset warranty date for appointment {} via VNPay: {}", 
+                    appointment.getAppointmentId(), e.getMessage());
+            // Không throw exception để không block việc payment
+        }
+    }
+    
+    /**
+     * Tính warranty_end_date dựa trên warranty_start_date và validity period
+     */
+    private LocalDateTime calculateWarrantyEndDate(LocalDateTime startDate, Integer validityPeriod, 
+                                                   com.fpt.evcare.enums.ValidityPeriodUnitEnum unit) {
+        if (startDate == null || validityPeriod == null || unit == null) {
+            return startDate;
+        }
+        
+        return switch (unit) {
+            case DAY -> startDate.plusDays(validityPeriod);
+            case MONTH -> startDate.plusMonths(validityPeriod);
+            case YEAR -> startDate.plusYears(validityPeriod);
+        };
     }
 
 }

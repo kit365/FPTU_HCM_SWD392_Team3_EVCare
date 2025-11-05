@@ -118,7 +118,7 @@ const WarrantyAppointmentList = () => {
           ) : (
             <>
               <table className="w-full">
-                <thead className="text-[#000000] text-[1.3rem] border-dashed bg-[#f4f6f9]">
+                <thead className="text-[#000000] text-[1.5rem] border-dashed bg-[#f4f6f9]">
                   <tr>
                     {columns.map((col, index) => (
                       <th
@@ -135,7 +135,7 @@ const WarrantyAppointmentList = () => {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="text-[#2b2d3b] text-[1.3rem]">
+                <tbody className="text-[#2b2d3b] text-[1.5rem]">
                   {list.length > 0 ? (
                     list.map((item: any, index: number) => {
                       const statusInfo = getStatusLabel(item.status);
@@ -168,7 +168,7 @@ const WarrantyAppointmentList = () => {
                             {item.scheduledAt ? formatDate(item.scheduledAt) : "N/A"}
                           </td>
                           <td className="p-[1.2rem]">
-                            <span className="text-[1.15rem]" title={serviceNames}>
+                            <span className="text-[1.35rem]" title={serviceNames}>
                               {serviceNames.length > 30 ? serviceNames.substring(0, 30) + "..." : serviceNames}
                             </span>
                           </td>
@@ -176,7 +176,7 @@ const WarrantyAppointmentList = () => {
                             {item.originalAppointment ? (
                               <Link
                                 to={`/admin/appointment/view/${item.originalAppointment.appointmentId}`}
-                                className="text-blue-600 hover:text-blue-800 underline text-[1.15rem]"
+                                className="text-blue-600 hover:text-blue-800 underline text-[1.35rem]"
                               >
                                 {item.originalAppointment.appointmentId.substring(0, 8).toUpperCase()}
                               </Link>
@@ -189,7 +189,7 @@ const WarrantyAppointmentList = () => {
                               label={statusInfo.label}
                               className={statusInfo.color}
                               size="small"
-                              sx={{ fontSize: "1.1rem", height: "28px" }}
+                              sx={{ fontSize: "1.3rem", height: "32px" }}
                             />
                           </td>
                           <td className="p-[1.2rem]">
@@ -197,8 +197,8 @@ const WarrantyAppointmentList = () => {
                               to={`/admin/appointment/view/${item.appointmentId}`}
                               className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
                             >
-                              <RemoveRedEyeIcon sx={{ fontSize: "1.8rem" }} />
-                              <span className="text-[1.2rem]">Xem</span>
+                              <RemoveRedEyeIcon sx={{ fontSize: "2rem" }} />
+                              <span className="text-[1.4rem]">Xem</span>
                             </Link>
                           </td>
                         </tr>
@@ -225,7 +225,7 @@ const WarrantyAppointmentList = () => {
                     showFirstButton
                     showLastButton
                   />
-                  <Typography className="text-[1.2rem] text-gray-600">
+                  <Typography className="text-[1.4rem] text-gray-600">
                     Tổng: {totalElements} cuộc hẹn
                   </Typography>
                 </Stack>

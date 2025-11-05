@@ -55,6 +55,10 @@ public class AppointmentResponse implements Serializable {
 
     transient List<ServiceTypeResponse> serviceTypeResponses;
 
+    Boolean isWarrantyAppointment;
+
+    AppointmentResponse originalAppointment; // Appointment gốc nếu đây là warranty appointment
+
     Boolean isActive;
 
     Boolean isDeleted;
@@ -66,8 +70,4 @@ public class AppointmentResponse implements Serializable {
     String createdBy;
 
     String updatedBy;
-
-    Boolean isWarrantyAppointment;
-
-    AppointmentResponse originalAppointment; // Thông tin appointment gốc nếu đây là appointment bảo hành
 }

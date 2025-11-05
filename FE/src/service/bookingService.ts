@@ -186,4 +186,19 @@ export const bookingService = {
     console.log("UPDATE GUEST APPOINTMENT RESPONSE:", response);
     return response;
   },
+
+  // Check warranty eligibility
+  checkWarrantyEligibility: async (data: {
+    customerId?: string;
+    customerEmail?: string;
+    customerPhoneNumber?: string;
+    customerFullName?: string;
+  }) => {
+    const response = await apiClient.post(
+      "/appointment/check-warranty-eligibility",
+      data
+    );
+    console.log("CHECK WARRANTY ELIGIBILITY RESPONSE:", response);
+    return response;
+  },
 };

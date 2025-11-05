@@ -1,5 +1,35 @@
 // Appointment Types based on backend DTOs
 
+// Warranty Eligibility Types
+export interface CheckWarrantyEligibilityRequest {
+  customerId?: string;
+  customerEmail?: string;
+  customerPhoneNumber?: string;
+  customerFullName?: string;
+}
+
+export interface WarrantyAppointmentSummary {
+  appointmentId: string;
+  customerFullName: string;
+  customerEmail: string;
+  customerPhoneNumber: string;
+  vehicleNumberPlate: string;
+  scheduledAt: string;
+  serviceNames: string[];
+}
+
+export interface WarrantyEligibilityResponse {
+  hasWarrantyEligibleAppointments: boolean;
+  totalWarrantyEligibleAppointments: number;
+  warrantyAppointments: WarrantyAppointmentSummary[];
+}
+
+export interface WarrantyEligibilityApiResponse {
+  success: boolean;
+  message: string;
+  data: WarrantyEligibilityResponse;
+}
+
 // Enums
 export const AppointmentStatusEnum = {
   PENDING: 'PENDING',

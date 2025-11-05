@@ -41,6 +41,10 @@ public interface AppointmentService {
     // Warranty appointments
     PageResponse<AppointmentResponse> getWarrantyAppointments(String keyword, Pageable pageable);
     
+    // Check warranty eligibility
+    com.fpt.evcare.dto.response.WarrantyEligibilityResponse checkWarrantyEligibility(
+            com.fpt.evcare.dto.request.appointment.CheckWarrantyEligibilityRequest request);
+    
     // Maintenance details for appointment
     java.util.List<com.fpt.evcare.dto.response.InvoiceResponse.MaintenanceManagementSummary> getMaintenanceDetailsByAppointmentId(UUID appointmentId);
 }
