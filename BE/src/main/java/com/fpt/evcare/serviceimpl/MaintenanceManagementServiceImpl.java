@@ -8,7 +8,9 @@ import com.fpt.evcare.dto.request.maintenance_management.UpdationMaintenanceMana
 import com.fpt.evcare.dto.response.*;
 import com.fpt.evcare.entity.*;
 import com.fpt.evcare.enums.AppointmentStatusEnum;
+import com.fpt.evcare.enums.InvoiceStatusEnum;
 import com.fpt.evcare.enums.MaintenanceManagementStatusEnum;
+import com.fpt.evcare.enums.MethodTypeEnum;
 import com.fpt.evcare.enums.RoleEnum;
 import com.fpt.evcare.exception.AppointmentValidationException;
 import com.fpt.evcare.exception.EntityValidationException;
@@ -33,7 +35,6 @@ import com.fpt.evcare.entity.InvoiceEntity;
 import com.fpt.evcare.entity.MaintenanceRecordEntity;
 import com.fpt.evcare.entity.PaymentMethodEntity;
 import com.fpt.evcare.entity.WarrantyPartEntity;
-import com.fpt.evcare.enums.InvoiceStatusEnum;
 import com.fpt.evcare.enums.WarrantyDiscountTypeEnum;
 import com.fpt.evcare.utils.UtilFunction;
 import lombok.AccessLevel;
@@ -72,6 +73,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
     InvoiceMapper invoiceMapper;
     PaymentMethodRepository paymentMethodRepository;
     WarrantyPartRepository warrantyPartRepository;
+    com.fpt.evcare.repository.CustomerWarrantyPartRepository customerWarrantyPartRepository;
 
     @Override
     public List<String> getMaintenanceManagementStatuses(){
@@ -530,6 +532,21 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             throw new EntityValidationException(MaintenanceManagementConstants.MESSAGE_ERR_INVALID_STATUS_TRANSITION);
         }
 
+        // ✅ Kiểm tra nếu có maintenance record chưa được duyệt thì không cho phép chuyển trạng thái
+        maintenanceManagementRepository.flush();
+        List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
+        
+        if (maintenanceRecords != null && !maintenanceRecords.isEmpty()) {
+            // Kiểm tra xem có record nào chưa được approved không
+            boolean hasUnapprovedRecord = maintenanceRecords.stream()
+                    .anyMatch(record -> !Boolean.TRUE.equals(record.getApprovedByUser()));
+            
+            if (hasUnapprovedRecord) {
+                log.warn("⚠️ Cannot change status - there are maintenance records not approved by customer for maintenance management: {}", id);
+                throw new EntityValidationException("Không thể chuyển trạng thái. Vui lòng đợi khách hàng duyệt tất cả các phụ tùng đã sử dụng trước khi chuyển trạng thái.");
+            }
+        }
+
         // ====== CASE 1: Khi chuyển sang IN_PROGRESS ======
         if (newStatus == MaintenanceManagementStatusEnum.IN_PROGRESS) {
             // Tự động set startTime khi bắt đầu thực hiện
@@ -541,8 +558,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             // ✅ KHÔNG CẦN TRỪ STOCK NỮA - Đã trừ khi ADD record rồi!
             // Stock đã được trừ trong MaintenanceRecordServiceImpl.addMaintenanceRecords()
             // Chỉ cần update cost
-            List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
-            if (!maintenanceRecords.isEmpty()) {
+            if (maintenanceRecords != null && !maintenanceRecords.isEmpty()) {
                 // Cập nhật lại tổng chi phí bảo trì
                 maintenanceManagementRepository.flush();
                 maintenanceCostService.updateTotalCost(maintenanceManagement);
@@ -571,9 +587,8 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                 throw new EntityValidationException("Không tìm thấy thông tin cuộc hẹn liên quan đến bảo dưỡng này");
             }
 
-            // Force initialize maintenance records để tránh lazy loading exception
+            // Force initialize maintenance records để tránh lazy loading exception (đã có ở trên)
             maintenanceManagementRepository.flush();
-            List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
             
             // Kiểm tra maintenance records không null và không empty
             if (maintenanceRecords == null) {
@@ -582,6 +597,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             }
 
             // Kiểm tra toàn bộ maintenance record đã được user duyệt chưa
+            // (Đã kiểm tra ở đầu method, nhưng kiểm tra lại để đảm bảo)
             boolean allApproved = maintenanceRecords.isEmpty() || maintenanceRecords.stream()
                     .allMatch(record -> Boolean.TRUE.equals(record.getApprovedByUser()));
 
@@ -827,6 +843,41 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
         invoiceRepository.save(invoiceEntity);
         log.info(MaintenanceManagementConstants.LOG_INFO_AUTO_CREATED_INVOICE_FOR_APPOINTMENT, appointment.getAppointmentId());
 
+        // ✅ Nếu totalAmount = 0, tự động thanh toán và completed appointment
+        if (totalAmount.compareTo(BigDecimal.ZERO) == 0) {
+            log.info("💰 Invoice totalAmount is 0 - Auto-completing payment and appointment");
+            
+            // Tìm payment method CASH (hoặc tạo mới nếu chưa có)
+            PaymentMethodEntity cashPaymentMethod = paymentMethodRepository
+                    .findByMethodTypeAndIsDeletedFalse(MethodTypeEnum.CASH)
+                    .orElseGet(() -> {
+                        PaymentMethodEntity newCash = new PaymentMethodEntity();
+                        newCash.setMethodType(MethodTypeEnum.CASH);
+                        newCash.setProvider("Tiền mặt");
+                        newCash.setIsActive(true);
+                        newCash.setIsDeleted(false);
+                        return paymentMethodRepository.save(newCash);
+                    });
+
+            // Cập nhật invoice
+            invoiceEntity.setPaymentMethod(cashPaymentMethod);
+            invoiceEntity.setPaidAmount(BigDecimal.ZERO);
+            invoiceEntity.setStatus(InvoiceStatusEnum.PAID);
+            invoiceRepository.save(invoiceEntity);
+            log.info("✅ Invoice {} auto-marked as PAID (totalAmount = 0)", invoiceEntity.getInvoiceId());
+
+            // Cập nhật appointment sang COMPLETED
+            appointment.setStatus(AppointmentStatusEnum.COMPLETED);
+            appointmentRepository.save(appointment);
+            appointmentRepository.flush();
+            log.info("✅ Appointment {} auto-marked as COMPLETED (invoice totalAmount = 0)", appointment.getAppointmentId());
+            
+            // Tự động cập nhật shift status sang COMPLETED (sẽ được xử lý bởi invoiceService khi thanh toán)
+            // Reset warranty date cho các phụ tùng được sử dụng trong appointment
+            // (sẽ được xử lý bởi invoiceService khi thanh toán)
+            // Gửi email xác nhận thanh toán sẽ được gửi qua sendCompletionEmail bên dưới
+        }
+
         // Gửi email thông báo hoàn thành và hóa đơn cho khách hàng
         sendCompletionEmail(appointment, totalAmount);
     }
@@ -874,7 +925,7 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
 
     /**
      * Tính tổng số tiền giảm giá từ warranty parts cho tất cả maintenance managements
-     * Nếu là warranty appointment, kiểm tra warranty appointments trước đó và áp dụng giảm giá cho phụ tùng được bảo hành
+     * Kiểm tra CustomerWarrantyPart active để áp dụng giảm giá cho phụ tùng được bảo hành
      */
     private BigDecimal calculateTotalWarrantyDiscount(List<MaintenanceManagementEntity> maintenanceManagements, AppointmentEntity currentAppointment) {
         BigDecimal totalDiscount = BigDecimal.ZERO;
@@ -883,80 +934,19 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
             return totalDiscount;
         }
 
-        // Nếu là warranty appointment, kiểm tra warranty appointments trước đó
-        if (Boolean.TRUE.equals(currentAppointment.getIsWarrantyAppointment()) && currentAppointment.getOriginalAppointment() != null) {
-            AppointmentEntity originalAppointment = currentAppointment.getOriginalAppointment();
-            
-            // Kiểm tra khách hàng có khớp không (customer full name, email, phone, hoặc customer_id)
-            boolean customerMatches = checkCustomerMatches(currentAppointment, originalAppointment);
-            
-            if (customerMatches) {
-                // Kiểm tra dịch vụ giống nhau
-                boolean servicesMatch = checkServicesMatch(currentAppointment, originalAppointment);
-                
-                if (servicesMatch) {
-                    // Áp dụng giảm giá cho phụ tùng được bảo hành từ appointment gốc
-                    for (MaintenanceManagementEntity maintenanceManagement : maintenanceManagements) {
-                        try {
-                            List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
-                            
-                            if (maintenanceRecords == null || maintenanceRecords.isEmpty()) {
-                                continue;
-                            }
-
-                            for (MaintenanceRecordEntity record : maintenanceRecords) {
-                                try {
-                                    // Chỉ tính giảm giá cho các record đã được approved
-                                    if (!Boolean.TRUE.equals(record.getApprovedByUser())) {
-                                        continue;
-                                    }
-
-                                    if (record.getVehiclePart() == null || record.getQuantityUsed() == null) {
-                                        continue;
-                                    }
-
-                                    UUID vehiclePartId = record.getVehiclePart().getVehiclePartId();
-                                    
-                                    // Kiểm tra phụ tùng này có trong appointment gốc không và có warranty part active không
-                                    boolean isPartInOriginalAppointment = checkPartInOriginalAppointment(vehiclePartId, originalAppointment);
-                                    
-                                    if (isPartInOriginalAppointment) {
-                                        // Lấy warranty part active cho vehicle part này
-                                        WarrantyPartEntity warrantyPart = warrantyPartRepository
-                                                .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
-                                                .orElse(null);
-
-                                        if (warrantyPart != null) {
-                                            // Tính số tiền giảm giá cho record này
-                                            BigDecimal discountAmount = calculateWarrantyDiscountForRecord(record, warrantyPart);
-                                            totalDiscount = totalDiscount.add(discountAmount);
-                                            log.info("✅ Applied warranty discount for part {} from original appointment: {} VNĐ", 
-                                                    record.getVehiclePart().getVehiclePartName(), discountAmount);
-                                        }
-                                    }
-                                } catch (Exception e) {
-                                    log.error("❌ Error calculating warranty discount for record {}: {}", 
-                                            record != null ? record.getMaintenanceRecordId() : "null", e.getMessage(), e);
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.error("❌ Error processing maintenance records for maintenance management {}: {}", 
-                                    maintenanceManagement != null ? maintenanceManagement.getMaintenanceManagementId() : "null", 
-                                    e.getMessage(), e);
-                        }
-                    }
-                    
-                    if (totalDiscount.compareTo(BigDecimal.ZERO) > 0) {
-                        log.info("✅ Total warranty discount applied for warranty appointment {}: {} VNĐ", 
-                                currentAppointment.getAppointmentId(), totalDiscount);
-                    }
-                    
-                    return totalDiscount;
-                }
-            }
+        // ✅ CHỈ áp dụng warranty discount nếu appointment có isWarrantyAppointment = true
+        if (!Boolean.TRUE.equals(currentAppointment.getIsWarrantyAppointment())) {
+            log.debug("⚠️ Skipping warranty discount calculation - appointment {} is not a warranty appointment (isWarrantyAppointment = false)", 
+                    currentAppointment.getAppointmentId());
+            return totalDiscount;
         }
-
-        // Nếu không phải warranty appointment hoặc không khớp với appointment gốc, tính giảm giá bình thường
+        
+        // Lấy thông tin customer
+        UUID customerId = currentAppointment.getCustomer() != null ? currentAppointment.getCustomer().getUserId() : null;
+        String customerEmail = currentAppointment.getCustomerEmail();
+        String customerPhoneNumber = currentAppointment.getCustomerPhoneNumber();
+        
+        // Áp dụng giảm giá cho phụ tùng có warranty active
         for (MaintenanceManagementEntity maintenanceManagement : maintenanceManagements) {
             try {
                 List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
@@ -978,18 +968,45 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
 
                         UUID vehiclePartId = record.getVehiclePart().getVehiclePartId();
                         
-                        // Lấy warranty part active cho vehicle part này
-                        WarrantyPartEntity warrantyPart = warrantyPartRepository
-                                .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                        // Kiểm tra customer có warranty active cho phụ tùng này không
+                        // CHỈ áp dụng warranty nếu đã có appointment COMPLETED trước đó (không phải appointment hiện tại)
+                        com.fpt.evcare.entity.CustomerWarrantyPartEntity customerWarranty = customerWarrantyPartRepository
+                                .findActiveWarrantyByCustomerAndVehiclePart(
+                                        customerId,
+                                        customerEmail,
+                                        customerPhoneNumber,
+                                        vehiclePartId,
+                                        LocalDateTime.now()
+                                )
                                 .orElse(null);
+                        
+                        // Đảm bảo warranty đến từ appointment KHÁC appointment hiện tại
+                        // (Warranty chỉ được áp dụng từ appointment thứ 2 trở đi)
+                        if (customerWarranty != null && 
+                            customerWarranty.getAppointment() != null &&
+                            !customerWarranty.getAppointment().getAppointmentId().equals(currentAppointment.getAppointmentId())) {
+                            
+                            // Lấy warranty part active cho vehicle part này
+                            WarrantyPartEntity warrantyPart = warrantyPartRepository
+                                    .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
+                                    .orElse(null);
 
-                        if (warrantyPart == null) {
-                            continue;
+                            if (warrantyPart != null) {
+                                // Tính số tiền giảm giá cho record này
+                                BigDecimal discountAmount = calculateWarrantyDiscountForRecord(record, warrantyPart);
+                                totalDiscount = totalDiscount.add(discountAmount);
+                                log.info("✅ Applied warranty discount for part {} (CustomerWarrantyPart from appointment {}): {} VNĐ", 
+                                        record.getVehiclePart().getVehiclePartName(),
+                                        customerWarranty.getAppointment().getAppointmentId(),
+                                        discountAmount);
+                            }
+                        } else if (customerWarranty != null && 
+                                   customerWarranty.getAppointment() != null &&
+                                   customerWarranty.getAppointment().getAppointmentId().equals(currentAppointment.getAppointmentId())) {
+                            // Warranty đến từ chính appointment hiện tại -> không áp dụng (đây là appointment đầu tiên)
+                            log.debug("⚠️ Skipping warranty discount - warranty from current appointment {} (first appointment, no discount applied)", 
+                                    currentAppointment.getAppointmentId());
                         }
-
-                        // Tính số tiền giảm giá cho record này
-                        BigDecimal discountAmount = calculateWarrantyDiscountForRecord(record, warrantyPart);
-                        totalDiscount = totalDiscount.add(discountAmount);
                     } catch (Exception e) {
                         log.error("❌ Error calculating warranty discount for record {}: {}", 
                                 record != null ? record.getMaintenanceRecordId() : "null", e.getMessage(), e);
@@ -1001,112 +1018,15 @@ public class MaintenanceManagementServiceImpl implements MaintenanceManagementSe
                         e.getMessage(), e);
             }
         }
-
+        
+        if (totalDiscount.compareTo(BigDecimal.ZERO) > 0) {
+            log.info("✅ Total warranty discount applied for appointment {}: {} VNĐ", 
+                    currentAppointment.getAppointmentId(), totalDiscount);
+        }
+        
         return totalDiscount;
     }
 
-    /**
-     * Kiểm tra khách hàng có khớp không (customer full name, email, phone, hoặc customer_id)
-     */
-    private boolean checkCustomerMatches(AppointmentEntity currentAppointment, AppointmentEntity originalAppointment) {
-        // Kiểm tra customer_id nếu cả hai đều có customer
-        if (currentAppointment.getCustomer() != null && originalAppointment.getCustomer() != null) {
-            if (currentAppointment.getCustomer().getUserId().equals(originalAppointment.getCustomer().getUserId())) {
-                return true;
-            }
-        }
-        
-        // Kiểm tra customer full name
-        if (currentAppointment.getCustomerFullName() != null && originalAppointment.getCustomerFullName() != null) {
-            if (currentAppointment.getCustomerFullName().equalsIgnoreCase(originalAppointment.getCustomerFullName())) {
-                return true;
-            }
-        }
-        
-        // Kiểm tra email
-        if (currentAppointment.getCustomerEmail() != null && originalAppointment.getCustomerEmail() != null) {
-            if (currentAppointment.getCustomerEmail().equalsIgnoreCase(originalAppointment.getCustomerEmail())) {
-                return true;
-            }
-        }
-        
-        // Kiểm tra phone
-        if (currentAppointment.getCustomerPhoneNumber() != null && originalAppointment.getCustomerPhoneNumber() != null) {
-            if (currentAppointment.getCustomerPhoneNumber().equals(originalAppointment.getCustomerPhoneNumber())) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
-     * Kiểm tra dịch vụ có giống nhau không
-     */
-    private boolean checkServicesMatch(AppointmentEntity currentAppointment, AppointmentEntity originalAppointment) {
-        // Lấy service types từ cả hai appointments
-        List<ServiceTypeEntity> currentServices = currentAppointment.getServiceTypeEntities();
-        List<ServiceTypeEntity> originalServices = originalAppointment.getServiceTypeEntities();
-        
-        if (currentServices == null || originalServices == null || currentServices.isEmpty() || originalServices.isEmpty()) {
-            return false;
-        }
-        
-        // So sánh số lượng dịch vụ
-        if (currentServices.size() != originalServices.size()) {
-            return false;
-        }
-        
-        // Kiểm tra từng dịch vụ có khớp không
-        List<UUID> currentServiceIds = currentServices.stream()
-                .map(ServiceTypeEntity::getServiceTypeId)
-                .sorted()
-                .toList();
-        
-        List<UUID> originalServiceIds = originalServices.stream()
-                .map(ServiceTypeEntity::getServiceTypeId)
-                .sorted()
-                .toList();
-        
-        return currentServiceIds.equals(originalServiceIds);
-    }
-
-    /**
-     * Kiểm tra phụ tùng có trong appointment gốc không và có warranty part active không
-     */
-    private boolean checkPartInOriginalAppointment(UUID vehiclePartId, AppointmentEntity originalAppointment) {
-        // Lấy tất cả maintenance managements từ appointment gốc
-        List<MaintenanceManagementEntity> originalMaintenanceManagements = maintenanceManagementRepository
-                .findByAppointmentIdAndIsDeletedFalse(originalAppointment.getAppointmentId());
-        
-        if (originalMaintenanceManagements == null || originalMaintenanceManagements.isEmpty()) {
-            return false;
-        }
-        
-        // Kiểm tra phụ tùng có trong maintenance records của appointment gốc không
-        for (MaintenanceManagementEntity maintenanceManagement : originalMaintenanceManagements) {
-            List<MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
-            
-            if (maintenanceRecords == null || maintenanceRecords.isEmpty()) {
-                continue;
-            }
-            
-            for (MaintenanceRecordEntity record : maintenanceRecords) {
-                if (record.getVehiclePart() != null && 
-                    record.getVehiclePart().getVehiclePartId().equals(vehiclePartId) &&
-                    Boolean.TRUE.equals(record.getApprovedByUser())) {
-                    // Kiểm tra phụ tùng này có warranty part active không
-                    WarrantyPartEntity warrantyPart = warrantyPartRepository
-                            .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
-                            .orElse(null);
-                    
-                    return warrantyPart != null;
-                }
-            }
-        }
-        
-        return false;
-    }
 
     /**
      * Tính số tiền giảm giá cho một maintenance record dựa trên warranty part

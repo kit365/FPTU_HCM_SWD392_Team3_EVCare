@@ -87,10 +87,6 @@ public class AppointmentEntity extends BaseEntity {
     @Builder.Default
     Boolean isWarrantyAppointment = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "original_appointment_id")
-    AppointmentEntity originalAppointment; // Liên kết với appointment gốc nếu đây là appointment bảo hành
-
     @ManyToMany
     @JoinTable(
             name = "appointment_service_types",

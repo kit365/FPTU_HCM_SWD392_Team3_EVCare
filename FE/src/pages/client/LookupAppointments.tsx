@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Table, Input, Button, Space, Typography, Tag, message, Card, Modal } from "antd";
+import { Table, Input, Button, Space, Typography, Tag, message, Card, Modal, Form, TreeSelect, DatePicker } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import dayjs, { Dayjs } from "dayjs";
+const { SHOW_PARENT } = TreeSelect;
 import { bookingService } from "../../service/bookingService";
 import { useNavigate } from "react-router-dom";
 import { Receipt } from "@mui/icons-material";
@@ -98,6 +100,29 @@ const LookupAppointmentsPage: React.FC = () => {
   const [warrantyModalVisible, setWarrantyModalVisible] = useState<boolean>(false);
   const [selectedOriginalAppointment, setSelectedOriginalAppointment] = useState<AppointmentRow | null>(null);
   const [creatingWarranty, setCreatingWarranty] = useState<boolean>(false);
+  const [warrantyOtpModalOpen, setWarrantyOtpModalOpen] = useState(false);
+  const [warrantyGuestEmail, setWarrantyGuestEmail] = useState<string>("");
+  const [warrantyOtpCode, setWarrantyOtpCode] = useState<string>("");
+  const [sendingWarrantyOtp, setSendingWarrantyOtp] = useState(false);
+  const [verifyingWarrantyOtp, setVerifyingWarrantyOtp] = useState(false);
+  const [verifiedGuestInfo, setVerifiedGuestInfo] = useState<{ email: string; otp: string; appointmentId: string; appointmentData?: any } | null>(null);
+  
+  // OTP modal states for invoice (guest)
+  const [invoiceOtpModalOpen, setInvoiceOtpModalOpen] = useState(false);
+  const [invoiceGuestEmail, setInvoiceGuestEmail] = useState<string>("");
+  const [invoiceOtpCode, setInvoiceOtpCode] = useState<string>("");
+  const [sendingInvoiceOtp, setSendingInvoiceOtp] = useState(false);
+  const [verifyingInvoiceOtp, setVerifyingInvoiceOtp] = useState(false);
+  const [pendingInvoiceAction, setPendingInvoiceAction] = useState<{ appointmentId: string; email: string } | null>(null);
+  
+  // Warranty form states
+  const [warrantyForm] = Form.useForm();
+  const [warrantyVehicleTypes, setWarrantyVehicleTypes] = useState<any[]>([]);
+  const [warrantyServiceTypes, setWarrantyServiceTypes] = useState<any[]>([]);
+  const [warrantyServiceModes, setWarrantyServiceModes] = useState<string[]>([]);
+  const [warrantySelectedVehicleTypeId, setWarrantySelectedVehicleTypeId] = useState<string>("");
+  const [warrantyOriginalServiceIds, setWarrantyOriginalServiceIds] = useState<string[]>([]); // Service IDs từ appointment cũ
+  const [loadingWarrantyData, setLoadingWarrantyData] = useState(false);
 
   // Load invoice when modal opens (chỉ load 1 lần khi modal mở)
   useEffect(() => {
@@ -117,6 +142,24 @@ const LookupAppointmentsPage: React.FC = () => {
       console.log("💰 Invoice loaded:", invoice);
       console.log("📋 Maintenance details:", invoice.maintenanceDetails);
       console.log("📋 Maintenance details type:", typeof invoice.maintenanceDetails, Array.isArray(invoice.maintenanceDetails));
+      if (invoice.maintenanceDetails && Array.isArray(invoice.maintenanceDetails)) {
+        invoice.maintenanceDetails.forEach((mm, mmIndex) => {
+          if (mm.partsUsed && Array.isArray(mm.partsUsed)) {
+            mm.partsUsed.forEach((part: any, partIndex: number) => {
+              if (part.isUnderWarranty) {
+                console.log(`🔍 Part ${mmIndex}-${partIndex} (${part.partName}):`, {
+                  isUnderWarranty: part.isUnderWarranty,
+                  originalPrice: part.originalPrice,
+                  totalPrice: part.totalPrice,
+                  warrantyDiscountType: part.warrantyDiscountType,
+                  warrantyDiscountValue: part.warrantyDiscountValue,
+                  warrantyDiscountAmount: part.warrantyDiscountAmount,
+                });
+              }
+            });
+          }
+        });
+      }
       setPaidAmount(invoice.totalAmount);
     }
   }, [invoice]);
@@ -181,10 +224,30 @@ const LookupAppointmentsPage: React.FC = () => {
     };
   }, []);
 
-  const handleViewInvoice = (appointmentId: string) => {
-    // Cho phép cả khách vãng lai và đã đăng nhập xem hóa đơn để thanh toán
+  const handleViewInvoice = (appointmentId: string, record?: AppointmentRow) => {
+    // Nếu user đã đăng nhập, mở invoice modal trực tiếp
+    if (user?.userId) {
     setSelectedAppointmentId(appointmentId);
     setInvoiceModalOpen(true);
+      return;
+    }
+    
+    // Nếu là guest, mở OTP verification modal trước
+    if (record) {
+      setPendingInvoiceAction({ appointmentId, email: record.customerEmail });
+      setInvoiceGuestEmail(record.customerEmail);
+      setInvoiceOtpModalOpen(true);
+    } else {
+      // Fallback: nếu không có record, tìm trong data
+      const foundRecord = data.find(r => r.appointmentId === appointmentId);
+      if (foundRecord) {
+        setPendingInvoiceAction({ appointmentId, email: foundRecord.customerEmail });
+        setInvoiceGuestEmail(foundRecord.customerEmail);
+        setInvoiceOtpModalOpen(true);
+      } else {
+        message.error("Không tìm thấy thông tin cuộc hẹn");
+      }
+    }
   };
 
   const handleViewDetailForGuest = (record: AppointmentRow) => {
@@ -199,48 +262,199 @@ const LookupAppointmentsPage: React.FC = () => {
     setOtpModalOpen(true);
   };
 
-  const handleRequestWarranty = (record: AppointmentRow) => {
+  const handleRequestWarranty = async (record: AppointmentRow) => {
+    // Nếu là guest, mở OTP verification modal trước
     if (!user?.userId) {
-      message.warning("Vui lòng đăng nhập để yêu cầu bảo hành");
+      setSelectedOriginalAppointment(record);
+      setWarrantyGuestEmail(record.customerEmail);
+      setWarrantyOtpModalOpen(true);
       return;
     }
-    setSelectedOriginalAppointment(record);
-    setWarrantyModalVisible(true);
+    
+    // Nếu user đã đăng nhập, navigate đến ServiceBooking với warranty mode
+    navigate(`/client/booking?appointmentId=${record.appointmentId}&mode=warranty`);
   };
 
-  const handleCreateWarrantyAppointment = async () => {
-    if (!selectedOriginalAppointment || !user?.userId) {
+  const loadWarrantyFormData = async (appointmentId: string) => {
+    try {
+      setLoadingWarrantyData(true);
+      
+      // Load appointment data
+      let appointmentData;
+      if (!user?.userId && verifiedGuestInfo?.appointmentData) {
+        appointmentData = verifiedGuestInfo.appointmentData;
+      } else {
+        const appointmentDetail = await bookingService.getAppointmentById(appointmentId);
+        appointmentData = appointmentDetail.data.data;
+      }
+
+      // Load vehicle types
+      const vehicleTypesRes = await bookingService.getVehicleTypes({});
+      if (vehicleTypesRes.data.success && vehicleTypesRes.data.data?.data) {
+        setWarrantyVehicleTypes(vehicleTypesRes.data.data.data);
+      }
+
+      // Load service modes
+      const serviceModesRes = await bookingService.getServiceModes();
+      if (serviceModesRes.data.success && serviceModesRes.data.data) {
+        setWarrantyServiceModes(serviceModesRes.data.data);
+      }
+
+      // Load service types for vehicle type
+      if (appointmentData.vehicleTypeResponse?.vehicleTypeId) {
+        const vehicleTypeId = appointmentData.vehicleTypeResponse.vehicleTypeId;
+        setWarrantySelectedVehicleTypeId(vehicleTypeId);
+        
+        const serviceTypesRes = await bookingService.getServiceTypesByVehicleId(vehicleTypeId, {});
+        if (serviceTypesRes.data.success && serviceTypesRes.data.data?.data) {
+          setWarrantyServiceTypes(serviceTypesRes.data.data.data);
+        }
+
+        // Extract original service IDs from appointment
+        const originalServiceIds: string[] = [];
+        if (appointmentData.serviceTypeResponses) {
+          const extractServiceIds = (services: any[]) => {
+            services.forEach((service: any) => {
+              if (service.serviceTypeId) {
+                originalServiceIds.push(service.serviceTypeId);
+              }
+              if (service.children && service.children.length > 0) {
+                extractServiceIds(service.children);
+              }
+            });
+          };
+          extractServiceIds(appointmentData.serviceTypeResponses);
+        }
+        setWarrantyOriginalServiceIds(originalServiceIds);
+
+        // Fill form with appointment data
+        const formServiceIds = originalServiceIds.length > 0 ? originalServiceIds : undefined;
+        warrantyForm.setFieldsValue({
+          customerName: appointmentData.customerFullName || selectedOriginalAppointment?.customerFullName,
+          phone: appointmentData.customerPhoneNumber || selectedOriginalAppointment?.customerPhoneNumber,
+          email: appointmentData.customerEmail || selectedOriginalAppointment?.customerEmail,
+          vehicleType: vehicleTypeId,
+          mileage: appointmentData.vehicleKmDistances || "",
+          licensePlate: appointmentData.vehicleNumberPlate || selectedOriginalAppointment?.vehicleNumberPlate,
+          services: formServiceIds,
+          serviceType: appointmentData.serviceMode || "STATIONARY",
+          userAddress: appointmentData.userAddress || "",
+          location: appointmentData.serviceMode === "STATIONARY" ? "Vũng Tàu" : "",
+          dateTime: dayjs().add(1, 'day'),
+          notes: `Yêu cầu bảo hành cho appointment ${appointmentId}`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error loading warranty form data:", error);
+      message.error(error?.response?.data?.message || "Không thể tải thông tin. Vui lòng thử lại.");
+    } finally {
+      setLoadingWarrantyData(false);
+    }
+  };
+
+  const handleCreateWarrantyAppointment = async (values: any) => {
+    if (!selectedOriginalAppointment) {
       message.error("Thông tin không đầy đủ");
+      return;
+    }
+
+    // Kiểm tra nếu là guest thì phải có verifiedGuestInfo
+    if (!user?.userId && !verifiedGuestInfo) {
+      message.error("Vui lòng xác thực email trước");
       return;
     }
 
     try {
       setCreatingWarranty(true);
-      const appointmentDetail = await bookingService.getAppointmentById(selectedOriginalAppointment.appointmentId);
-      const appointmentData = appointmentDetail.data.data;
+
+      // Process service selection
+      const processServiceSelection = (selectedServices: string[], serviceTreeData: any[]): string[] => {
+        if (!selectedServices || selectedServices.length === 0) return [];
+        const result: string[] = [];
+        const findServiceInTree = (services: any[], id: string): any => {
+          for (const service of services) {
+            if (service.serviceTypeId === id) return service;
+            if (service.children) {
+              const found = findServiceInTree(service.children, id);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        selectedServices.forEach(serviceId => {
+          const selectedService = findServiceInTree(serviceTreeData, serviceId);
+          if (selectedService) {
+            if (selectedService.children && selectedService.children.length > 0) {
+              const selectedChildren = selectedServices.filter(id =>
+                selectedService.children?.some((child: any) => child.serviceTypeId === id)
+              );
+              if (selectedChildren.length === 0) {
+                selectedService.children?.forEach((child: any) => {
+                  result.push(child.serviceTypeId);
+                });
+              } else {
+                result.push(...selectedChildren);
+              }
+            } else {
+              result.push(serviceId);
+            }
+          }
+        });
+        return [...new Set(result)];
+      };
+
+      const buildServiceTree = (services: any[]) => {
+        return services.map((service) => ({
+          title: service.serviceName,
+          value: service.serviceTypeId,
+          key: service.serviceTypeId,
+          serviceTypeId: service.serviceTypeId,
+          children: service.children && service.children.length > 0
+            ? service.children.map((child: any) => ({
+              title: child.serviceName,
+              value: child.serviceTypeId,
+              key: child.serviceTypeId,
+              serviceTypeId: child.serviceTypeId,
+            }))
+            : undefined,
+        }));
+      };
+
+      const serviceTreeData = buildServiceTree(warrantyServiceTypes);
+      const processedServiceIds = processServiceSelection(values.services || [], serviceTreeData);
+
+      const dateValue = values.dateTime;
+      const formattedDate = dayjs.isDayjs(dateValue)
+        ? dateValue.format("YYYY-MM-DDTHH:mm:ss.SSS[Z]")
+        : new Date().toISOString();
 
       const warrantyAppointmentData = {
-        customerId: user.userId,
-        customerFullName: selectedOriginalAppointment.customerFullName,
-        customerPhoneNumber: selectedOriginalAppointment.customerPhoneNumber,
-        customerEmail: selectedOriginalAppointment.customerEmail,
-        vehicleTypeId: appointmentData.vehicleTypeResponse?.vehicleTypeId || "",
-        vehicleNumberPlate: selectedOriginalAppointment.vehicleNumberPlate,
-        vehicleKmDistances: appointmentData.vehicleKmDistances || "",
-        userAddress: appointmentData.userAddress || "",
-        serviceMode: appointmentData.serviceMode || "STATIONARY",
-        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mặc định 1 ngày sau
-        notes: `Yêu cầu bảo hành cho appointment ${selectedOriginalAppointment.appointmentId}`,
-        serviceTypeIds: appointmentData.serviceTypeResponses?.map((s: any) => s.serviceTypeId) || [],
+        customerId: user?.userId || undefined,
+        customerFullName: values.customerName,
+        customerPhoneNumber: values.phone || "",
+        customerEmail: values.email,
+        vehicleTypeId: values.vehicleType,
+        vehicleNumberPlate: values.licensePlate,
+        vehicleKmDistances: values.mileage || "",
+        userAddress: values.userAddress || values.location || "",
+        serviceMode: values.serviceType,
+        scheduledAt: formattedDate,
+        notes: values.notes || `Yêu cầu bảo hành cho appointment ${selectedOriginalAppointment.appointmentId}`,
+        serviceTypeIds: processedServiceIds,
         isWarrantyAppointment: true,
-        originalAppointmentId: selectedOriginalAppointment.appointmentId,
       };
 
       await bookingService.createAppointment(warrantyAppointmentData);
       
       message.success("Đã tạo yêu cầu bảo hành thành công!");
       setWarrantyModalVisible(false);
+      warrantyForm.resetFields();
       setSelectedOriginalAppointment(null);
+      setVerifiedGuestInfo(null);
+      setWarrantyOtpCode("");
+      setWarrantySelectedVehicleTypeId("");
+      setWarrantyOriginalServiceIds([]);
       fetchData(page, pageSize, keyword);
     } catch (error: any) {
       console.error("Error creating warranty appointment:", error);
@@ -249,6 +463,20 @@ const LookupAppointmentsPage: React.FC = () => {
       setCreatingWarranty(false);
     }
   };
+
+  // Load warranty form data when modal opens (for authenticated users)
+  useEffect(() => {
+    if (warrantyModalVisible && selectedOriginalAppointment && user?.userId) {
+      loadWarrantyFormData(selectedOriginalAppointment.appointmentId);
+    }
+  }, [warrantyModalVisible, selectedOriginalAppointment, user?.userId]);
+
+  // Load warranty form data after OTP verification (for guests)
+  useEffect(() => {
+    if (warrantyModalVisible && selectedOriginalAppointment && !user?.userId && verifiedGuestInfo?.appointmentData) {
+      loadWarrantyFormData(selectedOriginalAppointment.appointmentId);
+    }
+  }, [warrantyModalVisible, verifiedGuestInfo?.appointmentData]);
 
   const handleCloseInvoiceModal = () => {
     // Dừng tất cả polling trước khi đóng modal
@@ -563,24 +791,25 @@ const LookupAppointmentsPage: React.FC = () => {
               type="link"
               size="small"
               icon={<Payment />}
-              onClick={() => handleViewInvoice(record.appointmentId)}
+              onClick={() => handleViewInvoice(record.appointmentId, record)}
               style={{ padding: 0, color: "#3b82f6", fontSize: "13px" }}
             >
               Thanh toán
             </Button>
           )}
-          {/* Hiển thị nút Hóa đơn khi đã hoàn thành và đã đăng nhập */}
-          {user && record.status === "COMPLETED" && (
+          {/* Hiển thị nút Hóa đơn khi đã hoàn thành */}
+          {record.status === "COMPLETED" && (
             <>
               <Button
                 type="link"
                 size="small"
                 icon={<Receipt />}
-                onClick={() => handleViewInvoice(record.appointmentId)}
+                onClick={() => handleViewInvoice(record.appointmentId, record)}
                 style={{ padding: 0, fontSize: "13px" }}
               >
                 Hóa đơn
               </Button>
+              {/* Hiển thị nút Yêu cầu bảo hành cho cả user đã đăng nhập và guest */}
               <Button
                 type="link"
                 size="small"
@@ -765,9 +994,9 @@ const LookupAppointmentsPage: React.FC = () => {
                                               alignItems: "flex-start",
                                               py: 1,
                                               px: 1.5,
-                                              backgroundColor: "#f9fafb",
+                                              backgroundColor: (part as any)?.isUnderWarranty ? "#f0fdf4" : "#f9fafb",
                                               borderRadius: 1,
-                                              border: "1px solid #e5e7eb",
+                                              border: (part as any)?.isUnderWarranty ? "1px solid #d1fae5" : "1px solid #e5e7eb",
                                             }}
                                           >
                                             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, flexWrap: "wrap" }}>
@@ -781,25 +1010,56 @@ const LookupAppointmentsPage: React.FC = () => {
                                               )}
                                               {(part as any)?.isUnderWarranty && (
                                                 <Chip
-                                                  label="Bảo hành"
+                                                  label={
+                                                    (part as any)?.warrantyDiscountType === "FREE"
+                                                      ? "✓ Miễn phí (Bảo hành)"
+                                                      : (part as any)?.warrantyDiscountValue
+                                                        ? `✓ Giảm ${(part as any).warrantyDiscountValue}% (Bảo hành)`
+                                                        : "✓ Bảo hành"
+                                                  }
                                                   size="small"
                                                   sx={{
-                                                    backgroundColor: "#dcfce7",
-                                                    color: "#166534",
-                                                    fontSize: "0.85rem",
+                                                    backgroundColor: "#10b981",
+                                                    color: "white",
+                                                    fontSize: "0.8rem",
                                                     height: "24px",
                                                     fontWeight: 600,
                                                   }}
                                                 />
                                               )}
                                             </Box>
-                                            <Box sx={{ textAlign: "right", minWidth: "120px", flexShrink: 0 }}>
-                                              {(part as any)?.isUnderWarranty && (part as any)?.originalPrice ? (
+                                            <Box sx={{ textAlign: "right", minWidth: "150px", flexShrink: 0 }}>
+                                              {(part as any)?.isUnderWarranty ? (
                                                 <Box>
-                                                  <MuiTypography variant="caption" sx={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.9rem", display: "block" }}>
-                                                    {formatCurrency((part as any).originalPrice)}
-                                                  </MuiTypography>
-                                                  <MuiTypography variant="body2" sx={{ fontWeight: 600, color: "#10b981", fontSize: "1.05rem" }}>
+                                                  {(part as any)?.originalPrice && (part as any).originalPrice > 0 && (
+                                                    <MuiTypography variant="caption" sx={{ textDecoration: "line-through", color: "#9ca3af", fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                                      {formatCurrency((part as any).originalPrice)}
+                                                    </MuiTypography>
+                                                  )}
+                                                  {(part as any)?.warrantyDiscountType === "FREE" ? (
+                                                    <>
+                                                      <MuiTypography variant="caption" sx={{ color: "#10b981", fontSize: "0.85rem", fontWeight: 600, display: "block", mb: 0.25 }}>
+                                                        Miễn phí
+                                                      </MuiTypography>
+                                                      {(part as any)?.warrantyDiscountAmount && (part as any).warrantyDiscountAmount > 0 && (
+                                                        <MuiTypography variant="caption" sx={{ color: "#ef4444", fontSize: "0.85rem", fontWeight: 600, display: "block", mb: 0.25 }}>
+                                                          -{formatCurrency((part as any).warrantyDiscountAmount)}
+                                                        </MuiTypography>
+                                                      )}
+                                                    </>
+                                                  ) : (part as any)?.warrantyDiscountValue && (part as any).warrantyDiscountValue > 0 ? (
+                                                    <>
+                                                      <MuiTypography variant="caption" sx={{ color: "#ef4444", fontSize: "0.85rem", fontWeight: 600, display: "block", mb: 0.25 }}>
+                                                        Giảm {(part as any).warrantyDiscountValue}%
+                                                      </MuiTypography>
+                                                      {(part as any)?.warrantyDiscountAmount && (part as any).warrantyDiscountAmount > 0 && (
+                                                        <MuiTypography variant="caption" sx={{ color: "#ef4444", fontSize: "0.85rem", fontWeight: 600, display: "block", mb: 0.25 }}>
+                                                          -{formatCurrency((part as any).warrantyDiscountAmount)}
+                                                        </MuiTypography>
+                                                      )}
+                                                    </>
+                                                  ) : null}
+                                                  <MuiTypography variant="body2" sx={{ fontWeight: 700, color: "#10b981", fontSize: "1.1rem" }}>
                                                     {formatCurrency(part.totalPrice || 0)}
                                                   </MuiTypography>
                                                 </Box>
@@ -1228,14 +1488,16 @@ const LookupAppointmentsPage: React.FC = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Warranty Appointment Modal */}
+        {/* Invoice OTP Verification Modal for Guest */}
         <Dialog
-          open={warrantyModalVisible}
+          open={invoiceOtpModalOpen}
           onClose={() => {
-            setWarrantyModalVisible(false);
-            setSelectedOriginalAppointment(null);
+            setInvoiceOtpModalOpen(false);
+            setInvoiceOtpCode("");
+            setInvoiceGuestEmail("");
+            setPendingInvoiceAction(null);
           }}
-          maxWidth="sm"
+          maxWidth="md"
           fullWidth
           PaperProps={{
             sx: {
@@ -1243,46 +1505,629 @@ const LookupAppointmentsPage: React.FC = () => {
             }
           }}
         >
-          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem" }}>
-            Yêu cầu bảo hành
+          <DialogTitle sx={{ fontWeight: 800, fontSize: "1.85rem", pb: 3, px: 3, pt: 3 }}>
+            Xác thực email để xem hóa đơn
           </DialogTitle>
-          <DialogContent>
-            <Box sx={{ mt: 2 }}>
-              <Alert severity="info" sx={{ mb: 3 }}>
-                Bạn đang yêu cầu bảo hành cho appointment đã hoàn thành. Appointment bảo hành sẽ được tạo với cùng thông tin dịch vụ và phụ tùng như appointment gốc.
-              </Alert>
-              {selectedOriginalAppointment && (
-                <Box sx={{ p: 2, bgcolor: "#f0f0f0", borderRadius: 2, mb: 2 }}>
-                  <MuiTypography variant="body2" sx={{ color: "#666", mb: 1 }}>
-                    <strong>Appointment gốc:</strong> {selectedOriginalAppointment.appointmentId.substring(0, 8).toUpperCase()}
-                  </MuiTypography>
-                  <MuiTypography variant="body2" sx={{ color: "#666" }}>
-                    <strong>Ngày hoàn thành:</strong> {moment(selectedOriginalAppointment.scheduledAt).format("DD/MM/YYYY HH:mm")}
-                  </MuiTypography>
-                </Box>
-              )}
-              <MuiTypography variant="body2" sx={{ color: "#666" }}>
-                Appointment bảo hành sẽ được tạo với status PENDING và chờ xác nhận từ nhân viên.
-              </MuiTypography>
+          <DialogContent sx={{ px: 3, pb: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 4, mt: 1 }}>
+              <Box sx={{ p: 3, bgcolor: "#f0f7ff", borderRadius: 3, border: "2px solid #e0e7ff" }}>
+                <MuiTypography variant="h5" sx={{ fontSize: "1.5rem", fontWeight: 700, mb: 2, color: "#1e40af" }}>
+                  Xác thực danh tính
+                </MuiTypography>
+                <MuiTypography variant="body1" sx={{ fontSize: "1.2rem", color: "text.primary", lineHeight: 1.8, mb: 1.5 }}>
+                  Mã OTP sẽ được gửi đến email:{" "}
+                  <Box component="strong" sx={{ color: "#3b82f6", fontWeight: 700, fontSize: "1.25rem" }}>
+                    {invoiceGuestEmail}
+                  </Box>
+                </MuiTypography>
+                <MuiTypography variant="body1" sx={{ fontSize: "1.1rem", color: "text.secondary", mt: 1.5, lineHeight: 1.7 }}>
+                  Vui lòng kiểm tra hộp thư đến và nhập mã xác thực để tiếp tục xem hóa đơn.
+                </MuiTypography>
+              </Box>
+              <Button
+                variant="outlined"
+                onClick={async () => {
+                  if (!pendingInvoiceAction || !invoiceGuestEmail) {
+                    message.error("Thông tin không hợp lệ");
+                    return;
+                  }
+                  setSendingInvoiceOtp(true);
+                  try {
+                    await bookingService.sendOtpForGuestAppointment(pendingInvoiceAction.appointmentId, invoiceGuestEmail);
+                    message.success("Đã gửi mã OTP đến email của bạn. Vui lòng kiểm tra hộp thư đến.");
+                  } catch (error: any) {
+                    message.error(error?.response?.data?.message || "Không thể gửi mã OTP. Vui lòng thử lại.");
+                  } finally {
+                    setSendingInvoiceOtp(false);
+                  }
+                }}
+                disabled={sendingInvoiceOtp}
+                fullWidth
+                size="large"
+                sx={{
+                  py: 2,
+                  fontSize: "1.2rem",
+                  fontWeight: 600,
+                  minHeight: 56,
+                }}
+              >
+                {sendingInvoiceOtp ? <CircularProgress size={28} /> : "Gửi mã OTP"}
+              </Button>
+              <TextField
+                label="Nhập mã OTP"
+                value={invoiceOtpCode}
+                onChange={(e) => setInvoiceOtpCode(e.target.value.replace(/\D/g, ""))}
+                fullWidth
+                placeholder="Nhập mã OTP 6 chữ số"
+                inputProps={{ maxLength: 6, style: { fontSize: "1.5rem", textAlign: "center", letterSpacing: "0.8rem", fontWeight: 600 } }}
+                sx={{
+                  "& .MuiInputBase-input": {
+                    fontSize: "1.5rem",
+                    py: 2.5,
+                  },
+                  "& .MuiInputLabel-root": {
+                    fontSize: "1.15rem",
+                    fontWeight: 600,
+                  },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    fontSize: "1.15rem",
+                  },
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={async () => {
+                  if (!invoiceOtpCode || invoiceOtpCode.length !== 6) {
+                    message.error("Vui lòng nhập mã OTP hợp lệ (6 chữ số)");
+                    return;
+                  }
+                  if (!pendingInvoiceAction || !invoiceGuestEmail) {
+                    message.error("Thông tin không hợp lệ");
+                    return;
+                  }
+                  setVerifyingInvoiceOtp(true);
+                  try {
+                    // Verify OTP
+                    await bookingService.verifyOtpForGuestAppointment(
+                      pendingInvoiceAction.appointmentId,
+                      invoiceGuestEmail,
+                      invoiceOtpCode
+                    );
+                    
+                    // Đóng OTP modal và mở invoice modal
+                    setInvoiceOtpModalOpen(false);
+                    setInvoiceOtpCode("");
+                    message.success("Xác thực thành công!");
+                    
+                    // Mở invoice modal
+                    setSelectedAppointmentId(pendingInvoiceAction.appointmentId);
+                    setInvoiceModalOpen(true);
+                    setPendingInvoiceAction(null);
+                  } catch (error: any) {
+                    message.error(error?.response?.data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.");
+                  } finally {
+                    setVerifyingInvoiceOtp(false);
+                  }
+                }}
+                disabled={verifyingInvoiceOtp || !invoiceOtpCode || invoiceOtpCode.length !== 6}
+                fullWidth
+                size="large"
+                sx={{
+                  backgroundColor: "#3b82f6",
+                  "&:hover": { backgroundColor: "#2563eb" },
+                  py: 2,
+                  fontSize: "1.2rem",
+                  fontWeight: 600,
+                  minHeight: 56,
+                }}
+              >
+                {verifyingInvoiceOtp ? <CircularProgress size={28} sx={{ color: "white" }} /> : "Xác thực"}
+              </Button>
             </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
+            <Button
+              onClick={() => {
+                setInvoiceOtpModalOpen(false);
+                setInvoiceOtpCode("");
+                setInvoiceGuestEmail("");
+                setPendingInvoiceAction(null);
+              }}
+              size="large"
+              sx={{
+                fontSize: "1.15rem",
+                fontWeight: 600,
+                py: 1.5,
+                px: 3,
+              }}
+            >
+              Đóng
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Warranty OTP Verification Modal for Guest */}
+        <Dialog
+          open={warrantyOtpModalOpen}
+          onClose={() => {
+            setWarrantyOtpModalOpen(false);
+            setWarrantyOtpCode("");
+            setWarrantyGuestEmail("");
+            setSelectedOriginalAppointment(null);
+          }}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+            }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, fontSize: "1.85rem", pb: 3, px: 3, pt: 3 }}>
+            Xác thực email để yêu cầu bảo hành
+          </DialogTitle>
+          <DialogContent sx={{ px: 3, pb: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 4, mt: 1 }}>
+              <Box sx={{ p: 3, bgcolor: "#f0f7ff", borderRadius: 3, border: "2px solid #e0e7ff" }}>
+                <MuiTypography variant="h5" sx={{ fontSize: "1.5rem", fontWeight: 700, mb: 2, color: "#1e40af" }}>
+                  Xác thực danh tính
+                </MuiTypography>
+                <MuiTypography variant="body1" sx={{ fontSize: "1.2rem", color: "text.primary", lineHeight: 1.8, mb: 1.5 }}>
+                  Mã OTP sẽ được gửi đến email:{" "}
+                  <Box component="strong" sx={{ color: "#3b82f6", fontWeight: 700, fontSize: "1.25rem" }}>
+                    {warrantyGuestEmail}
+                  </Box>
+                </MuiTypography>
+                <MuiTypography variant="body1" sx={{ fontSize: "1.1rem", color: "text.secondary", mt: 1.5, lineHeight: 1.7 }}>
+                  Vui lòng kiểm tra hộp thư đến và nhập mã xác thực để tiếp tục yêu cầu bảo hành.
+                </MuiTypography>
+              </Box>
+              <Button
+                variant="outlined"
+                onClick={async () => {
+                  if (!selectedOriginalAppointment || !warrantyGuestEmail) {
+                    message.error("Thông tin không hợp lệ");
+                    return;
+                  }
+                  setSendingWarrantyOtp(true);
+                  try {
+                    await bookingService.sendOtpForGuestAppointment(selectedOriginalAppointment.appointmentId, warrantyGuestEmail);
+                    message.success("Đã gửi mã OTP đến email của bạn. Vui lòng kiểm tra hộp thư đến.");
+                  } catch (error: any) {
+                    message.error(error?.response?.data?.message || "Không thể gửi mã OTP. Vui lòng thử lại.");
+                  } finally {
+                    setSendingWarrantyOtp(false);
+                  }
+                }}
+                disabled={sendingWarrantyOtp}
+                fullWidth
+                size="large"
+                sx={{
+                  py: 2,
+                  fontSize: "1.2rem",
+                  fontWeight: 600,
+                  minHeight: 56,
+                }}
+              >
+                {sendingWarrantyOtp ? <CircularProgress size={28} /> : "Gửi mã OTP"}
+              </Button>
+              <TextField
+                label="Nhập mã OTP"
+                value={warrantyOtpCode}
+                onChange={(e) => setWarrantyOtpCode(e.target.value.replace(/\D/g, ""))}
+                fullWidth
+                placeholder="Nhập mã OTP 6 chữ số"
+                inputProps={{ maxLength: 6, style: { fontSize: "1.5rem", textAlign: "center", letterSpacing: "0.8rem", fontWeight: 600 } }}
+                sx={{
+                  "& .MuiInputBase-input": {
+                    fontSize: "1.5rem",
+                    py: 2.5,
+                  },
+                  "& .MuiInputLabel-root": {
+                    fontSize: "1.15rem",
+                    fontWeight: 600,
+                  },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    fontSize: "1.15rem",
+                  },
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={async () => {
+                  if (!warrantyOtpCode || warrantyOtpCode.length !== 6) {
+                    message.error("Vui lòng nhập mã OTP hợp lệ (6 chữ số)");
+                    return;
+                  }
+                  if (!selectedOriginalAppointment || !warrantyGuestEmail) {
+                    message.error("Thông tin không hợp lệ");
+                    return;
+                  }
+                  setVerifyingWarrantyOtp(true);
+                  try {
+                    // Verify OTP và lấy appointment data
+                    const appointmentData = await bookingService.verifyOtpForGuestAppointment(
+                      selectedOriginalAppointment.appointmentId,
+                      warrantyGuestEmail,
+                      warrantyOtpCode
+                    );
+                    
+                    // Lưu verified info kèm appointment data để dùng khi tạo warranty appointment
+                    setVerifiedGuestInfo({
+                      email: warrantyGuestEmail,
+                      otp: warrantyOtpCode,
+                      appointmentId: selectedOriginalAppointment.appointmentId,
+                      appointmentData: appointmentData,
+                    });
+                    
+                    // Đóng OTP modal
+                    setWarrantyOtpModalOpen(false);
+                    setWarrantyOtpCode("");
+                    message.success("Xác thực thành công!");
+                    
+                    // Lưu OTP info vào sessionStorage để ServiceBooking có thể sử dụng
+                    const guestEditInfo = {
+                      email: warrantyGuestEmail,
+                      otp: warrantyOtpCode,
+                      appointmentId: selectedOriginalAppointment.appointmentId,
+                    };
+                    sessionStorage.setItem("guestAppointmentEdit", JSON.stringify(guestEditInfo));
+                    
+                    // Navigate đến ServiceBooking với warranty mode
+                    navigate(`/client/booking?appointmentId=${selectedOriginalAppointment.appointmentId}&mode=warranty&guest=true`);
+                  } catch (error: any) {
+                    message.error(error?.response?.data?.message || "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.");
+                  } finally {
+                    setVerifyingWarrantyOtp(false);
+                  }
+                }}
+                disabled={verifyingWarrantyOtp || !warrantyOtpCode || warrantyOtpCode.length !== 6}
+                fullWidth
+                size="large"
+                sx={{
+                  backgroundColor: "#3b82f6",
+                  "&:hover": { backgroundColor: "#2563eb" },
+                  py: 2,
+                  fontSize: "1.2rem",
+                  fontWeight: 600,
+                  minHeight: 56,
+                }}
+              >
+                {verifyingWarrantyOtp ? <CircularProgress size={28} sx={{ color: "white" }} /> : "Xác thực"}
+              </Button>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
+            <Button
+              onClick={() => {
+                setWarrantyOtpModalOpen(false);
+                setWarrantyOtpCode("");
+                setWarrantyGuestEmail("");
+                setSelectedOriginalAppointment(null);
+              }}
+              size="large"
+              sx={{ 
+                fontSize: "1.15rem",
+                fontWeight: 600,
+                py: 1.5,
+                px: 3,
+              }}
+            >
+              Đóng
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Warranty Appointment Modal */}
+        <Dialog
+          open={warrantyModalVisible}
+          onClose={() => {
+            setWarrantyModalVisible(false);
+            setSelectedOriginalAppointment(null);
+            setVerifiedGuestInfo(null);
+            warrantyForm.resetFields();
+          }}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              maxHeight: "90vh",
+            }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 600, fontSize: "1.75rem", pb: 2 }}>
+            Yêu cầu bảo hành cuộc hẹn
+          </DialogTitle>
+          <DialogContent sx={{ overflowY: "auto" }}>
+            {loadingWarrantyData ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
+                <CircularProgress />
+                </Box>
+            ) : (
+              <Form
+                form={warrantyForm}
+                layout="vertical"
+                onFinish={handleCreateWarrantyAppointment}
+                className="space-y-4"
+              >
+                <Alert severity="info" sx={{ mb: 3, fontSize: "1.125rem", "& .MuiAlert-message": { fontSize: "1.125rem" } }}>
+                  Vui lòng kiểm tra và chỉnh sửa thông tin. Dịch vụ có màu xanh là những dịch vụ đã sử dụng trong cuộc hẹn trước và sẽ được bảo hành.
+                </Alert>
+
+                <div className="flex gap-[30px]">
+                  {/* Thông tin khách hàng */}
+                  <div className="w-[570px]">
+                    <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]" style={{ fontSize: "1.4rem" }}>Thông tin khách hàng</div>
+                    <Form.Item
+                      name="customerName"
+                      rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
+                      className="mb-[20px]"
+                    >
+                      <Input
+                        placeholder="Họ và tên"
+                        className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
+                        style={{ fontSize: "1.3rem" }}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="phone"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập số điện thoại" },
+                        { pattern: new RegExp(/\d+/g), message: "Cần nhập số!" },
+                        { min: 10, message: "Số điện thoại phải tối thiểu 10 số" },
+                      ]}
+                      className="mb-[20px]"
+                    >
+                      <Input
+                        placeholder="Số điện thoại"
+                        className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
+                        style={{ fontSize: "1.3rem" }}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="email"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập email" },
+                        { type: "email", message: "Email không hợp lệ" },
+                      ]}
+                    >
+                      <Input
+                        placeholder="Email"
+                        className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
+                        style={{ fontSize: "1.3rem" }}
+                      />
+                    </Form.Item>
+                  </div>
+
+                  {/* Thông tin xe */}
+                  <div className="w-[570px]">
+                    <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]" style={{ fontSize: "1.4rem" }}>Thông tin xe</div>
+                    <Form.Item
+                      name="vehicleType"
+                      rules={[{ required: true, message: "Vui lòng chọn mẫu xe" }]}
+                      className="mb-[20px]"
+                    >
+                      <Select
+                        placeholder="Mẫu xe"
+                        options={warrantyVehicleTypes.map((vt) => ({
+                          value: vt.vehicleTypeId,
+                          label: `${vt.vehicleTypeName} - ${vt.manufacturer} (${vt.modelYear})`,
+                        }))}
+                        className="w-full"
+                        style={{ height: '48px', fontSize: "1.3rem" }}
+                        disabled
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="mileage"
+                      className="mb-[20px]"
+                    >
+                      <Input
+                        placeholder="Số Km"
+                        className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
+                        style={{ fontSize: "1.3rem" }}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="licensePlate"
+                      rules={[
+                        { required: true, message: "Vui lòng nhập biển số xe" },
+                        { min: 7, message: "Biển số xe phải có ít nhất 7 ký tự" },
+                      ]}
+                    >
+                      <Input
+                        placeholder="Biển số xe"
+                        className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
+                        style={{ fontSize: "1.3rem" }}
+                      />
+                    </Form.Item>
+                  </div>
+                </div>
+
+                {/* Dịch vụ và Loại hình dịch vụ */}
+                <div className="flex gap-[30px] mt-[30px]">
+                  {/* Dịch vụ */}
+                  <div className="w-[570px]">
+                    <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]" style={{ fontSize: "1.4rem" }}>Dịch vụ</div>
+                    <Form.Item
+                      name="services"
+                      rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
+                    >
+                      <TreeSelect
+                        treeData={(() => {
+                          const buildServiceTree = (services: any[]) => {
+                            return services.map((service) => {
+                              const isInOriginal = warrantyOriginalServiceIds.includes(service.serviceTypeId);
+                              return {
+                                title: (
+                                  <span style={{ 
+                                    color: isInOriginal ? "#10b981" : "#9ca3af",
+                                    fontWeight: isInOriginal ? 600 : 400,
+                                    fontSize: "1.3rem"
+                                  }}>
+                                    {service.serviceName}
+                                    {isInOriginal && <span style={{ marginLeft: 8, fontSize: "1.1rem" }}>✓ (Bảo hành)</span>}
+                                  </span>
+                                ),
+                                value: service.serviceTypeId,
+                                key: service.serviceTypeId,
+                                serviceTypeId: service.serviceTypeId,
+                                children: service.children && service.children.length > 0
+                                  ? service.children.map((child: any) => {
+                                    const childIsInOriginal = warrantyOriginalServiceIds.includes(child.serviceTypeId);
+                                    return {
+                                      title: (
+                                        <span style={{ 
+                                          color: childIsInOriginal ? "#10b981" : "#9ca3af",
+                                          fontWeight: childIsInOriginal ? 600 : 400,
+                                          fontSize: "1.3rem"
+                                        }}>
+                                          {child.serviceName}
+                                          {childIsInOriginal && <span style={{ marginLeft: 8, fontSize: "1.1rem" }}>✓ (Bảo hành)</span>}
+                                        </span>
+                                      ),
+                                      value: child.serviceTypeId,
+                                      key: child.serviceTypeId,
+                                      serviceTypeId: child.serviceTypeId,
+                                    };
+                                  })
+                                  : undefined,
+                              };
+                            });
+                          };
+                          return buildServiceTree(warrantyServiceTypes);
+                        })()}
+                        treeCheckable
+                        showCheckedStrategy={SHOW_PARENT}
+                        placeholder="Vui lòng chọn dịch vụ"
+                        style={{ width: "100%", height: '48px', fontSize: "1.3rem" }}
+                        allowClear
+                      />
+                    </Form.Item>
+                  </div>
+
+                  {/* Loại hình dịch vụ */}
+                  <div className="w-[570px]">
+                    <div className="text-[#333] pt-[11px] pb-[13px] px-[16px] font-[500] bg-[#F5F5F5] mb-[20px]" style={{ fontSize: "1.4rem" }}>Loại hình dịch vụ</div>
+                    <Form.Item
+                      name="serviceType"
+                      rules={[{ required: true, message: "Vui lòng chọn thể loại" }]}
+                      className="mb-[20px]"
+                    >
+                      <Select
+                        placeholder="Chọn loại dịch vụ"
+                        options={warrantyServiceModes.map((mode) => {
+                          const serviceModeMap: { [key: string]: string } = {
+                            'STATIONARY': 'Tại trung tâm',
+                            'MOBILE': 'Di động (Tận nơi)',
+                          };
+                          return {
+                            value: mode,
+                            label: serviceModeMap[mode] || mode,
+                          };
+                        })}
+                        className="w-full"
+                        style={{ height: '48px', fontSize: "1.3rem" }}
+                      />
+                    </Form.Item>
+
+                    <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.serviceType !== currentValues.serviceType}>
+                      {({ getFieldValue }) => {
+                        const serviceTypeValue = getFieldValue('serviceType');
+                        if (serviceTypeValue === "STATIONARY") {
+                          return (
+                            <Form.Item name="location">
+                              <Input
+                                value="Vũng Tàu"
+                                disabled
+                                placeholder="Vũng Tàu"
+                                className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a] bg-gray-100"
+                                style={{ fontSize: "1.3rem" }}
+                              />
+                            </Form.Item>
+                          );
+                        }
+                        if (serviceTypeValue === "MOBILE") {
+                          return (
+                            <Form.Item
+                              name="userAddress"
+                              rules={[{ required: true, message: "Vui lòng nhập địa chỉ gặp nạn" }]}
+                            >
+                              <Input
+                                placeholder="Địa chỉ gặp nạn"
+                                className="border border-[#E2E6E7] py-[12px] px-[15px] w-full font-[500] outline-none text-[#1a1a1a]"
+                                style={{ fontSize: "1.3rem" }}
+                              />
+                            </Form.Item>
+                          );
+                        }
+                        return null;
+                      }}
+                    </Form.Item>
+                  </div>
+                </div>
+
+                {/* Thời gian hẹn */}
+                <div className="mt-[30px]">
+                  <Form.Item
+                    label={<span style={{ fontSize: "1.4rem", fontWeight: 500 }}>Thời gian hẹn</span>}
+                    name="dateTime"
+                    rules={[{ required: true, message: "Vui lòng chọn thời gian" }]}
+                  >
+                    <DatePicker
+                      showTime
+                      format="YYYY-MM-DD HH:mm:ss"
+                      className="w-full"
+                      placeholder="Chọn ngày và giờ"
+                      style={{ height: '48px', fontSize: "1.3rem" }}
+                    />
+                  </Form.Item>
+                </div>
+
+                {/* Ghi chú */}
+                <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+                  <h3 className="font-bold text-xl mb-6 text-gray-800 flex items-center" style={{ fontSize: "1.5rem" }}>
+                    <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-slate-500 rounded-lg flex items-center justify-center mr-3">
+                      <span className="text-white font-bold text-sm">5</span>
+                    </div>
+                    Ghi chú
+                  </h3>
+                  <Form.Item name="notes">
+                    <Input.TextArea 
+                      rows={4} 
+                      placeholder="Nhập ghi chú (nếu có)" 
+                      style={{ fontSize: "1.3rem" }}
+                    />
+                  </Form.Item>
+                </div>
+              </Form>
+            )}
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button
               onClick={() => {
                 setWarrantyModalVisible(false);
                 setSelectedOriginalAppointment(null);
+                setVerifiedGuestInfo(null);
+                warrantyForm.resetFields();
               }}
-              disabled={creatingWarranty}
+              disabled={creatingWarranty || loadingWarrantyData}
+              sx={{ fontSize: "1.125rem", py: 1.5, px: 3 }}
             >
               Hủy
             </Button>
             <Button
               variant="contained"
-              onClick={handleCreateWarrantyAppointment}
-              disabled={creatingWarranty}
+              onClick={() => warrantyForm.submit()}
+              disabled={creatingWarranty || loadingWarrantyData}
               startIcon={creatingWarranty ? <CircularProgress size={20} /> : <Construction />}
               sx={{
                 backgroundColor: "#f59e0b",
+                fontSize: "1.125rem",
+                py: 1.5,
+                px: 3,
+                fontWeight: 600,
                 "&:hover": {
                   backgroundColor: "#d97706",
                 },

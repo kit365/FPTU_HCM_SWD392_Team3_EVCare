@@ -98,6 +98,17 @@ export const MaintenanceManagementDetail: React.FC = () => {
 
   const handleUpdateStatus = async (newStatus: string) => {
     if (id && newStatus !== detail?.status) {
+      // ✅ Kiểm tra nếu có maintenance record chưa được duyệt thì không cho phép chuyển trạng thái
+      const maintenanceRecords = detail?.maintenanceRecords?.data;
+      if (maintenanceRecords && maintenanceRecords.length > 0) {
+        const hasUnapprovedRecord = maintenanceRecords.some((record: any) => !record?.approvedByUser);
+        
+        if (hasUnapprovedRecord) {
+          toast.error("Không thể chuyển trạng thái. Vui lòng đợi khách hàng duyệt tất cả các phụ tùng đã sử dụng trước khi chuyển trạng thái.");
+          return;
+        }
+      }
+
       const success = await updateStatus(id, newStatus);
       if (success) {
         getById(id, { page: 0, pageSize: 50 });
@@ -116,6 +127,17 @@ export const MaintenanceManagementDetail: React.FC = () => {
 
   const handleConfirmCompletion = async () => {
     if (!id) return;
+    
+    // ✅ Kiểm tra nếu có maintenance record chưa được duyệt thì không cho phép hoàn thành
+    const maintenanceRecords = detail?.maintenanceRecords?.data;
+    if (maintenanceRecords && maintenanceRecords.length > 0) {
+      const hasUnapprovedRecord = maintenanceRecords.some((record: any) => !record?.approvedByUser);
+      
+      if (hasUnapprovedRecord) {
+        toast.error("Không thể hoàn thành bảo dưỡng. Vui lòng đợi khách hàng duyệt tất cả các phụ tùng đã sử dụng trước khi hoàn thành.");
+        return;
+      }
+    }
     
     setCompleting(true);
     try {

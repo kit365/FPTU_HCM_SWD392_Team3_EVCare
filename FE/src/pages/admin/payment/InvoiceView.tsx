@@ -357,17 +357,17 @@ export const InvoiceView = () => {
           </Button>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Box>
-              <Typography variant="h4" sx={{ fontWeight: 600, color: "#111827", mb: 0.5 }}>
+              <Typography variant="h4" sx={{ fontWeight: 600, color: "#111827", mb: 0.5, fontSize: "1.75rem" }}>
                 Chi tiết hóa đơn
               </Typography>
-              <Typography sx={{ color: "#6b7280", fontSize: "0.875rem" }}>
+              <Typography sx={{ color: "#6b7280", fontSize: "1rem" }}>
                 Mã hóa đơn: {invoice.invoiceId.substring(0, 8).toUpperCase()}
               </Typography>
             </Box>
             <Chip
               label={getStatusLabel(invoice.status).label}
               color={getStatusLabel(invoice.status).color}
-              sx={{ height: 32, borderRadius: 1.5, fontSize: "0.875rem", fontWeight: 600, px: 2 }}
+              sx={{ height: 36, borderRadius: 1.5, fontSize: "1rem", fontWeight: 600, px: 2 }}
             />
           </Box>
         </Box>
@@ -382,31 +382,31 @@ export const InvoiceView = () => {
         >
           {/* Customer Info */}
           <Box sx={{ p: 3, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb" }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.125rem", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.375rem", mb: 2 }}>
               Thông tin khách hàng
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
               <Box>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                   Tên khách hàng:
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                   {invoice.customerName}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                   Email:
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                   {invoice.customerEmail}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                   Số điện thoại:
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                   {invoice.customerPhone}
                 </Typography>
               </Box>
@@ -416,32 +416,32 @@ export const InvoiceView = () => {
           {/* Vehicle Info */}
           {invoice.vehicleNumberPlate && (
             <Box sx={{ p: 3, borderBottom: "1px solid #e5e7eb" }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.125rem", mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.375rem", mb: 2 }}>
                 Thông tin xe
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                     Biển số xe:
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                     {invoice.vehicleNumberPlate}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                     Loại xe:
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                     {invoice.vehicleTypeName} {invoice.vehicleManufacturer && `(${invoice.vehicleManufacturer})`}
                   </Typography>
                 </Box>
                 {invoice.scheduledAt && (
                   <Box>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                       Ngày hẹn:
                     </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                       {formatDate(invoice.scheduledAt)}
                     </Typography>
                   </Box>
@@ -453,48 +453,216 @@ export const InvoiceView = () => {
           {/* Services & Parts Breakdown */}
           {invoice.maintenanceDetails && invoice.maintenanceDetails.length > 0 && (
             <Box sx={{ p: 3, borderBottom: "1px solid #e5e7eb", backgroundColor: "#f9fafb" }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.125rem", mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.375rem", mb: 2 }}>
                 Chi tiết dịch vụ & phụ tùng
               </Typography>
               {invoice.maintenanceDetails.map((maintenance, index) => (
                 <Box key={index} sx={{ mb: 3, '&:last-child': { mb: 0 } }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 600, color: "#3b82f6" }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: "#3b82f6", fontSize: "1.125rem" }}>
                       {index + 1}. {maintenance.serviceName}
                     </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                       {formatCurrency(maintenance.serviceCost)}
                     </Typography>
                   </Box>
                   {maintenance.partsUsed && maintenance.partsUsed.length > 0 && (
                     <Box sx={{ ml: 3, mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontSize: "0.9375rem" }}>
                         Phụ tùng sử dụng:
                       </Typography>
                       {maintenance.partsUsed.map((part, partIndex) => (
                         <Box 
                           key={partIndex} 
                           sx={{ 
-                            display: "grid", 
-                            gridTemplateColumns: "2fr 1fr 1fr 1fr", 
-                            gap: 1, 
-                            py: 0.75,
-                            fontSize: "0.875rem",
-                            alignItems: "center",
+                            display: "flex",
+                            flexDirection: "column",
+                            py: 1.5,
                             borderBottom: partIndex < maintenance.partsUsed.length - 1 ? "1px solid #e5e7eb" : "none",
-                            pb: partIndex < maintenance.partsUsed.length - 1 ? 0.75 : 0
+                            pb: partIndex < maintenance.partsUsed.length - 1 ? 1.5 : 0,
+                            backgroundColor: part.isUnderWarranty ? "#f0fdf4" : "transparent",
+                            borderRadius: 1.5,
+                            px: part.isUnderWarranty ? 1.5 : 0,
+                            border: part.isUnderWarranty ? "1px solid #d1fae5" : "none",
+                            gap: 1
                           }}
                         >
-                          <Typography variant="body2">• {part.partName}</Typography>
-                          <Typography variant="body2" sx={{ textAlign: "right" }}>
-                            SL: {part.quantity}
-                          </Typography>
-                          <Typography variant="body2" sx={{ textAlign: "right" }}>
-                            {formatCurrency(part.unitPrice)}
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600, textAlign: "right" }}>
-                            {formatCurrency(part.totalPrice)}
-                          </Typography>
+                          {/* Tên phụ tùng và badge */}
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" sx={{ fontSize: "1.1rem", fontWeight: part.isUnderWarranty ? 600 : 400 }}>
+                                • {part.partName}
+                              </Typography>
+                              {part.isUnderWarranty && (
+                                <Box sx={{ mt: 0.75, display: "flex", alignItems: "center", gap: 0.5 }}>
+                                  <Chip 
+                                    label={
+                                      part.warrantyDiscountType === "FREE" 
+                                        ? "✓ Miễn phí (Bảo hành)" 
+                                        : part.warrantyDiscountValue 
+                                          ? `✓ Giảm ${part.warrantyDiscountValue}% (Bảo hành)`
+                                          : "✓ Bảo hành"
+                                    }
+                                    size="small" 
+                                    sx={{ 
+                                      height: "24px",
+                                      fontSize: "0.8rem",
+                                      backgroundColor: "#10b981",
+                                      color: "white",
+                                      fontWeight: 600
+                                    }} 
+                                  />
+                                </Box>
+                              )}
+                            </Box>
+                            {!part.isUnderWarranty && (
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  fontWeight: 600, 
+                                  fontSize: "1.1rem",
+                                  color: "#111827"
+                                }}
+                              >
+                                {formatCurrency(part.totalPrice)}
+                              </Typography>
+                            )}
+                          </Box>
+                          
+                          {/* Chi tiết giá cho phụ tùng được bảo hành */}
+                          {part.isUnderWarranty && part.originalPrice && (
+                            <Box sx={{ 
+                              display: "grid", 
+                              gridTemplateColumns: "1fr 1fr 1fr 1fr", 
+                              gap: 1.5,
+                              mt: 0.5,
+                              pl: 2
+                            }}>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  Số lượng
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: "1rem", fontWeight: 500 }}>
+                                  {part.quantity}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  Đơn giá
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: "1rem", fontWeight: 500 }}>
+                                  {formatCurrency(part.unitPrice)}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  Giá gốc
+                                </Typography>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    textDecoration: "line-through", 
+                                    color: "#9ca3af",
+                                    fontSize: "1rem",
+                                    fontWeight: 500
+                                  }}
+                                >
+                                  {formatCurrency(part.originalPrice)}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  {part.warrantyDiscountType === "FREE" ? "Giảm giá" : part.warrantyDiscountValue ? `Giảm ${part.warrantyDiscountValue}%` : "Giảm giá"}
+                                </Typography>
+                                {part.warrantyDiscountAmount && part.warrantyDiscountAmount > 0 ? (
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      color: "#ef4444",
+                                      fontSize: "1rem",
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    -{formatCurrency(part.warrantyDiscountAmount)}
+                                  </Typography>
+                                ) : part.warrantyDiscountType === "FREE" ? (
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      color: "#10b981",
+                                      fontSize: "1rem",
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    Miễn phí
+                                  </Typography>
+                                ) : null}
+                              </Box>
+                            </Box>
+                          )}
+                          
+                          {/* Giá sau giảm cho phụ tùng được bảo hành */}
+                          {part.isUnderWarranty && (
+                            <Box sx={{ 
+                              display: "flex", 
+                              justifyContent: "space-between", 
+                              alignItems: "center",
+                              mt: 0.5,
+                              pt: 1,
+                              borderTop: "1px solid #d1fae5",
+                              pl: 2
+                            }}>
+                              <Typography variant="body2" sx={{ fontSize: "1rem", fontWeight: 600, color: "#374151" }}>
+                                Giá sau giảm:
+                              </Typography>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                  fontWeight: 700, 
+                                  fontSize: "1.25rem",
+                                  color: "#10b981"
+                                }}
+                              >
+                                {formatCurrency(part.totalPrice)}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {/* Thông tin cho phụ tùng không bảo hành */}
+                          {!part.isUnderWarranty && (
+                            <Box sx={{ 
+                              display: "grid", 
+                              gridTemplateColumns: "1fr 1fr 1fr 1fr", 
+                              gap: 1.5,
+                              mt: 0.5,
+                              pl: 2
+                            }}>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  Số lượng
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: "1rem", fontWeight: 500 }}>
+                                  {part.quantity}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  Đơn giá
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: "1rem", fontWeight: 500 }}>
+                                  {formatCurrency(part.unitPrice)}
+                                </Typography>
+                              </Box>
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.85rem", display: "block", mb: 0.25 }}>
+                                  Thành tiền
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: "1rem", fontWeight: 600 }}>
+                                  {formatCurrency(part.totalPrice)}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          )}
                         </Box>
                       ))}
                     </Box>
@@ -506,31 +674,31 @@ export const InvoiceView = () => {
 
           {/* Invoice Details */}
           <Box sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.125rem", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827", fontSize: "1.375rem", mb: 2 }}>
               Chi tiết hóa đơn
             </Typography>
             <Box sx={{ display: "grid", gap: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                   Ngày tạo:
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                   {formatDate(invoice.invoiceDate)}
                 </Typography>
               </Box>
               {invoice.dueDate && (
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                     Hạn thanh toán:
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, color: "#ef4444" }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "#ef4444", fontSize: "1.125rem" }}>
                     {formatDate(invoice.dueDate)}
                   </Typography>
                 </Box>
               )}
               {invoice.paymentMethodName && (
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
                     Phương thức thanh toán:
                   </Typography>
                   <Chip label={invoice.paymentMethodName} size="small" color="primary" />
@@ -538,26 +706,26 @@ export const InvoiceView = () => {
               )}
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                   Tổng tiền:
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: "#3b82f6" }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: "#3b82f6", fontSize: "1.5rem" }}>
                   {formatCurrency(invoice.totalAmount)}
                 </Typography>
               </Box>
               {isPaid && (
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "1.125rem" }}>
                     Đã thanh toán:
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: "#10b981" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "#10b981", fontSize: "1.375rem" }}>
                     {formatCurrency(invoice.paidAmount)}
                   </Typography>
                 </Box>
               )}
               {invoice.notes && (
                 <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: "1rem" }}>
                     Ghi chú:
                   </Typography>
                   <Box
@@ -568,7 +736,7 @@ export const InvoiceView = () => {
                       border: "1px solid #e5e7eb",
                     }}
                   >
-                    <Typography variant="body2">{invoice.notes}</Typography>
+                    <Typography variant="body2" sx={{ fontSize: "1rem" }}>{invoice.notes}</Typography>
                   </Box>
                 </Box>
               )}

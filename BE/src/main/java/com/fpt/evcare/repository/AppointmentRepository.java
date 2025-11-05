@@ -15,8 +15,23 @@ import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<AppointmentEntity, UUID> {
     AppointmentEntity findByAppointmentIdAndIsDeletedFalse(UUID appointmentId);
+    
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+        ORDER BY a.is_warranty_appointment DESC, a.scheduled_at DESC
+        """, nativeQuery = true)
     Page<AppointmentEntity> findByIsDeletedFalse(Pageable pageable);
-    Page<AppointmentEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
+    
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND LOWER(a.search) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY a.is_warranty_appointment DESC, a.scheduled_at DESC
+        """, nativeQuery = true)
+    Page<AppointmentEntity> findBySearchContainingIgnoreCaseAndIsDeletedFalse(@Param("keyword") String keyword, Pageable pageable);
 
     @Query(value = """
         SELECT a.* 
@@ -135,7 +150,7 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
           AND (:serviceMode IS NULL OR :serviceMode = '' OR UPPER(a.service_mode) = UPPER(:serviceMode))
           AND (:fromDate IS NULL OR a.scheduled_at >= CAST(:fromDate AS TIMESTAMP))
           AND (:toDate IS NULL OR a.scheduled_at <= CAST(:toDate AS TIMESTAMP))
-        ORDER BY a.scheduled_at DESC
+        ORDER BY a.is_warranty_appointment DESC, a.scheduled_at DESC
         """, nativeQuery = true)
     Page<AppointmentEntity> findAppointmentsWithFilters(
             @Param("keyword") String keyword,
@@ -158,16 +173,22 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
         """, nativeQuery = true)
     List<Object[]> countAppointmentsByMonth();
 
-    // Query để lấy danh sách warranty appointments (COMPLETED và isWarrantyAppointment = true)
-    // Sử dụng native query với cách so sánh boolean và enum đúng
+    // Query để lấy danh sách warranty appointments (COMPLETED appointments có CustomerWarrantyPart)
+    // Lấy tất cả appointments COMPLETED - warranty được xác định qua CustomerWarrantyPart
     @Query(value = """
-        SELECT a.* 
+        SELECT DISTINCT a.* 
         FROM appointments a
         WHERE a.is_deleted = FALSE
           AND a.is_active = TRUE
-          AND a.is_warranty_appointment = TRUE
           AND a.status = :status
           AND (:keyword IS NULL OR :keyword = '' OR LOWER(a.search) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND EXISTS (
+              SELECT 1 
+              FROM customer_warranty_parts cwp
+              WHERE cwp.appointment_id = a.id
+                AND cwp.is_deleted = FALSE
+                AND cwp.is_active = TRUE
+          )
         ORDER BY a.scheduled_at DESC
         """, nativeQuery = true)
     Page<AppointmentEntity> findWarrantyAppointments(
@@ -249,5 +270,73 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
           AND a.isActive = true
         """)
     Long countPendingAppointmentsByCustomerId(@Param("customerId") UUID customerId);
+
+    /**
+     * Tìm các appointment đã hoàn thành (COMPLETED) có thể dùng cho bảo hành
+     * Matching logic:
+     * - Nếu có customer_id: chỉ match theo customer_id
+     * - Nếu không có customer_id: phải match cả email VÀ phone number (khách vãng lai)
+     * Chỉ lấy các appointment đã COMPLETED (đã thanh toán xong)
+     */
+    @Query(value = """
+        SELECT a.* 
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.status = 'COMPLETED'
+          AND (
+              -- Nếu có customer_id: chỉ match theo customer_id
+              (:customerId IS NOT NULL AND a.customer_id = :customerId)
+              OR
+              -- Nếu không có customer_id: phải match cả email VÀ phone (khách vãng lai)
+              (
+                  :customerId IS NULL 
+                  AND a.customer_id IS NULL
+                  AND (:customerEmail IS NOT NULL AND :customerEmail != '' 
+                       AND LOWER(a.customer_email) = LOWER(:customerEmail))
+                  AND (:customerPhoneNumber IS NOT NULL AND :customerPhoneNumber != '' 
+                       AND a.customer_phone_number = :customerPhoneNumber)
+              )
+          )
+        ORDER BY a.scheduled_at DESC
+        """, nativeQuery = true)
+    List<AppointmentEntity> findWarrantyEligibleAppointmentsByCustomer(
+            @Param("customerId") UUID customerId,
+            @Param("customerEmail") String customerEmail,
+            @Param("customerPhoneNumber") String customerPhoneNumber,
+            @Param("customerFullName") String customerFullName);
+
+    /**
+     * Kiểm tra xem customer có appointment đã hoàn thành trong danh sách bảo hành không
+     * Matching logic:
+     * - Nếu có customer_id: chỉ match theo customer_id
+     * - Nếu không có customer_id: phải match cả email VÀ phone number (khách vãng lai)
+     */
+    @Query(value = """
+        SELECT COUNT(*) > 0
+        FROM appointments a
+        WHERE a.is_deleted = FALSE
+          AND a.is_active = TRUE
+          AND a.status = 'COMPLETED'
+          AND (
+              -- Nếu có customer_id: chỉ match theo customer_id
+              (:customerId IS NOT NULL AND a.customer_id = :customerId)
+              OR
+              -- Nếu không có customer_id: phải match cả email VÀ phone (khách vãng lai)
+              (
+                  :customerId IS NULL 
+                  AND a.customer_id IS NULL
+                  AND (:customerEmail IS NOT NULL AND :customerEmail != '' 
+                       AND LOWER(a.customer_email) = LOWER(:customerEmail))
+                  AND (:customerPhoneNumber IS NOT NULL AND :customerPhoneNumber != '' 
+                       AND a.customer_phone_number = :customerPhoneNumber)
+              )
+          )
+        """, nativeQuery = true)
+    boolean hasWarrantyEligibleAppointment(
+            @Param("customerId") UUID customerId,
+            @Param("customerEmail") String customerEmail,
+            @Param("customerPhoneNumber") String customerPhoneNumber,
+            @Param("customerFullName") String customerFullName);
 
 }

@@ -246,4 +246,10 @@ public class AppointmentConstants {
     public static final String LOG_INFO_DELETED_OLD_OTP = "Đã xóa mã OTP cũ cho appointment {} và email {}";
     public static final String LOG_ERR_FAILED_SEND_OTP_EMAIL = "Failed to send OTP email for appointment {}: {}";
     public static final String MESSAGE_ERR_CANNOT_SEND_OTP_EMAIL = "Không thể gửi email OTP. Vui lòng thử lại sau.";
+    
+    // Warranty eligibility check
+    public static final String CHECK_WARRANTY_ELIGIBILITY = "/check-warranty-eligibility";
+    public static final String MESSAGE_SUCCESS_CHECKING_WARRANTY_ELIGIBILITY = "Kiểm tra bảo hành thành công";
+    public static final String LOG_INFO_CHECKING_WARRANTY_ELIGIBILITY = "Đang kiểm tra bảo hành cho customer";
+    public static final String LOG_SUCCESS_CHECKED_WARRANTY_ELIGIBILITY = "Kiểm tra bảo hành thành công";
 }

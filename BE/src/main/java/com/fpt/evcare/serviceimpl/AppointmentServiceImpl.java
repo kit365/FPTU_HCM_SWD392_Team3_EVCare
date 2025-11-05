@@ -59,6 +59,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     MaintenanceRecordRepository maintenanceRecordRepository;
     MaintenanceManagementRepository maintenanceManagementRepository;
     WarrantyPartRepository warrantyPartRepository;
+    com.fpt.evcare.repository.CustomerWarrantyPartRepository customerWarrantyPartRepository;
     EmailService emailService;
     InvoiceRepository invoiceRepository;
     InvoiceMapper invoiceMapper;
@@ -166,32 +167,19 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointmentResponse.setQuotePrice(appointmentEntity.getQuotePrice());
         }
 
-        // Map originalAppointment nếu đây là appointment bảo hành
-        if (appointmentEntity.getOriginalAppointment() != null) {
-            AppointmentEntity originalAppointmentEntity = appointmentEntity.getOriginalAppointment();
-            AppointmentResponse originalAppointmentResponse = appointmentMapper.toResponse(originalAppointmentEntity);
-            // Map customer, technicians, assignee, serviceTypes, vehicleType cho originalAppointment
-            if (originalAppointmentEntity.getCustomer() != null) {
-                UserResponse originalCustomerResponse = new UserResponse();
-                originalCustomerResponse.setUserId(originalAppointmentEntity.getCustomer().getUserId());
-                originalAppointmentResponse.setCustomer(originalCustomerResponse);
+        // ✅ Tìm original appointment nếu đây là warranty appointment
+        if (Boolean.TRUE.equals(appointmentEntity.getIsWarrantyAppointment())) {
+            AppointmentEntity originalAppointment = findOriginalAppointmentForWarranty(appointmentEntity);
+            if (originalAppointment != null) {
+                AppointmentResponse originalResponse = appointmentMapper.toResponse(originalAppointment);
+                originalResponse.setAppointmentId(originalAppointment.getAppointmentId());
+                originalResponse.setCustomerFullName(originalAppointment.getCustomerFullName());
+                originalResponse.setCustomerEmail(originalAppointment.getCustomerEmail());
+                originalResponse.setCustomerPhoneNumber(originalAppointment.getCustomerPhoneNumber());
+                originalResponse.setScheduledAt(originalAppointment.getScheduledAt());
+                originalResponse.setStatus(originalAppointment.getStatus());
+                appointmentResponse.setOriginalAppointment(originalResponse);
             }
-            List<UserResponse> originalTechnicians = new ArrayList<>();
-            originalAppointmentEntity.getTechnicianEntities().forEach(technician -> {
-                originalTechnicians.add(mapUserEntityToResponse(technician));
-            });
-            originalAppointmentResponse.setTechnicianResponses(originalTechnicians);
-            originalAppointmentResponse.setAssignee(mapUserEntityToResponse(originalAppointmentEntity.getAssignee()));
-            originalAppointmentResponse.setServiceTypeResponses(getServiceTypeResponsesForAppointment(originalAppointmentEntity));
-            VehicleTypeResponse originalVehicleTypeResponse = new VehicleTypeResponse();
-            if (originalAppointmentEntity.getVehicleTypeEntity() != null) {
-                originalVehicleTypeResponse.setVehicleTypeId(originalAppointmentEntity.getVehicleTypeEntity().getVehicleTypeId());
-                originalVehicleTypeResponse.setVehicleTypeName(originalAppointmentEntity.getVehicleTypeEntity().getVehicleTypeName());
-                originalVehicleTypeResponse.setManufacturer(originalAppointmentEntity.getVehicleTypeEntity().getManufacturer());
-                originalVehicleTypeResponse.setModelYear(originalAppointmentEntity.getVehicleTypeEntity().getModelYear());
-            }
-            originalAppointmentResponse.setVehicleTypeResponse(originalVehicleTypeResponse);
-            appointmentResponse.setOriginalAppointment(originalAppointmentResponse);
         }
 
         log.info(AppointmentConstants.LOG_INFO_SHOWING_APPOINTMENT + id);
@@ -674,6 +662,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         appointmentEntity.setStatus(AppointmentStatusEnum.PENDING);
 
+        // Set isWarrantyAppointment nếu có trong request
+        if (creationAppointmentRequest.getIsWarrantyAppointment() != null) {
+            appointmentEntity.setIsWarrantyAppointment(creationAppointmentRequest.getIsWarrantyAppointment());
+        } else {
+            appointmentEntity.setIsWarrantyAppointment(false);
+        }
+
         // Set loại dịch vụ được chọn trong bảng
         List<ServiceTypeEntity> serviceTypeEntityList = creationAppointmentRequest.getServiceTypeIds().stream().map(serviceTypeId -> {
             ServiceTypeEntity serviceType = serviceTypeRepository.findByServiceTypeIdAndIsDeletedFalse(serviceTypeId);
@@ -708,40 +703,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         checkValidScheduleDate(creationAppointmentRequest.getScheduledAt());
         appointmentEntity.setScheduledAt(creationAppointmentRequest.getScheduledAt());
 
-        // Xử lý logic tạo appointment bảo hành
-        Boolean isWarrantyAppointment = creationAppointmentRequest.getIsWarrantyAppointment() != null 
-                && creationAppointmentRequest.getIsWarrantyAppointment();
-        
-        log.info("🔍 Creating appointment - isWarrantyAppointment: {}, originalAppointmentId: {}", 
-                isWarrantyAppointment, creationAppointmentRequest.getOriginalAppointmentId());
-        
-        appointmentEntity.setIsWarrantyAppointment(isWarrantyAppointment);
-
-        if (isWarrantyAppointment && creationAppointmentRequest.getOriginalAppointmentId() != null) {
-            // Validate appointment gốc đã completed
-            AppointmentEntity originalAppointment = appointmentRepository
-                    .findByAppointmentIdAndIsDeletedFalse(creationAppointmentRequest.getOriginalAppointmentId());
-            if (originalAppointment == null) {
-                log.warn("❌ Không tìm thấy appointment gốc: {}", creationAppointmentRequest.getOriginalAppointmentId());
-                throw new ResourceNotFoundException("Không tìm thấy appointment gốc để tạo appointment bảo hành");
-            }
-            if (originalAppointment.getStatus() != AppointmentStatusEnum.COMPLETED) {
-                log.warn("❌ Appointment gốc chưa completed: {}", originalAppointment.getStatus());
-                throw new EntityValidationException("Chỉ có thể tạo appointment bảo hành từ appointment đã hoàn thành");
-            }
-            // Link appointment mới với appointment gốc
-            appointmentEntity.setOriginalAppointment(originalAppointment);
-            log.info("✅ Tạo appointment bảo hành từ appointment gốc: {} - Warranty appointment ID sẽ là: {}", 
-                    originalAppointment.getAppointmentId(), appointmentEntity.getAppointmentId());
-        } else if (isWarrantyAppointment && creationAppointmentRequest.getOriginalAppointmentId() == null) {
-            log.warn("❌ Thiếu originalAppointmentId khi tạo appointment bảo hành");
-            throw new EntityValidationException("Cần cung cấp originalAppointmentId khi tạo appointment bảo hành");
-        } else {
-            // Appointment thông thường
-            appointmentEntity.setIsWarrantyAppointment(false);
-            appointmentEntity.setOriginalAppointment(null);
-        }
-
         //Ghép các thông tin lại
         String search = UtilFunction.concatenateSearchField(
                 appointmentEntity.getCustomerFullName(),
@@ -754,15 +715,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 creationAppointmentRequest.getCustomerId() != null ? creationAppointmentRequest.getCustomerId() : "GUEST");
         AppointmentEntity savedEntity = appointmentRepository.save(appointmentEntity);
         appointmentRepository.flush(); // Flush để đảm bảo dữ liệu được ghi vào database ngay lập tức
-        
-        // Log thông tin warranty appointment sau khi save
-        if (Boolean.TRUE.equals(savedEntity.getIsWarrantyAppointment())) {
-            log.info("✅ Warranty appointment saved successfully - ID: {}, Status: {}, isWarranty: {}, OriginalAppt: {}", 
-                    savedEntity.getAppointmentId(),
-                    savedEntity.getStatus(),
-                    savedEntity.getIsWarrantyAppointment(),
-                    savedEntity.getOriginalAppointment() != null ? savedEntity.getOriginalAppointment().getAppointmentId() : "null");
-        }
         
         log.info(AppointmentConstants.LOG_INFO_SAVED_APPOINTMENT, 
                 savedEntity.getAppointmentId(), 
@@ -1990,32 +1942,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         
         // Debug: log các appointment tìm được
         if (!appointmentEntityPage.getContent().isEmpty()) {
-            appointmentEntityPage.getContent().forEach(apt -> {
-                log.info("📋 Warranty Appointment: ID={}, Status={}, isWarranty={}, OriginalAppt={}", 
-                        apt.getAppointmentId(), 
-                        apt.getStatus(), 
-                        apt.getIsWarrantyAppointment(),
-                        apt.getOriginalAppointment() != null ? apt.getOriginalAppointment().getAppointmentId() : "null");
-            });
+            log.info("📋 Found {} warranty appointments with keyword: {} and status: COMPLETED", 
+                    appointmentEntityPage.getContent().size(), searchKeyword);
         } else {
             log.warn("⚠️ No warranty appointments found with keyword: {} and status: COMPLETED", searchKeyword);
-            // Debug: Thử query tất cả warranty appointments (không cần COMPLETED) để xem có warranty appointments nào không
-            try {
-                List<AppointmentEntity> allWarranty = appointmentRepository.findAll().stream()
-                    .filter(a -> Boolean.TRUE.equals(a.getIsWarrantyAppointment()) 
-                        && !a.getIsDeleted() 
-                        && a.getIsActive())
-                    .toList();
-                log.info("🔍 Debug: Total warranty appointments (all statuses): {}", allWarranty.size());
-                if (!allWarranty.isEmpty()) {
-                    log.info("🔍 Debug: Warranty appointments statuses: {}", 
-                        allWarranty.stream()
-                            .map(a -> a.getAppointmentId() + "=" + a.getStatus() + "(isWarranty=" + a.getIsWarrantyAppointment() + ")")
-                            .collect(java.util.stream.Collectors.joining(", ")));
-                }
-            } catch (Exception e) {
-                log.error("Error debugging warranty appointments: {}", e.getMessage(), e);
-            }
         }
         
         // Force initialization of lazy-loaded relationships within transaction
@@ -2054,10 +1984,19 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentResponse.setVehicleTypeResponse(vehicleTypeResponse);
             }
             
-            // Map original appointment if exists
-            if (appointmentEntity.getOriginalAppointment() != null) {
-                AppointmentResponse originalResponse = appointmentMapper.toResponse(appointmentEntity.getOriginalAppointment());
-                appointmentResponse.setOriginalAppointment(originalResponse);
+            // ✅ Tìm original appointment nếu đây là warranty appointment
+            if (Boolean.TRUE.equals(appointmentEntity.getIsWarrantyAppointment())) {
+                AppointmentEntity originalAppointment = findOriginalAppointmentForWarranty(appointmentEntity);
+                if (originalAppointment != null) {
+                    AppointmentResponse originalResponse = appointmentMapper.toResponse(originalAppointment);
+                    originalResponse.setAppointmentId(originalAppointment.getAppointmentId());
+                    originalResponse.setCustomerFullName(originalAppointment.getCustomerFullName());
+                    originalResponse.setCustomerEmail(originalAppointment.getCustomerEmail());
+                    originalResponse.setCustomerPhoneNumber(originalAppointment.getCustomerPhoneNumber());
+                    originalResponse.setScheduledAt(originalAppointment.getScheduledAt());
+                    originalResponse.setStatus(originalAppointment.getStatus());
+                    appointmentResponse.setOriginalAppointment(originalResponse);
+                }
             }
             
             return appointmentResponse;
@@ -2069,6 +2008,76 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .totalElements(appointmentEntityPage.getTotalElements())
                 .totalPages(appointmentEntityPage.getTotalPages())
                 .build();
+    }
+
+    /**
+     * Tìm original appointment cho warranty appointment
+     * Logic: Tìm CustomerWarrantyPart với cùng customer và vehicle parts, lấy appointment gốc
+     */
+    private AppointmentEntity findOriginalAppointmentForWarranty(AppointmentEntity warrantyAppointment) {
+        try {
+            // Lấy thông tin customer
+            UUID customerId = warrantyAppointment.getCustomer() != null ? warrantyAppointment.getCustomer().getUserId() : null;
+            String customerEmail = warrantyAppointment.getCustomerEmail();
+            String customerPhoneNumber = warrantyAppointment.getCustomerPhoneNumber();
+            
+            // Lấy maintenance records của warranty appointment để biết vehicle parts nào được sử dụng
+            List<MaintenanceManagementEntity> maintenanceManagements = maintenanceManagementRepository
+                    .findByAppointmentIdAndIsDeletedFalse(warrantyAppointment.getAppointmentId());
+            
+            if (maintenanceManagements == null || maintenanceManagements.isEmpty()) {
+                log.debug("⚠️ No maintenance managements found for warranty appointment: {}", warrantyAppointment.getAppointmentId());
+                return null;
+            }
+            
+            // Lấy danh sách vehicle part IDs từ maintenance records
+            Set<UUID> vehiclePartIds = new HashSet<>();
+            for (MaintenanceManagementEntity mm : maintenanceManagements) {
+                for (MaintenanceRecordEntity record : mm.getMaintenanceRecords()) {
+                    if (record.getVehiclePart() != null && record.getVehiclePart().getVehiclePartId() != null) {
+                        vehiclePartIds.add(record.getVehiclePart().getVehiclePartId());
+                    }
+                }
+            }
+            
+            if (vehiclePartIds.isEmpty()) {
+                log.debug("⚠️ No vehicle parts found in maintenance records for warranty appointment: {}", warrantyAppointment.getAppointmentId());
+                return null;
+            }
+            
+            // Tìm CustomerWarrantyPart với cùng customer và một trong các vehicle parts
+            // Lấy appointment gốc từ CustomerWarrantyPart đầu tiên tìm được
+            for (UUID vehiclePartId : vehiclePartIds) {
+                Optional<CustomerWarrantyPartEntity> customerWarrantyOpt = customerWarrantyPartRepository
+                        .findActiveWarrantyByCustomerAndVehiclePart(
+                                customerId,
+                                customerEmail,
+                                customerPhoneNumber,
+                                vehiclePartId,
+                                LocalDateTime.now()
+                        );
+                
+                if (customerWarrantyOpt.isPresent()) {
+                    CustomerWarrantyPartEntity customerWarranty = customerWarrantyOpt.get();
+                    if (customerWarranty.getAppointment() != null && 
+                        !customerWarranty.getAppointment().getAppointmentId().equals(warrantyAppointment.getAppointmentId())) {
+                        // Đây là appointment gốc
+                        AppointmentEntity originalAppointment = customerWarranty.getAppointment();
+                        initializeAppointmentRelations(originalAppointment);
+                        log.info("✅ Found original appointment {} for warranty appointment {}", 
+                                originalAppointment.getAppointmentId(), warrantyAppointment.getAppointmentId());
+                        return originalAppointment;
+                    }
+                }
+            }
+            
+            log.debug("⚠️ No original appointment found for warranty appointment: {}", warrantyAppointment.getAppointmentId());
+            return null;
+        } catch (Exception e) {
+            log.error("❌ Error finding original appointment for warranty appointment {}: {}", 
+                    warrantyAppointment.getAppointmentId(), e.getMessage(), e);
+            return null;
+        }
     }
 
     /**
@@ -2176,18 +2185,32 @@ public class AppointmentServiceImpl implements AppointmentService {
                                 .orElse(null);
                             
                             if (warrantyPart != null) {
-                                // Kiểm tra xem có phải warranty appointment và có original appointment không
-                                boolean isWarrantyAppointment = Boolean.TRUE.equals(appointment.getIsWarrantyAppointment());
-                                boolean hasOriginalAppointment = appointment.getOriginalAppointment() != null;
-                                
-                                if (isWarrantyAppointment && hasOriginalAppointment) {
-                                    // Kiểm tra customer và service có khớp với original appointment không
-                                    AppointmentEntity originalAppointment = appointment.getOriginalAppointment();
-                                    boolean customerMatches = checkCustomerMatchesForWarranty(appointment, originalAppointment);
-                                    boolean servicesMatch = checkServicesMatchForWarranty(appointment, originalAppointment);
-                                    boolean partInOriginal = checkPartInOriginalAppointmentForWarranty(vehiclePartId, originalAppointment);
+                                // ✅ CHỈ áp dụng warranty discount nếu appointment có isWarrantyAppointment = true
+                                if (Boolean.TRUE.equals(appointment.getIsWarrantyAppointment())) {
+                                    // Kiểm tra warranty dựa trên CustomerWarrantyPart (logic mới)
+                                    UUID customerId = appointment.getCustomer() != null ? appointment.getCustomer().getUserId() : null;
+                                    String customerEmail = appointment.getCustomerEmail();
+                                    String customerPhoneNumber = appointment.getCustomerPhoneNumber();
                                     
-                                    if (customerMatches && servicesMatch && partInOriginal) {
+                                    // Tìm CustomerWarrantyPart active cho customer và phụ tùng này
+                                    // CHỈ áp dụng warranty nếu đã có appointment COMPLETED trước đó (không phải appointment hiện tại)
+                                    com.fpt.evcare.entity.CustomerWarrantyPartEntity customerWarranty = customerWarrantyPartRepository
+                                            .findActiveWarrantyByCustomerAndVehiclePart(
+                                                    customerId,
+                                                    customerEmail,
+                                                    customerPhoneNumber,
+                                                    vehiclePartId,
+                                                    java.time.LocalDateTime.now()
+                                            )
+                                            .orElse(null);
+                                    
+                                    // Đảm bảo warranty đến từ appointment KHÁC appointment hiện tại
+                                    // (Warranty chỉ được áp dụng từ appointment thứ 2 trở đi)
+                                    if (customerWarranty != null && 
+                                        customerWarranty.getAppointment() != null &&
+                                        !customerWarranty.getAppointment().getAppointmentId().equals(appointment.getAppointmentId())) {
+                                        
+                                        // Customer có warranty active cho phụ tùng này từ appointment trước đó
                                         isUnderWarranty = true;
                                         warrantyDiscountType = warrantyPart.getDiscountType().name();
                                         
@@ -2200,7 +2223,16 @@ public class AppointmentServiceImpl implements AppointmentService {
                                             warrantyDiscountAmount = originalPrice;
                                             totalPrice = java.math.BigDecimal.ZERO;
                                         }
+                                    } else if (customerWarranty != null && 
+                                               customerWarranty.getAppointment() != null &&
+                                               customerWarranty.getAppointment().getAppointmentId().equals(appointment.getAppointmentId())) {
+                                        // Warranty đến từ chính appointment hiện tại -> không áp dụng (đây là appointment đầu tiên)
+                                        log.debug("⚠️ Skipping warranty discount - warranty from current appointment {} (first appointment, no discount applied)", 
+                                                appointment.getAppointmentId());
                                     }
+                                } else {
+                                    log.debug("⚠️ Skipping warranty discount - appointment {} is not a warranty appointment (isWarrantyAppointment = false)", 
+                                            appointment.getAppointmentId());
                                 }
                             }
                         }
@@ -2230,78 +2262,58 @@ public class AppointmentServiceImpl implements AppointmentService {
         return maintenanceDetails;
     }
 
-    /**
-     * Helper methods for warranty checking (reused from MaintenanceManagementServiceImpl logic)
-     */
-    private boolean checkCustomerMatchesForWarranty(AppointmentEntity currentAppointment, AppointmentEntity originalAppointment) {
-        if (currentAppointment.getCustomer() != null && originalAppointment.getCustomer() != null) {
-            if (currentAppointment.getCustomer().getUserId().equals(originalAppointment.getCustomer().getUserId())) {
-                return true;
-            }
-        }
-        if (currentAppointment.getCustomerFullName() != null && originalAppointment.getCustomerFullName() != null) {
-            if (currentAppointment.getCustomerFullName().equalsIgnoreCase(originalAppointment.getCustomerFullName())) {
-                return true;
-            }
-        }
-        if (currentAppointment.getCustomerEmail() != null && originalAppointment.getCustomerEmail() != null) {
-            if (currentAppointment.getCustomerEmail().equalsIgnoreCase(originalAppointment.getCustomerEmail())) {
-                return true;
-            }
-        }
-        if (currentAppointment.getCustomerPhoneNumber() != null && originalAppointment.getCustomerPhoneNumber() != null) {
-            if (currentAppointment.getCustomerPhoneNumber().equals(originalAppointment.getCustomerPhoneNumber())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean checkServicesMatchForWarranty(AppointmentEntity currentAppointment, AppointmentEntity originalAppointment) {
-        java.util.List<com.fpt.evcare.entity.ServiceTypeEntity> currentServices = currentAppointment.getServiceTypeEntities();
-        java.util.List<com.fpt.evcare.entity.ServiceTypeEntity> originalServices = originalAppointment.getServiceTypeEntities();
+    @Override
+    @Transactional(readOnly = true)
+    public com.fpt.evcare.dto.response.WarrantyEligibilityResponse checkWarrantyEligibility(
+            com.fpt.evcare.dto.request.appointment.CheckWarrantyEligibilityRequest request) {
         
-        if (currentServices == null || originalServices == null || currentServices.isEmpty() || originalServices.isEmpty()) {
-            return false;
-        }
-        if (currentServices.size() != originalServices.size()) {
-            return false;
-        }
-        java.util.List<UUID> currentServiceIds = currentServices.stream()
-                .map(com.fpt.evcare.entity.ServiceTypeEntity::getServiceTypeId)
-                .sorted()
-                .toList();
-        java.util.List<UUID> originalServiceIds = originalServices.stream()
-                .map(com.fpt.evcare.entity.ServiceTypeEntity::getServiceTypeId)
-                .sorted()
-                .toList();
-        return currentServiceIds.equals(originalServiceIds);
-    }
-
-    private boolean checkPartInOriginalAppointmentForWarranty(UUID vehiclePartId, AppointmentEntity originalAppointment) {
-        java.util.List<com.fpt.evcare.entity.MaintenanceManagementEntity> originalMaintenanceManagements = maintenanceManagementRepository
-                .findByAppointmentIdAndIsDeletedFalse(originalAppointment.getAppointmentId());
+        log.info("🔍 Checking warranty eligibility for customer - customerId: {}, email: {}, phone: {}, fullName: {}", 
+                request.getCustomerId(), request.getCustomerEmail(), request.getCustomerPhoneNumber(), request.getCustomerFullName());
         
-        if (originalMaintenanceManagements == null || originalMaintenanceManagements.isEmpty()) {
-            return false;
-        }
+        // Tìm các appointment đã hoàn thành (COMPLETED) matching với customer
+        List<AppointmentEntity> warrantyEligibleAppointments = appointmentRepository
+                .findWarrantyEligibleAppointmentsByCustomer(
+                        request.getCustomerId(),
+                        request.getCustomerEmail(),
+                        request.getCustomerPhoneNumber(),
+                        request.getCustomerFullName()
+                );
         
-        for (com.fpt.evcare.entity.MaintenanceManagementEntity maintenanceManagement : originalMaintenanceManagements) {
-            java.util.List<com.fpt.evcare.entity.MaintenanceRecordEntity> maintenanceRecords = maintenanceManagement.getMaintenanceRecords();
-            if (maintenanceRecords == null || maintenanceRecords.isEmpty()) {
-                continue;
-            }
-            for (com.fpt.evcare.entity.MaintenanceRecordEntity record : maintenanceRecords) {
-                if (record.getVehiclePart() != null && 
-                    record.getVehiclePart().getVehiclePartId().equals(vehiclePartId) &&
-                    Boolean.TRUE.equals(record.getApprovedByUser())) {
-                    com.fpt.evcare.entity.WarrantyPartEntity warrantyPart = warrantyPartRepository
-                            .findByVehiclePartVehiclePartIdAndIsDeletedFalseAndIsActiveTrue(vehiclePartId)
-                            .orElse(null);
-                    return warrantyPart != null;
-                }
-            }
-        }
-        return false;
+        boolean hasWarranty = !warrantyEligibleAppointments.isEmpty();
+        int totalCount = warrantyEligibleAppointments.size();
+        
+        log.info("✅ Found {} warranty eligible appointment(s) for customer", totalCount);
+        
+        // Map appointments to summary
+        List<com.fpt.evcare.dto.response.WarrantyEligibilityResponse.WarrantyAppointmentSummary> summaries = 
+                warrantyEligibleAppointments.stream()
+                        .map(appointment -> {
+                            // Lấy danh sách service names
+                            List<String> serviceNames = new ArrayList<>();
+                            if (appointment.getServiceTypeEntities() != null && !appointment.getServiceTypeEntities().isEmpty()) {
+                                serviceNames = appointment.getServiceTypeEntities().stream()
+                                        .map(ServiceTypeEntity::getServiceName)
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList());
+                            }
+                            
+                            return com.fpt.evcare.dto.response.WarrantyEligibilityResponse.WarrantyAppointmentSummary.builder()
+                                    .appointmentId(appointment.getAppointmentId())
+                                    .customerFullName(appointment.getCustomerFullName())
+                                    .customerEmail(appointment.getCustomerEmail())
+                                    .customerPhoneNumber(appointment.getCustomerPhoneNumber())
+                                    .vehicleNumberPlate(appointment.getVehicleNumberPlate())
+                                    .scheduledAt(appointment.getScheduledAt() != null ? 
+                                            appointment.getScheduledAt().toString() : null)
+                                    .serviceNames(serviceNames)
+                                    .build();
+                        })
+                        .collect(Collectors.toList());
+        
+        return com.fpt.evcare.dto.response.WarrantyEligibilityResponse.builder()
+                .hasWarrantyEligibleAppointments(hasWarranty)
+                .totalWarrantyEligibleAppointments(totalCount)
+                .warrantyAppointments(summaries)
+                .build();
     }
 }

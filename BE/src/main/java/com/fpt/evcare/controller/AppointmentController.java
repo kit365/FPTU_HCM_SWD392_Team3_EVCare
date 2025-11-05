@@ -264,6 +264,26 @@ public class AppointmentController {
                 );
     }
 
+    @PostMapping(AppointmentConstants.CHECK_WARRANTY_ELIGIBILITY)
+    @Operation(summary = "Kiểm tra xem customer có appointment trong danh sách bảo hành không", 
+            description = "🔓 **Public** - Kiểm tra warranty eligibility dựa trên customer_id, email, phone, hoặc full_name. " +
+                    "Matching theo: customer_id (nếu có), customer_email, customer_phone_number, hoặc customer_full_name")
+    public ResponseEntity<ApiResponse<com.fpt.evcare.dto.response.WarrantyEligibilityResponse>> checkWarrantyEligibility(
+            @RequestBody @Valid com.fpt.evcare.dto.request.appointment.CheckWarrantyEligibilityRequest request) {
+        
+        log.info(AppointmentConstants.LOG_INFO_CHECKING_WARRANTY_ELIGIBILITY);
+        com.fpt.evcare.dto.response.WarrantyEligibilityResponse response = appointmentService.checkWarrantyEligibility(request);
+        
+        log.info(AppointmentConstants.LOG_SUCCESS_CHECKED_WARRANTY_ELIGIBILITY);
+        return ResponseEntity
+                .ok(ApiResponse.<com.fpt.evcare.dto.response.WarrantyEligibilityResponse>builder()
+                        .success(true)
+                        .message(AppointmentConstants.MESSAGE_SUCCESS_CHECKING_WARRANTY_ELIGIBILITY)
+                        .data(response)
+                        .build()
+                );
+    }
+
     @GetMapping(AppointmentConstants.APPOINTMENT_BY_USER_ID)
     @Operation(summary = "Lấy thông tin cuộc hẹn của người dùng ", description = "👨‍💼 **Roles:** ADMIN, STAFF - Show thông tin cụ thể 1 cuộc hẹn của người dùng đó")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")

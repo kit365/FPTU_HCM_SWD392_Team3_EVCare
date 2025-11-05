@@ -152,6 +152,7 @@ export interface CreateAppointmentRequest {
   scheduledAt: string;
   notes?: string;
   serviceTypeIds: string[];
+  isWarrantyAppointment?: boolean;
 }
 
 // Create Appointment Response
@@ -209,6 +210,7 @@ export interface UserAppointment {
   updatedBy: string;
   technicianResponses: UserResponse[];
   serviceTypeResponses: ServiceType[];
+  isWarrantyAppointment?: boolean;
 }
 
 export interface UserAppointmentListData {
